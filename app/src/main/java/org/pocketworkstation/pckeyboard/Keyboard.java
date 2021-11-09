@@ -28,6 +28,9 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.util.Xml;
 import android.util.DisplayMetrics;
+import android.view.Display;
+import android.view.Surface;
+import android.view.WindowManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,6 +58,7 @@ import java.util.StringTokenizer;
  *     ...
  * &lt;/Keyboard&gt;
  * </pre>
+ *
  * @attr ref android.R.styleable#Keyboard_keyWidth
  * @attr ref android.R.styleable#Keyboard_keyHeight
  * @attr ref android.R.styleable#Keyboard_horizontalGap
@@ -89,25 +93,33 @@ public class Keyboard {
     public static final int DEFAULT_LAYOUT_COLUMNS = 10;
 
     // Flag values for popup key contents. Keep in sync with strings.xml values.
-    public static final int POPUP_ADD_SHIFT = 1; 
-    public static final int POPUP_ADD_CASE = 2; 
-    public static final int POPUP_ADD_SELF = 4; 
-    public static final int POPUP_DISABLE = 256; 
-    public static final int POPUP_AUTOREPEAT = 512; 
+    public static final int POPUP_ADD_SHIFT = 1;
+    public static final int POPUP_ADD_CASE = 2;
+    public static final int POPUP_ADD_SELF = 4;
+    public static final int POPUP_DISABLE = 256;
+    public static final int POPUP_AUTOREPEAT = 512;
 
-    /** Horizontal gap default for all rows */
+    /**
+     * Horizontal gap default for all rows
+     */
     private float mDefaultHorizontalGap;
 
     private float mHorizontalPad;
     private float mVerticalPad;
 
-    /** Default key width */
+    /**
+     * Default key width
+     */
     private float mDefaultWidth;
 
-    /** Default key height */
+    /**
+     * Default key height
+     */
     private int mDefaultHeight;
 
-    /** Default gap between rows */
+    /**
+     * Default gap between rows
+     */
     private int mDefaultVerticalGap;
 
     public static final int SHIFT_OFF = 0;
@@ -115,20 +127,28 @@ public class Keyboard {
     public static final int SHIFT_LOCKED = 2;
     public static final int SHIFT_CAPS = 3;
     public static final int SHIFT_CAPS_LOCKED = 4;
-    
-    /** Is the keyboard in the shifted state */
+
+    /**
+     * Is the keyboard in the shifted state
+     */
     private int mShiftState = SHIFT_OFF;
 
-    /** Key instance for the shift key, if present */
+    /**
+     * Key instance for the shift key, if present
+     */
     private Key mShiftKey;
     private Key mAltKey;
     private Key mCtrlKey;
     private Key mMetaKey;
 
-    /** Key index for the shift key, if present */
+    /**
+     * Key index for the shift key, if present
+     */
     private int mShiftKeyIndex = -1;
 
-    /** Total height of the keyboard, including the padding and keys */
+    /**
+     * Total height of the keyboard, including the padding and keys
+     */
     private int mTotalHeight;
 
     /**
@@ -137,22 +157,32 @@ public class Keyboard {
      */
     private int mTotalWidth;
 
-    /** List of keys in this keyboard */
+    /**
+     * List of keys in this keyboard
+     */
     private List<Key> mKeys;
 
-    /** List of modifier keys such as Shift & Alt, if any */
+    /**
+     * List of modifier keys such as Shift & Alt, if any
+     */
     private List<Key> mModifierKeys;
 
-    /** Width of the screen available to fit the keyboard */
+    /**
+     * Width of the screen available to fit the keyboard
+     */
     private int mDisplayWidth;
 
-    /** Height of the screen and keyboard */
+    /**
+     * Height of the screen and keyboard
+     */
     private int mDisplayHeight;
     private int mKeyboardHeight;
 
-    /** Keyboard mode, or zero, if none.  */
+    /**
+     * Keyboard mode, or zero, if none.
+     */
     private int mKeyboardMode;
-    
+
     private boolean mUseExtension;
 
     public int mLayoutRows;
@@ -165,13 +195,16 @@ public class Keyboard {
     private int mCellHeight;
     private int[][] mGridNeighbors;
     private int mProximityThreshold;
-    /** Number of key widths from current touch point to search for nearest keys. */
+    /**
+     * Number of key widths from current touch point to search for nearest keys.
+     */
     private static float SEARCH_DISTANCE = 1.8f;
 
     /**
      * Container for keys in the keyboard. All keys in a row are at the same Y-coordinate.
      * Some of the key size defaults can be overridden per row from what the {@link Keyboard}
      * defines.
+     *
      * @attr ref android.R.styleable#Keyboard_keyWidth
      * @attr ref android.R.styleable#Keyboard_keyHeight
      * @attr ref android.R.styleable#Keyboard_horizontalGap
@@ -179,18 +212,28 @@ public class Keyboard {
      * @attr ref android.R.styleable#Keyboard_Row_keyboardMode
      */
     public static class Row {
-        /** Default width of a key in this row. */
+        /**
+         * Default width of a key in this row.
+         */
         public float defaultWidth;
-        /** Default height of a key in this row. */
+        /**
+         * Default height of a key in this row.
+         */
         public int defaultHeight;
-        /** Default horizontal gap between keys in this row. */
+        /**
+         * Default horizontal gap between keys in this row.
+         */
         public float defaultHorizontalGap;
-        /** Vertical gap following this row. */
+        /**
+         * Vertical gap following this row.
+         */
         public int verticalGap;
 
-        /** The keyboard mode for this row */
+        /**
+         * The keyboard mode for this row
+         */
         public int mode;
-        
+
         public boolean extension;
 
         private Keyboard parent;
@@ -263,38 +306,64 @@ public class Keyboard {
          */
         public int[] codes;
 
-        /** Label to display */
+        /**
+         * Label to display
+         */
         public CharSequence label;
         public CharSequence shiftLabel;
         public CharSequence capsLabel;
 
-        /** Icon to display instead of a label. Icon takes precedence over a label */
+        /**
+         * Icon to display instead of a label. Icon takes precedence over a label
+         */
         public Drawable icon;
-        /** Preview version of the icon, for the preview popup */
+        /**
+         * Preview version of the icon, for the preview popup
+         */
         public Drawable iconPreview;
-        /** Width of the key, not including the gap */
+        /**
+         * Width of the key, not including the gap
+         */
         public int width;
-        /** Height of the key, not including the gap */
+        /**
+         * Height of the key, not including the gap
+         */
         private float realWidth;
         public int height;
-        /** The horizontal gap before this key */
+        /**
+         * The horizontal gap before this key
+         */
         public int gap;
         private float realGap;
-        /** Whether this key is sticky, i.e., a toggle key */
+        /**
+         * Whether this key is sticky, i.e., a toggle key
+         */
         public boolean sticky;
-        /** X coordinate of the key in the keyboard layout */
+        /**
+         * X coordinate of the key in the keyboard layout
+         */
         public int x;
         private float realX;
-        /** Y coordinate of the key in the keyboard layout */
+        /**
+         * Y coordinate of the key in the keyboard layout
+         */
         public int y;
-        /** The current pressed state of this key */
+        /**
+         * The current pressed state of this key
+         */
         public boolean pressed;
-        /** If this is a sticky key, is it on or locked? */
+        /**
+         * If this is a sticky key, is it on or locked?
+         */
         public boolean on;
         public boolean locked;
-        /** Text to output when pressed. This can be multiple characters, like ".com" */
+        /**
+         * Text to output when pressed. This can be multiple characters, like ".com"
+         */
         public CharSequence text;
-        /** Popup characters */
+        /**
+         * Popup characters
+         */
         public CharSequence popupCharacters;
         public boolean popupReversed;
         public boolean isCursor;
@@ -308,63 +377,75 @@ public class Keyboard {
          * {@link Keyboard#EDGE_BOTTOM}.
          */
         public int edgeFlags;
-        /** Whether this is a modifier key, such as Shift or Alt */
+        /**
+         * Whether this is a modifier key, such as Shift or Alt
+         */
         public boolean modifier;
-        /** The keyboard that this key belongs to */
+        /**
+         * The keyboard that this key belongs to
+         */
         private Keyboard keyboard;
         /**
          * If this key pops up a mini keyboard, this is the resource id for the XML layout for that
          * keyboard.
          */
         public int popupResId;
-        /** Whether this key repeats itself when held down */
+        /**
+         * Whether this key repeats itself when held down
+         */
         public boolean repeatable;
-        /** Is the shifted character the uppercase equivalent of the unshifted one? */
+        /**
+         * Is the shifted character the uppercase equivalent of the unshifted one?
+         */
         private boolean isSimpleUppercase;
-        /** Is the shifted character a distinct uppercase char that's different from the shifted char? */
+        /**
+         * Is the shifted character a distinct uppercase char that's different from the shifted char?
+         */
         private boolean isDistinctUppercase;
 
         private final static int[] KEY_STATE_NORMAL_ON = {
-            android.R.attr.state_checkable,
-            android.R.attr.state_checked
+                android.R.attr.state_checkable,
+                android.R.attr.state_checked
         };
 
         private final static int[] KEY_STATE_PRESSED_ON = {
-            android.R.attr.state_pressed,
-            android.R.attr.state_checkable,
-            android.R.attr.state_checked
+                android.R.attr.state_pressed,
+                android.R.attr.state_checkable,
+                android.R.attr.state_checked
         };
 
         private final static int[] KEY_STATE_NORMAL_LOCK = {
-            android.R.attr.state_active,
-            android.R.attr.state_checkable,
-            android.R.attr.state_checked
+                android.R.attr.state_active,
+                android.R.attr.state_checkable,
+                android.R.attr.state_checked
         };
 
         private final static int[] KEY_STATE_PRESSED_LOCK = {
-            android.R.attr.state_active,
-            android.R.attr.state_pressed,
-            android.R.attr.state_checkable,
-            android.R.attr.state_checked
+                android.R.attr.state_active,
+                android.R.attr.state_pressed,
+                android.R.attr.state_checkable,
+                android.R.attr.state_checked
         };
 
         private final static int[] KEY_STATE_NORMAL_OFF = {
-            android.R.attr.state_checkable
+                android.R.attr.state_checkable
         };
 
         private final static int[] KEY_STATE_PRESSED_OFF = {
-            android.R.attr.state_pressed,
-            android.R.attr.state_checkable
+                android.R.attr.state_pressed,
+                android.R.attr.state_checkable
         };
 
         private final static int[] KEY_STATE_NORMAL = {
         };
 
         private final static int[] KEY_STATE_PRESSED = {
-            android.R.attr.state_pressed
+                android.R.attr.state_pressed
         };
 
-        /** Create an empty key with no attributes. */
+        /**
+         * Create an empty key with no attributes.
+         */
         public Key(Row parent) {
             keyboard = parent.parent;
             height = parent.defaultHeight;
@@ -374,13 +455,15 @@ public class Keyboard {
             realGap = parent.defaultHorizontalGap;
         }
 
-        /** Create a key with the given top-left coordinate and extract its attributes from
+        /**
+         * Create a key with the given top-left coordinate and extract its attributes from
          * the XML parser.
-         * @param res resources associated with the caller's context
+         *
+         * @param res    resources associated with the caller's context
          * @param parent the row that this key belongs to. The row must already be attached to
-         * a {@link Keyboard}.
-         * @param x the x coordinate of the top-left
-         * @param y the y coordinate of the top-left
+         *               a {@link Keyboard}.
+         * @param x      the x coordinate of the top-left
+         * @param y      the y coordinate of the top-left
          * @param parser the XML parser containing the attributes for this key
          */
         public Key(Resources res, Row parent, int x, int y, XmlResourceParser parser) {
@@ -418,7 +501,7 @@ public class Keyboard {
                     codesValue);
             if (codesValue.type == TypedValue.TYPE_INT_DEC
                     || codesValue.type == TypedValue.TYPE_INT_HEX) {
-                codes = new int[] { codesValue.data };
+                codes = new int[]{codesValue.data};
             } else if (codesValue.type == TypedValue.TYPE_STRING) {
                 codes = parseCSV(codesValue.string.toString());
             }
@@ -529,14 +612,14 @@ public class Keyboard {
         public int[] getFromString(CharSequence str) {
             if (str.length() > 1) {
                 if (str.charAt(0) == DEAD_KEY_PLACEHOLDER && str.length() >= 2) {
-                    return new int[] { str.charAt(1) }; // FIXME: >1 length?
+                    return new int[]{str.charAt(1)}; // FIXME: >1 length?
                 } else {
                     text = str; // TODO: add space?
-                    return new int[] { 0 };
+                    return new int[]{0};
                 }
             } else {
                 char c = str.charAt(0);
-                return new int[] { c };
+                return new int[]{c};
             }
         }
 
@@ -580,34 +663,67 @@ public class Keyboard {
                 if ((flags & POPUP_ADD_SELF) != 0) {
                     // if shifted, add unshifted key to extra, and vice versa
                     if (isDistinctUppercase && isShiftCaps) {
-                        if (capsChar > 0) { extra.append((char) capsChar); capsChar = 0; }
+                        if (capsChar > 0) {
+                            extra.append((char) capsChar);
+                            capsChar = 0;
+                        }
                     } else if (isShifted) {
-                        if (shiftChar > 0) { extra.append((char) shiftChar); shiftChar = 0; }
+                        if (shiftChar > 0) {
+                            extra.append((char) shiftChar);
+                            shiftChar = 0;
+                        }
                     } else {
-                        if (mainChar > 0) { extra.append((char) mainChar); mainChar = 0; }
+                        if (mainChar > 0) {
+                            extra.append((char) mainChar);
+                            mainChar = 0;
+                        }
                     }
                 }
 
                 if ((flags & POPUP_ADD_CASE) != 0) {
                     // if shifted, add unshifted key to popup, and vice versa
                     if (isDistinctUppercase && isShiftCaps) {
-                        if (mainChar > 0) { extra.append((char) mainChar); mainChar = 0; }
-                        if (shiftChar > 0) { extra.append((char) shiftChar); shiftChar = 0; }
+                        if (mainChar > 0) {
+                            extra.append((char) mainChar);
+                            mainChar = 0;
+                        }
+                        if (shiftChar > 0) {
+                            extra.append((char) shiftChar);
+                            shiftChar = 0;
+                        }
                     } else if (isShifted) {
-                        if (mainChar > 0) { extra.append((char) mainChar); mainChar = 0; }
-                        if (capsChar > 0) { extra.append((char) capsChar); capsChar = 0; }
+                        if (mainChar > 0) {
+                            extra.append((char) mainChar);
+                            mainChar = 0;
+                        }
+                        if (capsChar > 0) {
+                            extra.append((char) capsChar);
+                            capsChar = 0;
+                        }
                     } else {
-                        if (shiftChar > 0) { extra.append((char) shiftChar); shiftChar = 0; }
-                        if (capsChar > 0) { extra.append((char) capsChar); capsChar = 0; }
+                        if (shiftChar > 0) {
+                            extra.append((char) shiftChar);
+                            shiftChar = 0;
+                        }
+                        if (capsChar > 0) {
+                            extra.append((char) capsChar);
+                            capsChar = 0;
+                        }
                     }
                 }
 
                 if (!isSimpleUppercase && (flags & POPUP_ADD_SHIFT) != 0) {
                     // if shifted, add unshifted key to popup, and vice versa
                     if (isShifted) {
-                        if (mainChar > 0) { extra.append((char) mainChar); mainChar = 0; }
+                        if (mainChar > 0) {
+                            extra.append((char) mainChar);
+                            mainChar = 0;
+                        }
                     } else {
-                        if (shiftChar > 0) { extra.append((char) shiftChar); shiftChar = 0; }
+                        if (shiftChar > 0) {
+                            extra.append((char) shiftChar);
+                            shiftChar = 0;
+                        }
                     }
                 }
 
@@ -671,10 +787,11 @@ public class Keyboard {
             if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) return false;
             return c >= 32 && c < 127;
         }
-        
+
         /**
          * Informs the key that it has been pressed, in case it needs to change its appearance or
          * state.
+         *
          * @see #onReleased(boolean)
          */
         public void onPressed() {
@@ -683,6 +800,7 @@ public class Keyboard {
 
         /**
          * Changes the pressed state of the key. Sticky key indicators are handled explicitly elsewhere.
+         *
          * @param inside whether the finger was released inside the key
          * @see #onPressed()
          */
@@ -714,6 +832,7 @@ public class Keyboard {
 
         /**
          * Detects if a point falls inside this key.
+         *
          * @param x the x-coordinate of the point
          * @param y the y-coordinate of the point
          * @return whether or not the point falls inside the key. If the key is attached to an edge,
@@ -737,6 +856,7 @@ public class Keyboard {
 
         /**
          * Returns the square of the distance between the center of the key and the given point.
+         *
          * @param x the x-coordinate of the point
          * @param y the y-coordinate of the point
          * @return the square of the distance of the point from the center of the key
@@ -749,6 +869,7 @@ public class Keyboard {
 
         /**
          * Returns the drawable state for the key, based on the current state and type of the key.
+         *
          * @return the drawable state of the key.
          * @see android.graphics.drawable.StateListDrawable#setState(int[])
          */
@@ -787,26 +908,27 @@ public class Keyboard {
             int code = (codes != null && codes.length > 0) ? codes[0] : 0;
             String edges = (
                     ((edgeFlags & Keyboard.EDGE_LEFT) != 0 ? "L" : "-") +
-                    ((edgeFlags & Keyboard.EDGE_RIGHT) != 0 ? "R" : "-") +
-                    ((edgeFlags & Keyboard.EDGE_TOP) != 0 ? "T" : "-") +
-                    ((edgeFlags & Keyboard.EDGE_BOTTOM) != 0 ? "B" : "-"));
+                            ((edgeFlags & Keyboard.EDGE_RIGHT) != 0 ? "R" : "-") +
+                            ((edgeFlags & Keyboard.EDGE_TOP) != 0 ? "T" : "-") +
+                            ((edgeFlags & Keyboard.EDGE_BOTTOM) != 0 ? "B" : "-"));
             return "KeyDebugFIXME(label=" + label +
-                (shiftLabel != null ? " shift=" + shiftLabel : "") +
-                (capsLabel != null ? " caps=" + capsLabel : "") +
-                (text != null ? " text=" + text : "" ) +
-                " code=" + code +
-                (code <= 0 || Character.isWhitespace(code) ? "" : ":'" + (char)code + "'" ) +
-                " x=" + x + ".." + (x+width) + " y=" + y + ".." + (y+height) +
-                " edgeFlags=" + edges +
-                (popupCharacters != null ? " pop=" + popupCharacters : "" ) +
-                " res=" + popupResId +
-                ")";
+                    (shiftLabel != null ? " shift=" + shiftLabel : "") +
+                    (capsLabel != null ? " caps=" + capsLabel : "") +
+                    (text != null ? " text=" + text : "") +
+                    " code=" + code +
+                    (code <= 0 || Character.isWhitespace(code) ? "" : ":'" + (char) code + "'") +
+                    " x=" + x + ".." + (x + width) + " y=" + y + ".." + (y + height) +
+                    " edgeFlags=" + edges +
+                    (popupCharacters != null ? " pop=" + popupCharacters : "") +
+                    " res=" + popupResId +
+                    ")";
         }
     }
 
     /**
      * Creates a keyboard from the given xml key layout file.
-     * @param context the application or service context
+     *
+     * @param context        the application or service context
      * @param xmlLayoutResId the resource file that contains the keyboard layout and keys.
      */
     public Keyboard(Context context, int defaultHeight, int xmlLayoutResId) {
@@ -820,22 +942,31 @@ public class Keyboard {
     /**
      * Creates a keyboard from the given xml key layout file. Weeds out rows
      * that have a keyboard mode defined but don't match the specified mode.
-     * @param context the application or service context
-     * @param xmlLayoutResId the resource file that contains the keyboard layout and keys.
-     * @param modeId keyboard mode identifier
+     *
+     * @param context         the application or service context
+     * @param xmlLayoutResId  the resource file that contains the keyboard layout and keys.
+     * @param modeId          keyboard mode identifier
      * @param kbHeightPercent height of the keyboard as percentage of screen height
      */
     public Keyboard(Context context, int defaultHeight, int xmlLayoutResId, int modeId, float kbHeightPercent) {
-        DisplayMetrics dm = context.getResources().getDisplayMetrics();
-        mDisplayWidth = dm.widthPixels;
-        mDisplayHeight = dm.heightPixels;
-        Log.v(TAG, "keyboard's display metrics:" + dm + ", mDisplayWidth=" + mDisplayWidth);
+        Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+        Display.Mode mode = display.getMode();
+//        DisplayMetrics dm = context.getResources().getDisplayMetrics();
+        Log.i(TAG, "Keyboard init, screen " + display.getName());
+        if(LatinIME.isDualEnabled() || display.getRotation() == Surface.ROTATION_90 || display.getRotation() == Surface.ROTATION_270) {
+            mDisplayWidth = (int)(mode.getPhysicalHeight() * 0.975);
+            mDisplayHeight = mode.getPhysicalWidth();
+        } else {
+            mDisplayWidth = mode.getPhysicalWidth();
+            mDisplayHeight = mode.getPhysicalHeight();
+        }
+        Log.v(TAG, "keyboard's display metrics:" + mode + ", mDisplayWidth=" + mDisplayWidth + "; rotation="+display.getRotation() + ", dual enabled="+LatinIME.isDualEnabled());
 
         mDefaultHorizontalGap = 0;
         mDefaultWidth = mDisplayWidth / 10;
         mDefaultVerticalGap = 0;
         mDefaultHeight = defaultHeight; // may be zero, to be adjusted below
-        mKeyboardHeight = Math.round(mDisplayHeight * kbHeightPercent / 100); 
+        mKeyboardHeight = Math.round(mDisplayHeight * kbHeightPercent / 100);
         //Log.i("PCKeyboard", "mDefaultHeight=" + mDefaultHeight + "(arg=" + defaultHeight + ")" + " kbHeight=" + mKeyboardHeight + " displayHeight="+mDisplayHeight+")");
         mKeys = new ArrayList<Key>();
         mModifierKeys = new ArrayList<Key>();
@@ -852,16 +983,17 @@ public class Keyboard {
      * </p>
      * <p>If the specified number of columns is -1, then the keyboard will fit as many keys as
      * possible in each row.</p>
-     * @param context the application or service context
+     *
+     * @param context             the application or service context
      * @param layoutTemplateResId the layout template file, containing no keys.
-     * @param characters the list of characters to display on the keyboard. One key will be created
-     * for each character.
-     * @param columns the number of columns of keys to display. If this number is greater than the
-     * number of keys that can fit in a row, it will be ignored. If this number is -1, the
-     * keyboard will fit as many keys as possible in each row.
+     * @param characters          the list of characters to display on the keyboard. One key will be created
+     *                            for each character.
+     * @param columns             the number of columns of keys to display. If this number is greater than the
+     *                            number of keys that can fit in a row, it will be ignored. If this number is -1, the
+     *                            keyboard will fit as many keys as possible in each row.
      */
     private Keyboard(Context context, int defaultHeight, int layoutTemplateResId,
-            CharSequence characters, boolean reversed, int columns, int horizontalPadding) {
+                     CharSequence characters, boolean reversed, int columns, int horizontalPadding) {
         this(context, defaultHeight, layoutTemplateResId);
         int x = 0;
         int y = 0;
@@ -875,10 +1007,10 @@ public class Keyboard {
         row.verticalGap = mDefaultVerticalGap;
         final int maxColumns = columns == -1 ? Integer.MAX_VALUE : columns;
         mLayoutRows = 1;
-        int start = reversed ? characters.length()-1 : 0;
+        int start = reversed ? characters.length() - 1 : 0;
         int end = reversed ? -1 : characters.length();
         int step = reversed ? -1 : 1;
-        for (int i = start; i != end; i+=step) {
+        for (int i = start; i != end; i += step) {
             char c = characters.charAt(i);
             if (column >= maxColumns
                     || x + mDefaultWidth + horizontalPadding > mDisplayWidth) {
@@ -975,7 +1107,8 @@ public class Keyboard {
             for (int i = 0; i < popupLen; ++i) {
                 char c = key.popupCharacters.charAt(i);
 
-                if (Character.isDigit(c) && mainKeys.contains(c)) continue;  // already present elsewhere
+                if (Character.isDigit(c) && mainKeys.contains(c))
+                    continue;  // already present elsewhere
 
                 // Skip extra digit alt keys on 5-row keyboards
                 if ((key.edgeFlags & EDGE_TOP) == 0 && Character.isDigit(c)) continue;
@@ -1030,6 +1163,7 @@ public class Keyboard {
 
     /**
      * Returns the total height of the keyboard
+     *
      * @return the total height of the keyboard
      */
     public int getHeight() {
@@ -1059,7 +1193,7 @@ public class Keyboard {
     public boolean setShiftState(int shiftState) {
         return setShiftState(shiftState, true);
     }
-    
+
     public Key setCtrlIndicator(boolean active) {
         //Log.i(TAG, "setCtrlIndicator " + active + " ctrlKey=" + mCtrlKey);
         if (mCtrlKey != null) mCtrlKey.on = active;
@@ -1110,22 +1244,22 @@ public class Keyboard {
                 for (int i = 0; i < mKeys.size(); i++) {
                     final Key key = mKeys.get(i);
                     boolean isSpace = key.codes != null && key.codes.length > 0 &&
-                    		key.codes[0] == LatinIME.ASCII_SPACE;
+                            key.codes[0] == LatinIME.ASCII_SPACE;
                     if (key.squaredDistanceFrom(x, y) < mProximityThreshold ||
                             key.squaredDistanceFrom(x + mCellWidth - 1, y) < mProximityThreshold ||
                             key.squaredDistanceFrom(x + mCellWidth - 1, y + mCellHeight - 1)
-                                < mProximityThreshold ||
+                                    < mProximityThreshold ||
                             key.squaredDistanceFrom(x, y + mCellHeight - 1) < mProximityThreshold ||
                             isSpace && !(
-                            		x + mCellWidth - 1 < key.x ||
-                            		x > key.x + key.width ||
-                            		y + mCellHeight - 1 < key.y ||
-                            		y > key.y + key.height)) {
-                    	//if (isSpace) Log.i(TAG, "space at grid" + x + "," + y);
+                                    x + mCellWidth - 1 < key.x ||
+                                            x > key.x + key.width ||
+                                            y + mCellHeight - 1 < key.y ||
+                                            y > key.y + key.height)) {
+                        //if (isSpace) Log.i(TAG, "space at grid" + x + "," + y);
                         indices[count++] = i;
                     }
                 }
-                int [] cell = new int[count];
+                int[] cell = new int[count];
                 System.arraycopy(indices, 0, cell, 0, count);
                 mGridNeighbors[(y / mCellHeight) * mLayoutColumns + (x / mCellWidth)] = cell;
             }
@@ -1134,6 +1268,7 @@ public class Keyboard {
 
     /**
      * Returns the indices of the keys that are closest to the given point.
+     *
      * @param x the x-coordinate of the point
      * @param y the y-coordinate of the point
      * @return the array of integer indices for the nearest keys to the given point. If the given
@@ -1155,7 +1290,7 @@ public class Keyboard {
     }
 
     protected Key createKeyFromXml(Resources res, Row parent, int x, int y,
-            XmlResourceParser parser) {
+                                   XmlResourceParser parser) {
         return new Key(res, parent, x, y, parser);
     }
 
@@ -1192,33 +1327,33 @@ public class Keyboard {
                             skipToEndOfRow(parser);
                             inRow = false;
                         }
-                   } else if (TAG_KEY.equals(tag)) {
+                    } else if (TAG_KEY.equals(tag)) {
                         inKey = true;
                         key = createKeyFromXml(res, currentRow, Math.round(x), y, parser);
                         key.realX = x;
                         if (key.codes == null) {
-                          // skip this key, adding its width to the previous one
-                          if (prevKey != null) {
-                              prevKey.width += key.width;
-                          }
+                            // skip this key, adding its width to the previous one
+                            if (prevKey != null) {
+                                prevKey.width += key.width;
+                            }
                         } else {
-                          mKeys.add(key);
-                          prevKey = key;
-                          if (key.codes[0] == KEYCODE_SHIFT) {
-                              if (mShiftKeyIndex == -1) {
-                                  mShiftKey = key;
-                                  mShiftKeyIndex = mKeys.size()-1;
-                              }
-                              mModifierKeys.add(key);
-                          } else if (key.codes[0] == KEYCODE_ALT_SYM) {
-                              mModifierKeys.add(key);
-                          } else if (key.codes[0] == LatinKeyboardView.KEYCODE_CTRL_LEFT) {
-                              mCtrlKey = key;
-                          } else if (key.codes[0] == LatinKeyboardView.KEYCODE_ALT_LEFT) {
-                              mAltKey = key;
-                          } else if (key.codes[0] == LatinKeyboardView.KEYCODE_META_LEFT) {
-                              mMetaKey = key;
-                          }
+                            mKeys.add(key);
+                            prevKey = key;
+                            if (key.codes[0] == KEYCODE_SHIFT) {
+                                if (mShiftKeyIndex == -1) {
+                                    mShiftKey = key;
+                                    mShiftKeyIndex = mKeys.size() - 1;
+                                }
+                                mModifierKeys.add(key);
+                            } else if (key.codes[0] == KEYCODE_ALT_SYM) {
+                                mModifierKeys.add(key);
+                            } else if (key.codes[0] == LatinKeyboardView.KEYCODE_CTRL_LEFT) {
+                                mCtrlKey = key;
+                            } else if (key.codes[0] == LatinKeyboardView.KEYCODE_ALT_LEFT) {
+                                mAltKey = key;
+                            } else if (key.codes[0] == LatinKeyboardView.KEYCODE_META_LEFT) {
+                                mMetaKey = key;
+                            }
                         }
                     } else if (TAG_KEYBOARD.equals(tag)) {
                         parseKeyboardAttributes(res, parser);
@@ -1319,11 +1454,11 @@ public class Keyboard {
     @Override
     public String toString() {
         return "Keyboard(" + mLayoutColumns + "x" + mLayoutRows +
-            " keys=" + mKeys.size() +
-            " rowCount=" + mRowCount +
-            " mode=" + mKeyboardMode +
-            " size=" + mTotalWidth + "x" + mTotalHeight +
-            ")";
+                " keys=" + mKeys.size() +
+                " rowCount=" + mRowCount +
+                " mode=" + mKeyboardMode +
+                " size=" + mTotalWidth + "x" + mTotalHeight +
+                ")";
 
     }
 }

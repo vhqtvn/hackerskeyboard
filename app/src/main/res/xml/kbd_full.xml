@@ -364,6 +364,10 @@
             android:codes="@integer/key_f1"
             android:isModifier="true" />
         <Key
+            android:keyLabel="Dual"
+            android:codes="@integer/key_fullscreen_dual"
+            android:isModifier="false" />
+        <Key
             android:codes="@integer/key_alt_left"
             android:keyLabel="Alt"
             android:isSticky="true"
@@ -378,7 +382,7 @@
             android:shiftLabel="@string/key_space_shift"
             android:keyIcon="@drawable/sym_keyboard_space"
             android:iconPreview="@drawable/sym_keyboard_feedback_space"
-            android:keyWidth="32.1428571372%p"
+            android:keyWidth="25%p"
             android:isModifier="true" />
         <Key
             android:codes="@integer/key_fn"

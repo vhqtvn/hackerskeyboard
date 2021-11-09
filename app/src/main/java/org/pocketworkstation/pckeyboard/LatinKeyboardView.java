@@ -45,6 +45,7 @@ public class LatinKeyboardView extends LatinKeyboardBaseView {
 
 	// FIXME: The following keycodes should really be renumbered
 	// since they conflict with existing KeyEvent keycodes.
+    static final int KEYCODE_FULLSCREEN_DUAL = -1000;
     static final int KEYCODE_OPTIONS = -100;
     static final int KEYCODE_OPTIONS_LONGPRESS = -101;
     static final int KEYCODE_VOICE = -102;

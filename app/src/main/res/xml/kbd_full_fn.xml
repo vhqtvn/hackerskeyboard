@@ -278,6 +278,10 @@
             android:iconPreview="@drawable/sym_keyboard_feedback_settings"
             android:isModifier="true" />
         <Key
+            android:keyLabel="Dual"
+            android:codes="@integer/key_fullscreen_dual"
+            android:isModifier="false" />
+        <Key
             android:codes="@integer/key_alt_left"
             android:keyLabel="Alt"
             android:isSticky="true"

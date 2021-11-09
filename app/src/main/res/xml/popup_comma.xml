@@ -33,6 +33,10 @@
             android:keyIcon="@drawable/sym_keyboard_settings"
             android:keyEdgeFlags="left" />
         <Key
+            android:keyLabel="Dual"
+            android:codes="@integer/key_fullscreen_dual"
+            android:isModifier="false" />
+        <Key
             android:keyLabel=","
             android:keyEdgeFlags="right" />
     </Row>
