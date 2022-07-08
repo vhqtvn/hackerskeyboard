@@ -661,11 +661,15 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
         return mKeyboardActionListener;
     }
 
-    public void applyInset(int insetBottom) {
+    static private int mInsetBottom = 0;
+    static private int mInsetRight = 0;
+    public void applyInset(int insetBottom, int insetRight) {
+        mInsetBottom = insetBottom;
+        mInsetRight = insetRight;
         post(new Runnable() {
             @Override
             public void run() {
-                if(mKeyboard.applyInset(insetBottom)) {
+                if (mKeyboard != null && mKeyboard.applyInset(insetBottom, insetRight)) {
                     setKeyboard(mKeyboard);
                     requestLayout();
                 }
@@ -685,6 +689,7 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
         if (mKeyboard != null) {
             dismissKeyPreview();
         }
+        boolean shouldLayout = keyboard.applyInset(mInsetBottom, mInsetRight);
         //Log.i(TAG, "setKeyboard(" + keyboard + ") for " + this);
         // Remove any pending messages, except dismissing preview
         mHandler.cancelKeyTimers();
@@ -709,6 +714,8 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
         mMiniKeyboardCacheCaps.clear();
         setRenderModeIfPossible(LatinIME.sKeyboardSettings.renderMode);
         mIgnoreMove = true;
+
+        if(shouldLayout) requestLayout();
     }
 
     /**

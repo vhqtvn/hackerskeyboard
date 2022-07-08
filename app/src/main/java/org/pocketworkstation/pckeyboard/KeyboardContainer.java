@@ -33,11 +33,19 @@ public class KeyboardContainer extends FrameLayout {
     }
 
     @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+    }
+
+    @Override
     public WindowInsets onApplyWindowInsets(WindowInsets insets) {
         for (int i = 0, ie = getChildCount(); i < ie; i++) {
             View v = getChildAt(i);
             if (v instanceof LatinKeyboardBaseView) {
-                ((LatinKeyboardBaseView) v).applyInset(insets.getSystemWindowInsetBottom());
+                ((LatinKeyboardBaseView) v).applyInset(
+                        insets.getSystemWindowInsetBottom(),
+                        insets.getSystemWindowInsetRight()
+                );
             }
         }
         return super.onApplyWindowInsets(insets);

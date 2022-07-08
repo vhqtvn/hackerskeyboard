@@ -209,14 +209,19 @@ public class Keyboard {
 
     private boolean mShouldApplyInset = false;
     private int mInsetOriginalHeight = 0;
+    private int mInsetOriginalWidth = 0;
     private static int mLastInsetBottom = 0;
+    private static int mLastInsetRight = 0;
 
-    public boolean applyInset(int insetBottom) {
+    public boolean applyInset(int insetBottom, int insetRight) {
         mLastInsetBottom = insetBottom;
+        mLastInsetRight = insetRight;
         if (!mShouldApplyInset) return false;
-        int newDisplayHeight = mInsetOriginalHeight - insetBottom;
-        if (newDisplayHeight != mDisplayHeight) {
+        int newDisplayHeight = Math.max(1, mInsetOriginalHeight - insetBottom);
+        int newDisplayWidth = Math.max(1, mInsetOriginalWidth - insetRight);
+        if (newDisplayHeight != mDisplayHeight || newDisplayWidth != mDisplayWidth) {
             mDisplayHeight = newDisplayHeight;
+            mDisplayWidth = newDisplayWidth;
             reloadKeys();
             return true;
         }
@@ -982,6 +987,7 @@ public class Keyboard {
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         Display.Mode mode = display.getMode();
         if (SurfaceDuoUtils.isDeviceSurfaceDuo(context.getPackageManager())) {
+            mShouldApplyInset = true;
             DisplayMask dm = DisplayMask.fromResourcesRect(context);
             List<Rect> rects = dm.getBoundingRects();
             if (display.getRotation() == Surface.ROTATION_90 || display.getRotation() == Surface.ROTATION_270) {
@@ -989,10 +995,15 @@ public class Keyboard {
                 if (rects.isEmpty()) {
                     mDisplayHeight = mode.getPhysicalWidth();
                 } else {
-                    mShouldApplyInset = true;
-                    PaneManager.PaneState state = ((LatinIME) context).getSurfaceDuoPaneManager().paneStateForKeyboard()[0];
-                    mInsetOriginalHeight = state.getTaskPane().height();
-                    mDisplayHeight = mInsetOriginalHeight - mLastInsetBottom;
+                    mDisplayHeight = Math.min(
+                            Math.min(
+                                    ((LatinIME) context).getSurfaceDuoPaneManager().paneStateForKeyboard()[0].getTaskPane().height(),
+                                    ((LatinIME) context).getSurfaceDuoPaneManager().paneStateForKeyboard()[0].getTaskPane().width()),
+                            Math.min(
+                                    rects.get(0).height(),
+                                    rects.get(0).left == 0 ? Integer.MAX_VALUE : rects.get(0).left
+                            )
+                    );
                     kbHeightPercent = 100;
                 }
             } else {
@@ -1004,6 +1015,12 @@ public class Keyboard {
                 }
                 mDisplayHeight = mode.getPhysicalHeight();
             }
+
+            mInsetOriginalWidth = mDisplayWidth;
+            mDisplayWidth = Math.max(1, mInsetOriginalWidth - mLastInsetRight);
+
+            mInsetOriginalHeight = mDisplayHeight;
+            mDisplayHeight = Math.max(1, mInsetOriginalHeight - mLastInsetBottom);
         } else if (LatinIME.isDualEnabled() || display.getRotation() == Surface.ROTATION_90 || display.getRotation() == Surface.ROTATION_270) {
             if (LGMultiDisplayUtils.supportDualScreen()) {
                 mDisplayWidth = (int) (mode.getPhysicalHeight() * 0.975);

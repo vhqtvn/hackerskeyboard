@@ -498,7 +498,13 @@ public class LatinIME extends InputMethodService implements
     static int mLastDisplayId = -1337;
 
     private boolean updateOrientation(Configuration conf) {
-        if (!LGMultiDisplayUtils.supportDualScreen()) return conf.orientation != mOrientation;
+        if (!LGMultiDisplayUtils.supportDualScreen()) {
+            if (conf.orientation != mOrientation) {
+                mOrientation = conf.orientation;
+                return true;
+            }
+            return false;
+        }
         int newOrientation = mOrientation;
         if (mOrientation == -1337) {
             newOrientation = mDualEnabled ? Configuration.ORIENTATION_LANDSCAPE : conf.orientation;
@@ -1060,19 +1066,42 @@ public class LatinIME extends InputMethodService implements
         super.onBindInput();
     }
 
+    void updateSurfaceDuoKeyboardPanePosition() {
+        PaneManager.PaneState[] states = surfaceDuoPaneManager.paneStateForKeyboard();
+        if (states.length >= 2) {
+            boolean targetState = isPortrait() ? false : true;
+            for (PaneManager.PaneState state : surfaceDuoPaneManager.paneStateForKeyboard()) {
+                if (state.isInFocus() == targetState) {
+                    try {
+                        if (isPortrait())
+                            surfaceDuoPaneManager.overrideKeyboardPane(state.getPaneId() | 3);
+                    } catch (Exception e) {
+                    }
+                    try {
+                        surfaceDuoPaneManager.overrideKeyboardPane(state.getPaneId());
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        } else {
+            try {
+                surfaceDuoPaneManager.overrideKeyboardPane(states[0].getPaneId());
+            } catch (Exception e) {
+            }
+        }
+    }
+
     @Override
     public void onStartInputView(EditorInfo attribute, boolean restarting) {
-        if (SurfaceDuoUtils.isDeviceSurfaceDuo(getPackageManager()))
+        if (SurfaceDuoUtils.isDeviceSurfaceDuo(getPackageManager())) {
+            updateSurfaceDuoKeyboardPanePosition();
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    for (PaneManager.PaneState state : surfaceDuoPaneManager.paneStateForKeyboard()) {
-                        if (state.isInFocus())
-                            surfaceDuoPaneManager.overrideKeyboardPane(state.getPaneId());
-                    }
+                    updateSurfaceDuoKeyboardPanePosition();
                 }
             }, 50);
-
+        }
         sKeyboardSettings.editorPackageName = attribute.packageName;
         sKeyboardSettings.editorFieldName = attribute.fieldName;
         sKeyboardSettings.editorFieldId = attribute.fieldId;
@@ -2900,6 +2929,7 @@ public class LatinIME extends InputMethodService implements
 
     private void updateSuggestions() {
         LatinKeyboardView inputView = mKeyboardSwitcher.getInputView();
+        if (inputView.getKeyboard() == null) return;
         ((LatinKeyboard) inputView.getKeyboard()).setPreferredLetters(null);
 
         // Check if we have a suggestion engine attached.
@@ -2921,6 +2951,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void showCorrections(WordAlternatives alternatives) {
+        if (mKeyboardSwitcher.getInputView().getKeyboard() == null) return;
         List<CharSequence> stringList = alternatives.getAlternatives();
         ((LatinKeyboard) mKeyboardSwitcher.getInputView().getKeyboard())
                 .setPreferredLetters(null);
@@ -2929,6 +2960,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void showSuggestions(WordComposer word) {
+        if (mKeyboardSwitcher.getInputView().getKeyboard() == null) return;
         // long startTime = System.currentTimeMillis(); // TIME MEASUREMENT!
         // TODO Maybe need better way of retrieving previous word
         CharSequence prevWord = EditingUtil.getPreviousWord(
@@ -3090,6 +3122,7 @@ public class LatinIME extends InputMethodService implements
      */
     private void pickSuggestion(CharSequence suggestion, boolean correcting) {
         LatinKeyboardView inputView = mKeyboardSwitcher.getInputView();
+        if (inputView.getKeyboard() == null) return;
         int shiftState = getShiftState();
         if (shiftState == Keyboard.SHIFT_LOCKED || shiftState == Keyboard.SHIFT_CAPS_LOCKED) {
             suggestion = suggestion.toString().toUpperCase(); // all UPPERCASE
@@ -3563,8 +3596,9 @@ public class LatinIME extends InputMethodService implements
 
     public void onRelease(int primaryCode) {
         // Reset any drag flags in the keyboard
-        ((LatinKeyboard) mKeyboardSwitcher.getInputView().getKeyboard())
-                .keyReleased();
+        if (mKeyboardSwitcher.getInputView().getKeyboard() != null)
+            ((LatinKeyboard) mKeyboardSwitcher.getInputView().getKeyboard())
+                    .keyReleased();
         // vibrate();
         final boolean distinctMultiTouch = mKeyboardSwitcher
                 .hasDistinctMultitouch();
