@@ -1,23 +1,12 @@
 package com.lge.ime.util.p118f;
 
-import android.app.ActivityOptions;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
-import android.os.Build;
-import android.provider.Settings;
 import android.text.TextUtils;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
-import android.view.inputmethod.EditorInfo;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Optional;
 
 /* renamed from: com.lge.ime.util.f.d */
-public class MultiDisplayUtils {
+public class LGMultiDisplayUtils {
 
     /* renamed from: a */
     private static EnumC1176a f6493a = EnumC1176a.NOT_INITIALIZED;
@@ -29,7 +18,7 @@ public class MultiDisplayUtils {
     private static boolean f6495c = false;
 
     /* renamed from: d */
-    private static boolean f6496d = false;
+    private static boolean moveToDisplayEx = false;
 
     /* access modifiers changed from: private */
     /* renamed from: com.lge.ime.util.f.d$a */
@@ -41,12 +30,12 @@ public class MultiDisplayUtils {
     }
 
     /* renamed from: a */
-    public static int m8805a() {
-        if (!m8816d()) {
+    public static int getCurrentFocusDisplayId() {
+        if (!supportDualScreen()) {
             return 0;
         }
         try {
-            return ((Integer) m8821g().getMethod("getCurrentFocusDisplayId", new Class[0]).invoke(m8823h(), new Object[0])).intValue();
+            return ((Integer) getWindowManagerGlobal().getMethod("getCurrentFocusDisplayId", new Class[0]).invoke(getWindowManagerGlobalObject(), new Object[0])).intValue();
         } catch (Exception unused) {
             Log.w("MultiDisplayUtils", "Can't get focused display id");
             return 0;
@@ -54,12 +43,12 @@ public class MultiDisplayUtils {
     }
 
     /* renamed from: b */
-    public static boolean m8811b() {
-        if (!m8816d()) {
+    public static boolean getForceInputMethodLandScape() {
+        if (!supportDualScreen()) {
             return false;
         }
         try {
-            return ((Boolean) m8821g().getMethod("getForceInputMethodLandscape", new Class[0]).invoke(m8823h(), new Object[0])).booleanValue();
+            return ((Boolean) getWindowManagerGlobal().getMethod("getForceInputMethodLandscape", new Class[0]).invoke(getWindowManagerGlobalObject(), new Object[0])).booleanValue();
         } catch (Exception unused) {
             Log.w("MultiDisplayUtils", "Can't get forceInputMethodLandscape state");
             return false;
@@ -67,7 +56,7 @@ public class MultiDisplayUtils {
     }
 
     /* renamed from: d */
-    public static boolean m8816d() {
+    public static boolean supportDualScreen() {
 //        boolean z;
 //        if (f6493a != EnumC1176a.NOT_INITIALIZED) {
 //            return f6493a == EnumC1176a.SUPPORT;
@@ -89,25 +78,25 @@ public class MultiDisplayUtils {
 //            f6493a = EnumC1176a.NOT_SUPPORT;
 //            return false;
 //        }
-        return true;
+        return android.os.Build.MODEL.equals("special");
     }
 
     /* renamed from: e */
-    public static boolean m8817e() {
+    public static boolean isCollapsed() {
         return f6495c;
     }
 
     /* renamed from: f */
     public static boolean m8819f() {
-        return m8805a() == 1;
+        return getCurrentFocusDisplayId() == 1;
     }
 
-    public static boolean m8822g(Context context) {
-        return m8826i(context) && m8811b();
+    public static boolean checkForceLandscape(Context context) {
+        return checkFeatureDualKeyboard(context) && getForceInputMethodLandScape();
     }
 
     /* renamed from: i */
-    public static boolean m8826i(Context context) {
+    public static boolean checkFeatureDualKeyboard(Context context) {
 //        Resources resources;
 //        FeatureManager a = FeatureManager.m8957a(context);
 //        if (a != null && a.mo6926g()) {
@@ -120,11 +109,11 @@ public class MultiDisplayUtils {
 //        if (bool == null || !bool.booleanValue()) {
 //            return false;
 //        }
-        return true;
+        return supportDualScreen();
     }
 
     /* renamed from: h */
-    public static boolean m8824h(Context context) {
+    public static boolean checkRotation(Context context) {
 //        if (context == null || m8828k(context)) {
 //            return false;
 //        }
@@ -149,7 +138,7 @@ public class MultiDisplayUtils {
 
 
     /* renamed from: g */
-    private static Class<?> m8821g() {
+    private static Class<?> getWindowManagerGlobal() {
         try {
             Class<?> cls = Class.forName("android.view.WindowManagerGlobal");
             if (cls.getMethod("getWindowManagerService", new Class[0]).invoke(cls, new Object[0]) != null) {
@@ -168,8 +157,8 @@ public class MultiDisplayUtils {
     }
 
     /* renamed from: b */
-    public static void m8810b(boolean z) {
-        f6496d = z;
+    public static void setMoveToDisplayEx(boolean z) {
+        moveToDisplayEx = z;
     }
 
     /* renamed from: a */
@@ -184,7 +173,7 @@ public class MultiDisplayUtils {
     /* renamed from: i */
     private static boolean m8825i() {
         try {
-            return ((Boolean) m8821g().getMethod("isApplicationTypeWindow", new Class[0]).invoke(m8823h(), new Object[0])).booleanValue();
+            return ((Boolean) getWindowManagerGlobal().getMethod("isApplicationTypeWindow", new Class[0]).invoke(getWindowManagerGlobalObject(), new Object[0])).booleanValue();
         } catch (Exception unused) {
             Log.w("MultiDisplayUtils", "Can't get window type");
             return false;
@@ -192,12 +181,12 @@ public class MultiDisplayUtils {
     }
 
     /* renamed from: c */
-    public static boolean m8814c() {
-        return f6496d;
+    public static boolean isMoveToDisplayEx() {
+        return moveToDisplayEx;
     }
 
     /* renamed from: h */
-    private static Object m8823h() {
+    private static Object getWindowManagerGlobalObject() {
         try {
             Class<?> cls = Class.forName("android.view.WindowManagerGlobal");
             return cls.getMethod("getWindowManagerService", new Class[0]).invoke(cls, new Object[0]);
@@ -208,7 +197,7 @@ public class MultiDisplayUtils {
     }
 
     /* renamed from: a */
-    public static void m8809a(boolean z) {
+    public static void setCollapsed(boolean z) {
         f6495c = z;
     }
 }

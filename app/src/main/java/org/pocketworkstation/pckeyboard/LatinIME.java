@@ -19,12 +19,15 @@ package org.pocketworkstation.pckeyboard;
 import org.pocketworkstation.pckeyboard.LatinIMEUtil.RingCharBuffer;
 
 import com.google.android.voiceime.VoiceRecognitionTrigger;
+import com.lge.ime.util.p118f.DualKeyboardManager;
+import com.lge.ime.util.p118f.LGMultiDisplayUtils;
+import com.microsoft.device.layoutmanager.PaneManager;
 import com.novia.lg_dualscreen_ime.ToggleFullScreenIME;
+import com.vhn.SurfaceDuoPaneManager;
+import com.vhn.SurfaceDuoUtils;
 
 import org.xmlpull.v1.XmlPullParserException;
 
-import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -39,11 +42,8 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
-import android.graphics.Color;
-import android.graphics.PixelFormat;
 import android.inputmethodservice.InputMethodService;
 import android.media.AudioManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -53,10 +53,11 @@ import android.os.SystemClock;
 import android.os.Vibrator;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
-import android.provider.Settings;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
-import android.support.v4.util.Pair;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.view.WindowCompat;
+
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -71,11 +72,11 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.accessibility.AccessibilityManager;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
+import android.view.inputmethod.InputBinding;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
@@ -84,6 +85,8 @@ import android.widget.Toast;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -264,7 +267,7 @@ public class LatinIME extends InputMethodService implements
     private int mDeleteCount;
     private long mLastKeyTime;
 
-    private static boolean mDualEnabled;
+    private static boolean mDualEnabled = false;
 
     public static boolean isDualEnabled() {
         return mDualEnabled;
@@ -308,6 +311,12 @@ public class LatinIME extends InputMethodService implements
 
     private VoiceRecognitionTrigger mVoiceRecognitionTrigger;
     private Handler mDefaultHandler = new Handler();
+
+    private SurfaceDuoPaneManager surfaceDuoPaneManager;
+
+    public SurfaceDuoPaneManager getSurfaceDuoPaneManager() {
+        return surfaceDuoPaneManager;
+    }
 
     public abstract static class WordAlternatives {
         protected CharSequence mChosenWord;
@@ -380,12 +389,23 @@ public class LatinIME extends InputMethodService implements
         Log.i("PCKeyboard", "onCreate(), os.version=" + System.getProperty("os.version"));
         KeyboardSwitcher.init(this);
         super.onCreate();
+        WindowCompat.setDecorFitsSystemWindows(getWindow().getWindow(), false);
+        surfaceDuoPaneManager = new SurfaceDuoPaneManager(getApplicationContext());
+        surfaceDuoPaneManager.ensureInitialized();
+        surfaceDuoPaneManager.connect();
+        if (LGMultiDisplayUtils.supportDualScreen()) {
+            mDualEnabled = LGMultiDisplayUtils.checkForceLandscape(this);
+        } else {
+            mDualEnabled = false;
+        }
         sInstance = this;
         // setStatusIcon(R.drawable.ime_qwerty);
         mResources = getResources();
         final Configuration conf = mResources.getConfiguration();
-        updateOrientation(conf);
-        orientationLocker = new ScreenOrientationLocker(getApplicationContext());
+        boolean orientationUpdated = updateOrientation(conf);
+        if (LGMultiDisplayUtils.supportDualScreen()) {
+            orientationLocker = new ScreenOrientationLocker(getApplicationContext());
+        }
         final SharedPreferences prefs = PreferenceManager
                 .getDefaultSharedPreferences(this);
         mLanguageSwitcher = new LanguageSwitcher(this);
@@ -427,6 +447,11 @@ public class LatinIME extends InputMethodService implements
         mVoiceRecognitionTrigger = new VoiceRecognitionTrigger(this);
 
         updateKeyboardOptions();
+        if (LGMultiDisplayUtils.supportDualScreen()) {
+            if (updateOrientation(conf)) orientationUpdated = true;
+        }
+
+        if (orientationUpdated) reloadKeyboards();
 
         PluginManager.getPluginDictionaries(getApplicationContext());
         mPluginManager = new PluginManager(this);
@@ -449,19 +474,31 @@ public class LatinIME extends InputMethodService implements
             }
         }
 
-        updateOrientation(conf);
-
         // register to receive ringer mode changes for silent mode
         IntentFilter filter = new IntentFilter(
                 AudioManager.RINGER_MODE_CHANGED_ACTION);
         registerReceiver(mReceiver, filter);
         prefs.registerOnSharedPreferenceChangeListener(this);
         setNotification(mKeyboardNotification);
+
+        if (LGMultiDisplayUtils.supportDualScreen()) {
+            DualKeyboardManager.setContext(this).setInputMethodService(this);
+
+            (new Handler()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    reloadKeyboards();
+                }
+            }, 50);
+        } else {
+            mOrientation = conf.orientation;
+        }
     }
 
     static int mLastDisplayId = -1337;
 
     private boolean updateOrientation(Configuration conf) {
+        if (!LGMultiDisplayUtils.supportDualScreen()) return conf.orientation != mOrientation;
         int newOrientation = mOrientation;
         if (mOrientation == -1337) {
             newOrientation = mDualEnabled ? Configuration.ORIENTATION_LANDSCAPE : conf.orientation;
@@ -477,10 +514,10 @@ public class LatinIME extends InputMethodService implements
 //                mDualEnabled = false;
                 mLastDisplayId = current_display.getDisplayId();
             }
-            orientationLocker.saveCurrentWindowManager(current_window.getWindowManager());
-            Log.i(TAG, "Current window: " + current_display.getName());
+//            orientationLocker.saveCurrentWindowManager(current_window.getWindowManager());
             boolean isLandscape = current_display.getRotation() == Surface.ROTATION_90 || current_display.getRotation() == Surface.ROTATION_270;
             if (mDualEnabled) isLandscape = true;
+            Log.i(TAG, "Current window: " + current_display.getName() + "; dualEnabled: " + mDualEnabled + "; isLandScape: " + isLandscape);
             newOrientation = isLandscape ? Configuration.ORIENTATION_LANDSCAPE : Configuration.ORIENTATION_PORTRAIT;
         }
         boolean result = newOrientation != mOrientation;
@@ -496,21 +533,53 @@ public class LatinIME extends InputMethodService implements
         return num;
     }
 
+    boolean updateKeyboardOptionsRecursive = false;
+
     private void updateKeyboardOptions() {
-        //Log.i(TAG, "setFullKeyboardOptions " + fullInPortrait + " " + heightPercentPortrait + " " + heightPercentLandscape);
-        boolean isPortrait = isPortrait();
-        int kbMode;
-        mNumKeyboardModes = sKeyboardSettings.compactModeEnabled ? 3 : 2; // FIXME!
-        if (isPortrait) {
-            kbMode = getKeyboardModeNum(sKeyboardSettings.keyboardModePortrait, mKeyboardModeOverridePortrait);
-        } else {
-            kbMode = getKeyboardModeNum(sKeyboardSettings.keyboardModeLandscape, mKeyboardModeOverrideLandscape);
+        if (!LGMultiDisplayUtils.supportDualScreen()) {
+            boolean isPortrait = isPortrait();
+            int kbMode;
+            mNumKeyboardModes = sKeyboardSettings.compactModeEnabled ? 3 : 2; // FIXME!
+            if (isPortrait) {
+                kbMode = getKeyboardModeNum(sKeyboardSettings.keyboardModePortrait, mKeyboardModeOverridePortrait);
+            } else {
+                kbMode = getKeyboardModeNum(sKeyboardSettings.keyboardModeLandscape, mKeyboardModeOverrideLandscape);
+            }
+            // Convert overall keyboard height to per-row percentage
+            int screenHeightPercent = isPortrait ? mHeightPortrait : mHeightLandscape;
+            LatinIME.sKeyboardSettings.keyboardMode = kbMode;
+            LatinIME.sKeyboardSettings.keyboardHeightPercent = (float) screenHeightPercent;
+            return;
         }
-        // Convert overall keyboard height to per-row percentage
-        Log.i(TAG, "updateKeyboardOptions: mDualEnabled=" + mDualEnabled);
-        int screenHeightPercent = mDualEnabled ? 96 : (isPortrait ? mHeightPortrait : mHeightLandscape);
-        LatinIME.sKeyboardSettings.keyboardMode = kbMode;
-        LatinIME.sKeyboardSettings.keyboardHeightPercent = (float) screenHeightPercent;
+        if (updateKeyboardOptionsRecursive) return;
+        updateKeyboardOptionsRecursive = true;
+        try {
+            //Log.i(TAG, "setFullKeyboardOptions " + fullInPortrait + " " + heightPercentPortrait + " " + heightPercentLandscape);
+            boolean isPortrait = isPortrait();
+            int kbMode;
+            mNumKeyboardModes = sKeyboardSettings.compactModeEnabled ? 3 : 2; // FIXME!
+            if (isPortrait) {
+                kbMode = getKeyboardModeNum(sKeyboardSettings.keyboardModePortrait, mKeyboardModeOverridePortrait);
+            } else {
+                kbMode = getKeyboardModeNum(sKeyboardSettings.keyboardModeLandscape, mKeyboardModeOverrideLandscape);
+            }
+            // Convert overall keyboard height to per-row percentage
+            Log.i(TAG, "updateKeyboardOptions: mDualEnabled=" + mDualEnabled);
+            if (!mDualEnabled && LGMultiDisplayUtils.checkForceLandscape(this))
+                setDualDisplay(false);
+            float screenHeightPercent = mDualEnabled ? 96.25f : (isPortrait ? mHeightPortrait : mHeightLandscape);
+            LatinIME.sKeyboardSettings.keyboardMode = kbMode;
+            if (
+                    LatinIME.sKeyboardSettings.keyboardMode != kbMode
+                            || LatinIME.sKeyboardSettings.keyboardHeightPercent != screenHeightPercent
+            ) {
+                LatinIME.sKeyboardSettings.keyboardMode = kbMode;
+                LatinIME.sKeyboardSettings.keyboardHeightPercent = screenHeightPercent;
+                reloadKeyboards();
+            }
+        } finally {
+            updateKeyboardOptionsRecursive = false;
+        }
     }
 
     private void createNotificationChannel() {
@@ -703,6 +772,10 @@ public class LatinIME extends InputMethodService implements
         if (mUserDictionary != null) {
             mUserDictionary.close();
         }
+        if (surfaceDuoPaneManager != null) {
+            surfaceDuoPaneManager.disconnect();
+            surfaceDuoPaneManager = null;
+        }
         //if (mContactsDictionary != null) {
         //    mContactsDictionary.close();
         //}
@@ -713,8 +786,16 @@ public class LatinIME extends InputMethodService implements
             mNotificationReceiver = null;
         }
 
-        orientationLocker.unlock();
+        if (LGMultiDisplayUtils.supportDualScreen()) {
+            orientationLocker.unlock();
+        }
         super.onDestroy();
+        if (LGMultiDisplayUtils.supportDualScreen()) {
+            synchronized (glocker) {
+                inputMethodAttachCnt -= selfInputMethodAttachCnt;
+                selfInputMethodAttachCnt = 0;
+            }
+        }
     }
 
     static Configuration mLastConfiguration = null;
@@ -722,6 +803,10 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onConfigurationChanged(final Configuration conf) {
+        if (!LGMultiDisplayUtils.supportDualScreen()) {
+            handleConfigurationChanged(conf);
+            return;
+        }
         if (mLastConfiguration == null) mLastConfiguration = conf;
         Log.i("PCKeyboard", "onConfigurationChanged() diff=" + mLastConfiguration.diff(conf));
         if (mLastConfiguration.diff(conf) == 0) {
@@ -765,11 +850,17 @@ public class LatinIME extends InputMethodService implements
             commitTyped(ic, true);
             if (ic != null)
                 ic.finishComposingText(); // For voice input
+            if (!LGMultiDisplayUtils.supportDualScreen())
+                mOrientation = conf.orientation;
             reloadKeyboards();
             removeCandidateViewContainer();
             Log.i(TAG, "New orientation: reload");
         }
+        mConfigurationChanging = true;
+        super.onConfigurationChanged(conf);
+        mConfigurationChanging = false;
     }
+
 
     @Override
     public View onCreateInputView() {
@@ -778,7 +869,7 @@ public class LatinIME extends InputMethodService implements
         mKeyboardSwitcher.makeKeyboards(true);
         mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_TEXT, 0,
                 shouldShowVoiceButton(getCurrentInputEditorInfo()));
-        return mKeyboardSwitcher.getInputView();
+        return mKeyboardSwitcher.getRootView();
     }
 
     @Override
@@ -787,9 +878,14 @@ public class LatinIME extends InputMethodService implements
     }
 
     IBinder mToken;
+    int selfInputMethodAttachCnt = 0;
+    static int inputMethodAttachCnt = 0;
+    static boolean lastActionIsShow = false;
+    static Object glocker = new Object();
 
     public class MyInputMethodImpl extends InputMethodImpl {
         private boolean isShown = false;
+
         @Override
         public void attachToken(IBinder token) {
             super.attachToken(token);
@@ -799,20 +895,126 @@ public class LatinIME extends InputMethodService implements
             }
         }
 
+        long showTimeMS = 0;
+        int rotationOnShow = -999;
+
+
+        @Override
+        public void bindInput(InputBinding binding) {
+            super.bindInput(binding);
+            if (LGMultiDisplayUtils.supportDualScreen()) {
+                int currRotation = getWindow().getWindow().getWindowManager().getDefaultDisplay().getRotation();
+                rotationOnShow = currRotation;
+                synchronized (glocker) {
+                    ++inputMethodAttachCnt;
+                    ++selfInputMethodAttachCnt;
+                }
+                Log.i(TAG, this.hashCode() + " (" + inputMethodAttachCnt + ") " + "bindInput");
+                showTimeMS = System.currentTimeMillis();
+                if (inputMethodAttachCnt == 1) {
+                    if (LatinIME.mDualEnabled && !isShown) LatinIME.this.setDualDisplay(true);
+                    isShown = true;
+                }
+            }
+        }
+
+        @Override
+        public void unbindInput() {
+            if (!LGMultiDisplayUtils.supportDualScreen()) {
+                super.unbindInput();
+                return;
+            }
+            int currRotation = getWindow().getWindow().getWindowManager().getDefaultDisplay().getRotation();
+            int thisAttachCnt = 0;
+            synchronized (glocker) {
+                thisAttachCnt = --inputMethodAttachCnt;
+                --selfInputMethodAttachCnt;
+            }
+            super.unbindInput();
+            if (!mDualEnabled) return;
+            int finalThisAttachCnt = thisAttachCnt;
+            (new Handler()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    Log.i(TAG, this.hashCode() + " (" + finalThisAttachCnt + ") " + "unbindInput: " + LatinIME.mDualEnabled + ":" + currRotation + " vs " + rotationOnShow);
+                    if (!mDualEnabled) return;
+                    boolean stillNeedKeyboard = finalThisAttachCnt > 0;
+                    if (finalThisAttachCnt == 0) {
+                        if (!(
+                                mDualEnabled
+                                        && (System.currentTimeMillis() <= showTimeMS + 500 || System.currentTimeMillis() <= lastRequestDualMilli + 1000)
+                                        && rotationOnShow != currRotation
+                                        && rotationOnShow == 0)) {
+                            if (isShown) LatinIME.this.setDualDisplay(false);
+                            isShown = false;
+                        } else {
+                            stillNeedKeyboard = true;
+                        }
+                    } else {
+
+                    }
+                    if (stillNeedKeyboard) {
+                        (new Handler()).postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.d(TAG, "show keyboard again");
+                                orientationLocker.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                                orientationLocker.showKeyboard();
+                                if (!LGMultiDisplayUtils.checkForceLandscape(LatinIME.this))
+                                    setDualDisplay(true);
+                            }
+                        }, 100);
+                    }
+                }
+            }, 200);
+        }
+
+        @Override
+        public void restartInput(InputConnection ic, EditorInfo attribute) {
+            super.restartInput(ic, attribute);
+//            Log.i(TAG, this.hashCode() + " (" + inputMethodAttachCnt + ") " + "restartInput");
+        }
+
+        @Override
+        public void startInput(InputConnection ic, EditorInfo attribute) {
+            super.startInput(ic, attribute);
+            if (!LGMultiDisplayUtils.supportDualScreen()) return;
+            Log.i(TAG, this.hashCode() + " (" + inputMethodAttachCnt + ") " + "startInput");
+            if (mDualEnabled && inputMethodAttachCnt > 0 && !lastActionIsShow) {
+                (new Handler()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(TAG, "show keyboard again");
+                        orientationLocker.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                        orientationLocker.showKeyboard();
+                    }
+                }, 100);
+            }
+        }
+
         @Override
         public void showSoftInput(int flags, ResultReceiver resultReceiver) {
-            Log.i(TAG, "showSoftInput: " + LatinIME.mDualEnabled);
-            if (LatinIME.mDualEnabled && !isShown) LatinIME.this.setDualDisplay(true);
-            isShown = true;
             super.showSoftInput(flags, resultReceiver);
+            if (!LGMultiDisplayUtils.supportDualScreen()) return;
+            Log.i(TAG, this.hashCode() + " (" + inputMethodAttachCnt + ") " + "showSoftInput");
+            if (lastActionIsShow) {
+                LatinIME.this.reloadKeyboards();
+                (new Handler()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        LatinIME.this.reloadKeyboards();
+                    }
+                }, 250);
+            }
+            lastActionIsShow = true;
         }
 
         @Override
         public void hideSoftInput(int flags, ResultReceiver resultReceiver) {
-            Log.i(TAG, "hideSoftInput: " + LatinIME.mDualEnabled);
             super.hideSoftInput(flags, resultReceiver);
-            if(isShown) LatinIME.this.setDualDisplay(false);
-            isShown = false;
+            if (!LGMultiDisplayUtils.supportDualScreen()) return;
+            Log.i(TAG, this.hashCode() + " (" + inputMethodAttachCnt + ") " + "hideSoftInput");
+            lastActionIsShow = false;
         }
     }
 
@@ -854,7 +1056,23 @@ public class LatinIME extends InputMethodService implements
     }
 
     @Override
+    public void onBindInput() {
+        super.onBindInput();
+    }
+
+    @Override
     public void onStartInputView(EditorInfo attribute, boolean restarting) {
+        if (SurfaceDuoUtils.isDeviceSurfaceDuo(getPackageManager()))
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    for (PaneManager.PaneState state : surfaceDuoPaneManager.paneStateForKeyboard()) {
+                        if (state.isInFocus())
+                            surfaceDuoPaneManager.overrideKeyboardPane(state.getPaneId());
+                    }
+                }
+            }, 50);
+
         sKeyboardSettings.editorPackageName = attribute.packageName;
         sKeyboardSettings.editorFieldName = attribute.fieldName;
         sKeyboardSettings.editorFieldId = attribute.fieldId;
@@ -1186,6 +1404,11 @@ public class LatinIME extends InputMethodService implements
     }
 
     @Override
+    public void onInitializeInterface() {
+        super.onInitializeInterface();
+    }
+
+    @Override
     public void onDisplayCompletions(CompletionInfo[] completions) {
         if (mCompletionOn) {
             mCompletions = completions;
@@ -1289,8 +1512,40 @@ public class LatinIME extends InputMethodService implements
                 && mKeyboardSwitcher.getInputView().isShown());
     }
 
+    public KeyEvent changeEventKeyCode(KeyEvent e, int keyCode) {
+        return new KeyEvent(
+                e.getDownTime(),
+                e.getEventTime(),
+                e.getAction(),
+                keyCode,
+                e.getRepeatCount(),
+                e.getMetaState(),
+                e.getDeviceId(),
+                0,
+                e.getFlags(),
+                e.getSource()
+        );
+    }
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+//        Log.d("VHDebug", "Down" + keyCode + "; "+event);
+//        if (keyCode == KeyEvent.KEYCODE_NUMPAD_1) {
+//            if (event.getRepeatCount() > 0) return true;
+//            keyCode = KeyEvent.KEYCODE_META_LEFT;
+//            event = changeEventKeyCode(event, keyCode);
+//        }
+//        if (keyCode == KeyEvent.KEYCODE_NUMPAD_2) keyCode = KeyEvent.KEYCODE_META_RIGHT;
+//        if(keyCode == KeyEvent.KEYCODE_DPAD_CENTER) return false;
+//        if (keyCode == KeyEvent.KEYCODE_NUMPAD_5) {
+//            if (event.getRepeatCount() > 0) return true;
+//            keyCode = KeyEvent.KEYCODE_CTRL_LEFT;
+//            event = changeEventKeyCode(event, keyCode);
+//            super.onKeyDown(keyCode, event);
+//            return true;
+//        }
+//        if (keyCode == KeyEvent.KEYCODE_NUMPAD_6) keyCode = KeyEvent.KEYCODE_CTRL_RIGHT;
+//        Log.d("VHDebug", "Down Mod" + keyCode + "; " + event);
         switch (keyCode) {
             case KeyEvent.KEYCODE_BACK:
                 if (event.getRepeatCount() == 0
@@ -1316,6 +1571,20 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+//        if (keyCode == KeyEvent.KEYCODE_NUMPAD_1 || keyCode == KeyEvent.KEYCODE_CLEAR) {
+//            if (event.getRepeatCount() > 0) return true;
+//            keyCode = KeyEvent.KEYCODE_META_LEFT;
+//        }
+//        if (keyCode == KeyEvent.KEYCODE_NUMPAD_2) keyCode = KeyEvent.KEYCODE_META_RIGHT;
+//        if (keyCode == KeyEvent.KEYCODE_NUMPAD_5) {
+//            if (event.getRepeatCount() > 0) return true;
+//            keyCode = KeyEvent.KEYCODE_CTRL_LEFT;
+//            event = changeEventKeyCode(event, keyCode);
+//            super.onKeyUp(keyCode, event);
+//            return true;
+//        }
+//        if (keyCode == KeyEvent.KEYCODE_NUMPAD_6) keyCode = KeyEvent.KEYCODE_CTRL_RIGHT;
+//        Log.d("VHDebug", "Up Mod" + keyCode + "; " + event);
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_DOWN:
             case KeyEvent.KEYCODE_DPAD_UP:
@@ -1945,8 +2214,8 @@ public class LatinIME extends InputMethodService implements
                             if (isChordingAlt) setModAlt(true);
                         } else {
                             Toast.makeText(getApplicationContext(),
-                                    getResources()
-                                            .getString(R.string.toast_ctrl_a_override_info), Toast.LENGTH_LONG)
+                                            getResources()
+                                                    .getString(R.string.toast_ctrl_a_override_info), Toast.LENGTH_LONG)
                                     .show();
                             // Clear the Ctrl modifier (and others)
                             sendModifierKeysDown(shifted);
@@ -2032,6 +2301,7 @@ public class LatinIME extends InputMethodService implements
     // Implementation of KeyboardViewListener
 
     public void onKey(int primaryCode, int[] keyCodes, int x, int y) {
+        Log.d("VHDebug", "onKey: " + primaryCode);
         long when = SystemClock.uptimeMillis();
         if (primaryCode != Keyboard.KEYCODE_DELETE
                 || when > mLastKeyTime + QUICK_PRESS) {
@@ -2188,8 +2458,18 @@ public class LatinIME extends InputMethodService implements
         //mDeadAccentBuffer.clear();  // FIXME
     }
 
+    static long lastRequestDualMilli = 0;
+
     private void setDualDisplay(Boolean newState) {
+        if (!LGMultiDisplayUtils.supportDualScreen()) return;
+        Log.d(TAG, "setDualDisplay: " + newState);
+        orientationLocker.cancelUnlock();
         boolean enabled = false;
+        if (!LGMultiDisplayUtils.checkForceLandscape(this) && (newState == null || newState)) {
+            Log.d(TAG, "set lastRequestDualMilli");
+            lastRequestDualMilli = System.currentTimeMillis();
+            orientationLocker.saveCurrentWindowManager(getWindow().getWindow(), getWindow().getWindow().getWindowManager());
+        }
         if (newState == null) {
             mDualEnabled = ToggleFullScreenIME.Toggle(this);
             enabled = mDualEnabled;
@@ -2204,7 +2484,7 @@ public class LatinIME extends InputMethodService implements
         if (enabled) {
             orientationLocker.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         } else {
-            orientationLocker.unlock();
+            orientationLocker.postUnlock(1000);
         }
     }
 
@@ -3082,7 +3362,7 @@ public class LatinIME extends InputMethodService implements
             if (mReCorrectionEnabled) {
                 // It doesn't work right on pre-Gingerbread phones.
                 Toast.makeText(getApplicationContext(),
-                        res.getString(R.string.recorrect_warning), Toast.LENGTH_LONG)
+                                res.getString(R.string.recorrect_warning), Toast.LENGTH_LONG)
                         .show();
             }
         } else if (PREF_CONNECTBOT_TAB_HACK.equals(key)) {
@@ -3236,6 +3516,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     public void onPress(int primaryCode) {
+        Log.d("VHDebug", "onPress" + primaryCode);
         InputConnection ic = getCurrentInputConnection();
         if (mKeyboardSwitcher.isVibrateAndSoundFeedbackRequired()) {
             vibrate();

@@ -1,85 +1,135 @@
 package org.pocketworkstation.pckeyboard;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.hardware.display.DisplayManager;
+import android.inputmethodservice.InputMethodService;
 import android.net.Uri;
+import android.os.Handler;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
+import android.widget.Toast;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringWriter;
+import java.lang.reflect.Method;
+
+import android.provider.Settings;
 
 public class ScreenOrientationLocker {
     private static final String TAG = "ScreenOrientationLocker";
-    private final Context mContext;
-    static WindowManager mLastWindowManager = null;
-    static WindowManager mSavedWindowManager = null;
-    private static View mOverlayViewForOrientationLock = null;
+
+    private String mSavedRotation = "";
+    private String mSavedOrientation = "";
+
+    private Context mContext;
 
     public ScreenOrientationLocker(Context context) {
-        this.mContext = context;
+        mContext = context;
     }
 
-    public void saveCurrentWindowManager(WindowManager wm) {
-        Log.i(TAG, "Saving Current window: " + wm.getDefaultDisplay().getName());
-        mSavedWindowManager = wm;
+    public void saveCurrentWindowManager(Window window, WindowManager wm) {
+    }
+
+    private static String getStringFromInputStream(InputStream stream) throws IOException {
+        int n = 0;
+        char[] buffer = new char[1024 * 4];
+        InputStreamReader reader = new InputStreamReader(stream, "UTF8");
+        StringWriter writer = new StringWriter();
+        while (-1 != (n = reader.read(buffer))) writer.write(buffer, 0, n);
+        return writer.toString();
+    }
+
+    private String rootRun(String command, boolean returnOuput) {
+        try {
+            String keyCommand = "su -c " + command;
+            Runtime runtime = Runtime.getRuntime();
+            Process proc = runtime.exec(keyCommand);
+            if (returnOuput) {
+                return getStringFromInputStream(proc.getInputStream()).trim();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     public boolean lock(int orientation) {
-        if (mOverlayViewForOrientationLock == null)
-            mOverlayViewForOrientationLock = new View(mContext);
-        if (!Settings.canDrawOverlays(mContext)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + mContext.getPackageName()));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            mContext.startActivity(intent);
-            return false;
-        }
-
-        final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                0, 0,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-                        | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT);
-
-        final WindowManager wm = mSavedWindowManager != null ? mSavedWindowManager : (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
-        Log.i(TAG, "Current window: " + wm.getDefaultDisplay().getName() + " (" + wm.getDefaultDisplay().getDisplayId() + ")");
+        if (mSavedRotation.isEmpty())
+            mSavedRotation = rootRun("settings get system accelerometer_rotation", true);
+        if (mSavedOrientation.isEmpty())
+            mSavedOrientation = rootRun("settings get system user_rotation", true);
+        rootRun("settings put system accelerometer_rotation 0", true);
+        int targetOrientation = 0;
         if (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+            final WindowManager wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
             if (wm.getDefaultDisplay().getDisplayId() != 0) {
-                orientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+                targetOrientation = 1;
             } else {
-//                ((Application)mContext.getApplicationContext()).
+                targetOrientation = 3;
             }
         }
-        params.screenOrientation = orientation;
-        if (wm.getDefaultDisplay() != mOverlayViewForOrientationLock.getDisplay() && mLastWindowManager != null) {
-            try {
-                mLastWindowManager.removeView(mOverlayViewForOrientationLock);
-            } catch (Exception ex) {
-            }
-        }
-        try {
-            wm.addView(mOverlayViewForOrientationLock, params);
-            mLastWindowManager = wm;
-        } catch (Exception ex) {
-            wm.updateViewLayout(mOverlayViewForOrientationLock, params);
-            mLastWindowManager = wm;
-        }
-
+        rootRun("wm set-user-rotation lock -d 0 " + targetOrientation + "; wm set-user-rotation lock -d 1 " + targetOrientation + "", true);
         return true;
     }
 
     public void unlock() {
-        if (mLastWindowManager != null) {
-            mLastWindowManager.removeView(mOverlayViewForOrientationLock);
-            mLastWindowManager = null;
+        if (!mSavedOrientation.isEmpty()) {
+            rootRun("settings put system user_rotation " + mSavedOrientation, false);
+            mSavedRotation = "";
         }
+        if (!mSavedRotation.isEmpty()) {
+            rootRun("settings put system accelerometer_rotation " + mSavedRotation, false);
+            mSavedRotation = "";
+        }
+    }
+
+    private static int unlockToken = 0;
+
+    public void cancelUnlock() {
+        ++unlockToken;
+        Log.d(TAG, "Cancel unlock -> " + unlockToken);
+    }
+
+    public void postUnlock(int delay) {
+        final int currToken = ++unlockToken;
+        Log.d(TAG, "Post unlock " + currToken);
+        (new Handler()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (currToken == ScreenOrientationLocker.this.unlockToken) {
+                    Log.d(TAG, "unlock call " + currToken + " vs " + ScreenOrientationLocker.this.unlockToken);
+                    unlock();
+                }
+            }
+        }, delay);
+    }
+
+    public void showKeyboard() {
+        try {
+            String keyCommand = "su -c input keyevent 108";
+            Runtime runtime = Runtime.getRuntime();
+            Process proc = runtime.exec(keyCommand);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+//        InputMethodManager inputManager = (InputMethodManager) mContext.getSystemService(Context.INPUT_METHOD_SERVICE);
+//        inputManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, InputMethodManager.HIDE_IMPLICIT_ONLY);
     }
 }

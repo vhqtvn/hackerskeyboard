@@ -22,15 +22,22 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.util.Xml;
-import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
+
+import androidx.core.view.ViewCompat;
+
+import com.lge.ime.util.p118f.LGMultiDisplayUtils;
+import com.microsoft.device.display.DisplayMask;
+import com.microsoft.device.layoutmanager.PaneManager;
+import com.vhn.SurfaceDuoUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -199,6 +206,22 @@ public class Keyboard {
      * Number of key widths from current touch point to search for nearest keys.
      */
     private static float SEARCH_DISTANCE = 1.8f;
+
+    private boolean mShouldApplyInset = false;
+    private int mInsetOriginalHeight = 0;
+    private static int mLastInsetBottom = 0;
+
+    public boolean applyInset(int insetBottom) {
+        mLastInsetBottom = insetBottom;
+        if (!mShouldApplyInset) return false;
+        int newDisplayHeight = mInsetOriginalHeight - insetBottom;
+        if (newDisplayHeight != mDisplayHeight) {
+            mDisplayHeight = newDisplayHeight;
+            reloadKeys();
+            return true;
+        }
+        return false;
+    }
 
     /**
      * Container for keys in the keyboard. All keys in a row are at the same Y-coordinate.
@@ -925,6 +948,11 @@ public class Keyboard {
         }
     }
 
+    private Context mContext;
+    private int mXMLLayoutResId;
+    private int mOriginalDefaultHeight;
+    private float mKBHeightPercent;
+
     /**
      * Creates a keyboard from the given xml key layout file.
      *
@@ -949,30 +977,63 @@ public class Keyboard {
      * @param kbHeightPercent height of the keyboard as percentage of screen height
      */
     public Keyboard(Context context, int defaultHeight, int xmlLayoutResId, int modeId, float kbHeightPercent) {
+        mContext = context;
+        mXMLLayoutResId = xmlLayoutResId;
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         Display.Mode mode = display.getMode();
-//        DisplayMetrics dm = context.getResources().getDisplayMetrics();
-        Log.i(TAG, "Keyboard init, screen " + display.getName());
-        if(LatinIME.isDualEnabled() || display.getRotation() == Surface.ROTATION_90 || display.getRotation() == Surface.ROTATION_270) {
-            mDisplayWidth = (int)(mode.getPhysicalHeight() * 0.975);
+        if (SurfaceDuoUtils.isDeviceSurfaceDuo(context.getPackageManager())) {
+            DisplayMask dm = DisplayMask.fromResourcesRect(context);
+            List<Rect> rects = dm.getBoundingRects();
+            if (display.getRotation() == Surface.ROTATION_90 || display.getRotation() == Surface.ROTATION_270) {
+                mDisplayWidth = mode.getPhysicalHeight();
+                if (rects.isEmpty()) {
+                    mDisplayHeight = mode.getPhysicalWidth();
+                } else {
+                    mShouldApplyInset = true;
+                    PaneManager.PaneState state = ((LatinIME) context).getSurfaceDuoPaneManager().paneStateForKeyboard()[0];
+                    mInsetOriginalHeight = state.getTaskPane().height();
+                    mDisplayHeight = mInsetOriginalHeight - mLastInsetBottom;
+                    kbHeightPercent = 100;
+                }
+            } else {
+                if (rects.isEmpty()) {
+                    PaneManager.PaneState state = ((LatinIME) context).getSurfaceDuoPaneManager().paneStateForKeyboard()[0];
+                    mDisplayWidth = state.getTaskPane().width();//mode.getPhysicalWidth() / 2;
+                } else {
+                    mDisplayWidth = rects.get(0).left;
+                }
+                mDisplayHeight = mode.getPhysicalHeight();
+            }
+        } else if (LatinIME.isDualEnabled() || display.getRotation() == Surface.ROTATION_90 || display.getRotation() == Surface.ROTATION_270) {
+            if (LGMultiDisplayUtils.supportDualScreen()) {
+                mDisplayWidth = (int) (mode.getPhysicalHeight() * 0.975);
+            } else {
+                mDisplayWidth = mode.getPhysicalHeight();
+            }
             mDisplayHeight = mode.getPhysicalWidth();
         } else {
             mDisplayWidth = mode.getPhysicalWidth();
             mDisplayHeight = mode.getPhysicalHeight();
         }
-        Log.v(TAG, "keyboard's display metrics:" + mode + ", mDisplayWidth=" + mDisplayWidth + "; rotation="+display.getRotation() + ", dual enabled="+LatinIME.isDualEnabled());
-
-        mDefaultHorizontalGap = 0;
+        Log.v(TAG, "keyboard's display metrics:" + mode + ", mDisplayWidth=" + mDisplayWidth + "; rotation=" + display.getRotation() + ", dual enabled=" + LatinIME.isDualEnabled());
         mDefaultWidth = mDisplayWidth / 10;
-        mDefaultVerticalGap = 0;
-        mDefaultHeight = defaultHeight; // may be zero, to be adjusted below
+        mOriginalDefaultHeight = defaultHeight;
         mKeyboardHeight = Math.round(mDisplayHeight * kbHeightPercent / 100);
-        //Log.i("PCKeyboard", "mDefaultHeight=" + mDefaultHeight + "(arg=" + defaultHeight + ")" + " kbHeight=" + mKeyboardHeight + " displayHeight="+mDisplayHeight+")");
+        mKeyboardMode = modeId;
+        mKBHeightPercent = kbHeightPercent;
+        reloadKeys();
+    }
+
+    void reloadKeys() {
+        mDefaultHeight = mOriginalDefaultHeight; // may be zero, to be adjusted below
+        mDefaultWidth = mDisplayWidth / 10;
+        mKeyboardHeight = Math.round(mDisplayHeight * mKBHeightPercent / 100);
+        mDefaultHorizontalGap = 0;
+        mDefaultVerticalGap = 0;
         mKeys = new ArrayList<Key>();
         mModifierKeys = new ArrayList<Key>();
-        mKeyboardMode = modeId;
         mUseExtension = LatinIME.sKeyboardSettings.useExtension;
-        loadKeyboard(context, context.getResources().getXml(xmlLayoutResId));
+        loadKeyboard(mContext, mContext.getResources().getXml(mXMLLayoutResId));
         setEdgeFlags();
         fixAltChars(LatinIME.sKeyboardSettings.inputLocale);
     }
@@ -1297,6 +1358,8 @@ public class Keyboard {
     private void loadKeyboard(Context context, XmlResourceParser parser) {
         boolean inKey = false;
         boolean inRow = false;
+        boolean skipKey = false;
+        Key dualKey = null;
         float x = 0;
         int y = 0;
         Key key = null;
@@ -1304,6 +1367,7 @@ public class Keyboard {
         Resources res = context.getResources();
         boolean skipRow = false;
         mRowCount = 0;
+        int dual_key_id = res.getInteger(R.integer.key_fullscreen_dual);
 
         try {
             int event;
@@ -1330,29 +1394,45 @@ public class Keyboard {
                     } else if (TAG_KEY.equals(tag)) {
                         inKey = true;
                         key = createKeyFromXml(res, currentRow, Math.round(x), y, parser);
-                        key.realX = x;
-                        if (key.codes == null) {
-                            // skip this key, adding its width to the previous one
-                            if (prevKey != null) {
-                                prevKey.width += key.width;
+                        if (key.codes != null && key.codes.length > 0 && key.codes[0] == dual_key_id) {
+                            dualKey = key;
+                            if (LGMultiDisplayUtils.supportDualScreen()) {
+
+                            } else {
+                                key = prevKey;
+                                skipKey = true;
                             }
                         } else {
-                            mKeys.add(key);
-                            prevKey = key;
-                            if (key.codes[0] == KEYCODE_SHIFT) {
-                                if (mShiftKeyIndex == -1) {
-                                    mShiftKey = key;
-                                    mShiftKeyIndex = mKeys.size() - 1;
+                            if (key.codes != null && key.codes.length > 0 && key.codes[0] == 0x20) {
+                                if (dualKey != null && !LGMultiDisplayUtils.supportDualScreen()) {
+                                    key.width += dualKey.width + dualKey.gap;
+                                    key.realWidth += dualKey.realWidth + dualKey.realGap;
                                 }
-                                mModifierKeys.add(key);
-                            } else if (key.codes[0] == KEYCODE_ALT_SYM) {
-                                mModifierKeys.add(key);
-                            } else if (key.codes[0] == LatinKeyboardView.KEYCODE_CTRL_LEFT) {
-                                mCtrlKey = key;
-                            } else if (key.codes[0] == LatinKeyboardView.KEYCODE_ALT_LEFT) {
-                                mAltKey = key;
-                            } else if (key.codes[0] == LatinKeyboardView.KEYCODE_META_LEFT) {
-                                mMetaKey = key;
+                            }
+                            key.realX = x;
+                            if (key.codes == null) {
+                                // skip this key, adding its width to the previous one
+                                if (prevKey != null) {
+                                    prevKey.width += key.width;
+                                }
+                            } else {
+                                mKeys.add(key);
+                                prevKey = key;
+                                if (key.codes[0] == KEYCODE_SHIFT) {
+                                    if (mShiftKeyIndex == -1) {
+                                        mShiftKey = key;
+                                        mShiftKeyIndex = mKeys.size() - 1;
+                                    }
+                                    mModifierKeys.add(key);
+                                } else if (key.codes[0] == KEYCODE_ALT_SYM) {
+                                    mModifierKeys.add(key);
+                                } else if (key.codes[0] == LatinKeyboardView.KEYCODE_CTRL_LEFT) {
+                                    mCtrlKey = key;
+                                } else if (key.codes[0] == LatinKeyboardView.KEYCODE_ALT_LEFT) {
+                                    mAltKey = key;
+                                } else if (key.codes[0] == LatinKeyboardView.KEYCODE_META_LEFT) {
+                                    mMetaKey = key;
+                                }
                             }
                         }
                     } else if (TAG_KEYBOARD.equals(tag)) {
@@ -1361,10 +1441,13 @@ public class Keyboard {
                 } else if (event == XmlResourceParser.END_TAG) {
                     if (inKey) {
                         inKey = false;
-                        x += key.realGap + key.realWidth;
-                        if (x > mTotalWidth) {
-                            mTotalWidth = Math.round(x);
+                        if (!skipKey) {
+                            x += key.realGap + key.realWidth;
+                            if (x > mTotalWidth) {
+                                mTotalWidth = Math.round(x);
+                            }
                         }
+                        skipKey = false;
                     } else if (inRow) {
                         inRow = false;
                         y += currentRow.verticalGap;
