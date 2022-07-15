@@ -454,10 +454,10 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
         const val MODE_WEB = 7
 
         // Symbols keyboard layout without the settings key
-        const val KEYBOARDMODE_SYMBOLS = R.id.mode_symbols
+        val KEYBOARDMODE_SYMBOLS = R.id.mode_symbols
 
         // Symbols keyboard layout with the settings key
-        const val KEYBOARDMODE_SYMBOLS_WITH_SETTINGS_KEY = R.id.mode_symbols_with_settings_key
+        val KEYBOARDMODE_SYMBOLS_WITH_SETTINGS_KEY = R.id.mode_symbols_with_settings_key
         const val DEFAULT_LAYOUT_ID = "0"
         const val PREF_KEYBOARD_LAYOUT = "pref_keyboard_layout"
         private val THEMES = intArrayOf(
@@ -466,14 +466,14 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
             R.layout.input_material_light)
 
         // Tables which contains resource ids for each character theme color
-        private const val KBD_PHONE = R.xml.kbd_phone
-        private const val KBD_PHONE_SYMBOLS = R.xml.kbd_phone_symbols
-        private const val KBD_SYMBOLS = R.xml.kbd_symbols
-        private const val KBD_SYMBOLS_SHIFT = R.xml.kbd_symbols_shift
-        private const val KBD_FULL = R.xml.kbd_full
-        private const val KBD_FULL_FN = R.xml.kbd_full_fn
-        private const val KBD_COMPACT = R.xml.kbd_compact
-        private const val KBD_COMPACT_FN = R.xml.kbd_compact_fn
+        private val KBD_PHONE = R.xml.kbd_phone
+        private val KBD_PHONE_SYMBOLS = R.xml.kbd_phone_symbols
+        private val KBD_SYMBOLS = R.xml.kbd_symbols
+        private val KBD_SYMBOLS_SHIFT = R.xml.kbd_symbols_shift
+        private val KBD_FULL = R.xml.kbd_full
+        private val KBD_FULL_FN = R.xml.kbd_full_fn
+        private val KBD_COMPACT = R.xml.kbd_compact
+        private val KBD_COMPACT_FN = R.xml.kbd_compact_fn
         private const val AUTO_MODE_SWITCH_STATE_ALPHA = 0
         private const val AUTO_MODE_SWITCH_STATE_SYMBOL_BEGIN = 1
         private const val AUTO_MODE_SWITCH_STATE_SYMBOL = 2
@@ -482,14 +482,14 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
         // devices.
         private const val AUTO_MODE_SWITCH_STATE_MOMENTARY = 3
         private const val AUTO_MODE_SWITCH_STATE_CHORDING = 4
-        private const val SETTINGS_KEY_MODE_AUTO = R.string.settings_key_mode_auto
-        private const val SETTINGS_KEY_MODE_ALWAYS_SHOW = R.string.settings_key_mode_always_show
+        private val SETTINGS_KEY_MODE_AUTO = R.string.settings_key_mode_auto
+        private val SETTINGS_KEY_MODE_ALWAYS_SHOW = R.string.settings_key_mode_always_show
 
         // NOTE: No need to have SETTINGS_KEY_MODE_ALWAYS_HIDE here because it's not
         // being referred to
         // in the source code now.
         // Default is SETTINGS_KEY_MODE_AUTO.
-        private const val DEFAULT_SETTINGS_KEY_MODE = SETTINGS_KEY_MODE_AUTO
+        private val DEFAULT_SETTINGS_KEY_MODE = SETTINGS_KEY_MODE_AUTO
         val instance = KeyboardSwitcher()
         fun init(ims: LatinIME?) {
             instance.mInputMethodService = ims

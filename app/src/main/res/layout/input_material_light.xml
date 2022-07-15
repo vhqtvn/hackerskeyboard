@@ -35,6 +35,8 @@
         latin:keyHintColor="@color/key_hint_letter_color_material_light"
         latin:keyTextColor="@color/key_text_color_material_light"
         latin:popupLayout="@layout/input_popup_material_light"
+        latin:keyFn1Color="@color/key_fn1_letter_color_material_light"
+        latin:keyFn2Color="@color/key_fn2_letter_color_material_light"
         latin:shadowColor="#ff777777"
 
         latin:shadowRadius="0"

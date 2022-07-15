@@ -21,11 +21,8 @@
         android:allowBackup="true"
         android:backupAgent="vn.vhn.pckeyboard.LatinIMEBackupAgent"
         android:hardwareAccelerated="false"
-        android:icon="@drawable/icon"
         android:killAfterRestore="false"
-        android:label="@string/english_ime_name"
-        android:restoreAnyVersion="true"
-        android:theme="@style/Theme.AppCompat.NoActionBar">
+        android:restoreAnyVersion="true">
 
         <meta-data
             android:name="android.max_aspect"
@@ -43,6 +40,7 @@
         <meta-data android:name="to.dualscreen" android:value="true"/>
         <meta-data android:name="duosdk.dualScreenAware" android:value="true"/>
         <service
+            android:exported="true"
             android:name="vn.vhn.pckeyboard.LatinIME"
             android:label="@string/english_ime_name"
             android:permission="android.permission.BIND_INPUT_METHOD">
@@ -55,15 +53,17 @@
         </service>
 
         <activity
+            android:exported="true"
             android:name="vn.vhn.pckeyboard.Main"
             android:label="VHKeyboard">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
         <activity
+            android:exported="true"
             android:name="vn.vhn.pckeyboard.LatinIMESettings"
             android:label="@string/english_ime_settings">
             <intent-filter>
@@ -75,6 +75,7 @@
         </activity>
 
         <activity
+            android:exported="true"
             android:name="vn.vhn.pckeyboard.InputLanguageSelection"
             android:label="@string/language_selection_title">
             <intent-filter>
@@ -86,6 +87,7 @@
         </activity>
 
         <activity
+            android:exported="true"
             android:name="vn.vhn.pckeyboard.PrefScreenActions"
             android:label="@string/pref_screen_actions_title">
             <intent-filter>
@@ -97,6 +99,7 @@
         </activity>
 
         <activity
+            android:exported="true"
             android:name="vn.vhn.pckeyboard.PrefScreenView"
             android:label="@string/pref_screen_actions_title">
             <intent-filter>
@@ -108,6 +111,7 @@
         </activity>
 
         <activity
+            android:exported="true"
             android:name="vn.vhn.pckeyboard.PrefScreenFeedback"
             android:label="@string/pref_screen_feedback_title">
             <intent-filter>

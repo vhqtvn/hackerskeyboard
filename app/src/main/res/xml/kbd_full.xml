@@ -365,6 +365,8 @@
         <Key
             android:keyLabel="@string/key_ab09_main"
             android:popupCharacters="@string/key_ab09_alt"
+            android:fn1Codes="@integer/key_settings"
+            android:fn1Label="⚙"
             android:popupKeyboard="@xml/kbd_popup_template"
             android:shiftLabel="@string/key_ab09_shift" />
         <Key

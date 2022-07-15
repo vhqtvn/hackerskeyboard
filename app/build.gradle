@@ -1,12 +1,12 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 31
     defaultConfig {
-        applicationId 'vn.vhn.pckeyboard'
-        minSdkVersion 30
-        targetSdkVersion 30
+//        applicationId 'vn.vhn.pckeyboard'
+        minSdkVersion 24
+        targetSdkVersion 31
         versionCode 1
         versionName "v1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"

@@ -1234,7 +1234,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     private fun setSticky(enable: Boolean) {
         mStick = enable
         mKeyboardSwitcher.setSticky(mStick)
-        Toast.makeText(this,
+        Toast.makeText(baseContext,
             if (mStick) R.string.sticky_enabled else R.string.sticky_disabled,
             Toast.LENGTH_SHORT).show()
     }

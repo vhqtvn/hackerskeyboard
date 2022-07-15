@@ -1144,7 +1144,7 @@ open class Keyboard @JvmOverloads constructor(
     val isFN2: Boolean get() = mFn2Key?.on ?: false
 
     val isShift: Boolean
-        get() = mShiftLeftKey!!.on || mShiftRightKey!!.on
+        get() = mShiftLeftKey?.on == true || mShiftRightKey?.on == true
 
     private fun computeNearestNeighbors() {
         // Round-up so we don't have any pixels outside the grid
