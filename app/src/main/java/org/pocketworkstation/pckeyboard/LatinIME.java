@@ -189,6 +189,7 @@ public class LatinIME extends InputMethodService implements
         ModifierKeyState left = new ModifierKeyState();
         ModifierKeyState right = new ModifierKeyState();
     }
+
     private BinaryModifierKeystate mShiftKeyState = new BinaryModifierKeystate();
     private BinaryModifierKeystate mCtrlKeyState = new BinaryModifierKeystate();
     private BinaryModifierKeystate mAltKeyState = new BinaryModifierKeystate();
@@ -235,9 +236,11 @@ public class LatinIME extends InputMethodService implements
         KeyboardSwitcher.init(this);
         super.onCreate();
         WindowCompat.setDecorFitsSystemWindows(getWindow().getWindow(), false);
-        surfaceDuoPaneManager = new SurfaceDuoPaneManager(getApplicationContext());
-        surfaceDuoPaneManager.ensureInitialized();
-        surfaceDuoPaneManager.connect();
+        if (SurfaceDuoUtils.isDeviceSurfaceDuo(getPackageManager())) {
+            surfaceDuoPaneManager = new SurfaceDuoPaneManager(getApplicationContext());
+            surfaceDuoPaneManager.ensureInitialized();
+            surfaceDuoPaneManager.connect();
+        }
         if (LGMultiDisplayUtils.supportDualScreen()) {
             mDualEnabled = LGMultiDisplayUtils.checkForceLandscape(this);
         } else {
@@ -1863,44 +1866,84 @@ public class LatinIME extends InputMethodService implements
             mKeyboardSwitcher.setAutoModeSwitchStateMomentary();
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_SHIFT_LEFT) {
-            setModShift(true, mModShiftRight);
-            mShiftKeyState.left.onPress();
-            sendShiftKey(ic, true, true);
+            if (mModShiftLeft) {
+                setModShift(false, mModShiftRight);
+                mShiftKeyState.left.onRelease();
+            } else {
+                setModShift(true, mModShiftRight);
+                mShiftKeyState.left.onPress();
+                sendShiftKey(ic, true, true);
+            }
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_CTRL_LEFT) {
-            setModCtrl(true, mModCtrlRight);
-            mCtrlKeyState.left.onPress();
-            sendCtrlKey(ic, true, true, true);
+            if (mModCtrlLeft) {
+                setModCtrl(false, mModCtrlRight);
+                mCtrlKeyState.left.onRelease();
+            } else {
+                setModCtrl(true, mModCtrlRight);
+                mCtrlKeyState.left.onPress();
+                sendCtrlKey(ic, true, true, true);
+            }
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_ALT_LEFT) {
-            setModAlt(true, mModAltRight);
-            mAltKeyState.left.onPress();
-            sendAltKey(ic, true, true, true);
+            if (mModAltLeft) {
+                setModAlt(true, mModAltRight);
+                mAltKeyState.left.onRelease();
+            } else {
+                setModAlt(true, mModAltRight);
+                mAltKeyState.left.onPress();
+                sendAltKey(ic, true, true, true);
+            }
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_META_LEFT) {
-            setModMeta(true, mModMetaRight);
-            mMetaKeyState.left.onPress();
-            sendMetaKey(ic, true, true, true);
+            if (mModMetaLeft) {
+                setModMeta(false, mModMetaRight);
+                mMetaKeyState.left.onRelease();
+            } else {
+                setModMeta(true, mModMetaRight);
+                mMetaKeyState.left.onPress();
+                sendMetaKey(ic, true, true, true);
+            }
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_SHIFT_RIGHT) {
-            setModShift(mModShiftLeft, true);
-            mShiftKeyState.right.onPress();
-            sendShiftKey(ic, false, true);
+            if (mModShiftRight) {
+                setModShift(mModShiftLeft, false);
+                mShiftKeyState.right.onRelease();
+            } else {
+                setModShift(mModShiftLeft, true);
+                mShiftKeyState.right.onPress();
+                sendShiftKey(ic, false, true);
+            }
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_CTRL_RIGHT) {
-            setModCtrl(mModCtrlLeft, true);
-            mCtrlKeyState.right.onPress();
-            sendCtrlKey(ic, false, true, true);
+            if (mModCtrlRight) {
+                setModCtrl(mModCtrlLeft, false);
+                mCtrlKeyState.right.onRelease();
+            } else {
+                setModCtrl(mModCtrlLeft, true);
+                mCtrlKeyState.right.onPress();
+                sendCtrlKey(ic, false, true, true);
+            }
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_ALT_RIGHT) {
-            setModAlt(mModAltLeft, true);
-            mAltKeyState.right.onPress();
-            sendAltKey(ic, false, true, true);
+            if (mModAltRight) {
+                setModAlt(mModAltLeft, false);
+                mAltKeyState.right.onRelease();
+            } else {
+                setModAlt(mModAltLeft, true);
+                mAltKeyState.right.onPress();
+                sendAltKey(ic, false, true, true);
+            }
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_META_RIGHT) {
-            setModMeta(mModMetaLeft, true);
-            mMetaKeyState.right.onPress();
-            sendMetaKey(ic, false, true, true);
+            if(mModMetaRight) {
+                setModMeta(mModMetaLeft, false);
+                mMetaKeyState.right.onRelease();
+            }else {
+                setModMeta(mModMetaLeft, true);
+                mMetaKeyState.right.onPress();
+                sendMetaKey(ic, false, true, true);
+            }
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_FN_1) {
             setModFn1(!mModFn1);
