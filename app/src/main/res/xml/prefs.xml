@@ -23,7 +23,7 @@
             android:title="@string/title_keyboard_view_settings"
             android:key="graphics_settings">
 
-    <org.pocketworkstation.pckeyboard.SeekBarPreferenceString
+    <vn.vhn.pckeyboard.SeekBarPreferenceString
             android:defaultValue="@string/default_height_portrait"
             hk:minValue="15"
             hk:maxValue="75"
@@ -34,7 +34,7 @@
             android:persistent="true"
             />
 
-    <org.pocketworkstation.pckeyboard.SeekBarPreferenceString
+    <vn.vhn.pckeyboard.SeekBarPreferenceString
             android:defaultValue="@string/default_height_landscape"
             hk:minValue="15"
             hk:maxValue="75"
@@ -48,7 +48,7 @@
     <PreferenceScreen
             android:title="@string/pref_screen_view_title"
             android:summary="@string/pref_screen_view_title_summary">
-        <intent android:action="org.pocketworkstation.pckeyboard.PREFS_VIEW"/>
+        <intent android:action="vn.vhn.pckeyboard.PREFS_VIEW"/>
     </PreferenceScreen>
 
     </PreferenceCategory>
@@ -70,7 +70,7 @@
             android:title="@string/language_selection_title"
             android:summary="@string/language_selection_summary">
         <intent
-                android:action="org.pocketworkstation.pckeyboard.INPUT_LANGUAGE_SELECTION"/>
+                android:action="vn.vhn.pckeyboard.INPUT_LANGUAGE_SELECTION"/>
     </PreferenceScreen>
     </PreferenceCategory>
 
@@ -82,16 +82,16 @@
             android:title="@string/pref_screen_feedback_title"
             android:summary="@string/pref_screen_feedback_title_summary">
         <intent
-                android:action="org.pocketworkstation.pckeyboard.PREFS_FEEDBACK"/>
+                android:action="vn.vhn.pckeyboard.PREFS_FEEDBACK"/>
     </PreferenceScreen>
 
     <PreferenceScreen
             android:title="@string/pref_screen_actions_title"
             android:summary="@string/pref_screen_actions_title_summary">
-        <intent android:action="org.pocketworkstation.pckeyboard.PREFS_ACTIONS"/>
+        <intent android:action="vn.vhn.pckeyboard.PREFS_ACTIONS"/>
     </PreferenceScreen>
 
-    <org.pocketworkstation.pckeyboard.AutoSummaryListPreference
+    <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_slide_keys_int"
             android:title="@string/title_slide_keys"
             android:persistent="true" 
@@ -105,7 +105,7 @@
             android:title="@string/title_long_press_alternate_keys"
             android:key="altchar_settings">
 
-    <org.pocketworkstation.pckeyboard.AutoSummaryListPreference
+    <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_popup_content"
             android:title="@string/title_popup_content"
             android:persistent="true"
@@ -114,7 +114,7 @@
             android:defaultValue="@string/default_popup_content"
             />
 
-    <org.pocketworkstation.pckeyboard.SeekBarPreferenceString
+    <vn.vhn.pckeyboard.SeekBarPreferenceString
             android:defaultValue="@string/default_long_press_duration"
             hk:minValue="100"
             hk:maxValue="2000"

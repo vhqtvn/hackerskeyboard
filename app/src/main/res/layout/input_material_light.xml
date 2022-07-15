@@ -17,13 +17,13 @@
 */
 -->
 
-<org.pocketworkstation.pckeyboard.KeyboardContainer xmlns:android="http://schemas.android.com/apk/res/android"
+<vn.vhn.pckeyboard.KeyboardContainer xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:latin="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_alignParentBottom="true">
 
-    <org.pocketworkstation.pckeyboard.LatinKeyboardView
+    <vn.vhn.pckeyboard.LatinKeyboardView
         android:id="@+id/LatinkeyboardBaseView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -39,4 +39,4 @@
 
         latin:shadowRadius="0"
         latin:symbolColorScheme="black" />
-</org.pocketworkstation.pckeyboard.KeyboardContainer>
+</vn.vhn.pckeyboard.KeyboardContainer>

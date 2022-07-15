@@ -19,9 +19,9 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- Title for Latin keyboard  -->
-    <string name="english_ime_name">Hacker\'s Keyboard</string>
+    <string name="english_ime_name">VHKeyboard</string>
     <!-- Title for Latin keyboard settings activity / dialog -->
-    <string name="english_ime_settings">Settings for Hacker\'s Keyboard</string>
+    <string name="english_ime_settings">Settings for VHKeyboard</string>
     <!-- Title for Latin keyboard input options dialog -->
     <string name="english_ime_input_options">Input options</string>
 
@@ -427,9 +427,9 @@
     <string name="main_setup_test">Test</string>
     <string name="main_body"><Data>
       <![CDATA["
-        <h2>Enabling Hacker's Keyboard 2</h2>
+        <h2>Enabling VHKeyboard (based on Hacker Keyboard)</h2>
         
-        <p><i>Hacker's Keyboard 2</i> provides a new Android input method. It is <b>disabled by default</b>, and for security reasons Android doesn't allow programs to change input method settings. Please follow the following steps to activate it.<p>
+        <p><i>VHKeyboard</i> provides a new Android input method. It is <b>disabled by default</b>, and for security reasons Android doesn't allow programs to change input method settings. Please follow the following steps to activate it.<p>
         
         <h3>Add the keyboard to the system's input method list:</h3>
         <blockquote>

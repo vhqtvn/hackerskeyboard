@@ -3,11 +3,11 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 31
     defaultConfig {
-        applicationId 'org.pocketworkstation.pckeyboard'
+        applicationId 'vn.vhn.pckeyboard'
         minSdkVersion 29
         targetSdkVersion 29
         versionCode 1041001
-        versionName "v1.41.1"
+        versionName "v1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
