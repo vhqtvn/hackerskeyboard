@@ -16,26 +16,25 @@
 
 package org.pocketworkstation.pckeyboard;
 
-import java.util.List;
-
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import org.pocketworkstation.pckeyboard.Keyboard.Key;
-
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
-import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.widget.PopupWindow;
 import android.widget.TextView;
+
+import org.pocketworkstation.pckeyboard.Keyboard.Key;
+
+import java.util.List;
 
 public class LatinKeyboardView extends LatinKeyboardBaseView {
     static final String TAG = "HK/LatinKeyboardView";
@@ -46,6 +45,8 @@ public class LatinKeyboardView extends LatinKeyboardBaseView {
 	// FIXME: The following keycodes should really be renumbered
 	// since they conflict with existing KeyEvent keycodes.
     static final int KEYCODE_FULLSCREEN_DUAL = -1000;
+    static final int KEYCODE_FN_1 = -1001;
+    static final int KEYCODE_FN_2 = -1002;
     static final int KEYCODE_OPTIONS = -100;
     static final int KEYCODE_OPTIONS_LONGPRESS = -101;
     static final int KEYCODE_VOICE = -102;
@@ -63,14 +64,19 @@ public class LatinKeyboardView extends LatinKeyboardBaseView {
     static final int KEYCODE_DPAD_RIGHT = -22;
     static final int KEYCODE_DPAD_CENTER = -23;
     static final int KEYCODE_ALT_LEFT = -57;
+    static final int KEYCODE_ALT_RIGHT = -58;
     static final int KEYCODE_PAGE_UP = -92;
     static final int KEYCODE_PAGE_DOWN = -93;
     static final int KEYCODE_ESCAPE = -111;
     static final int KEYCODE_FORWARD_DEL = -112;
+    static final int KEYCODE_SHIFT_LEFT = -59;
+    static final int KEYCODE_SHIFT_RIGHT = -60;
     static final int KEYCODE_CTRL_LEFT = -113;
+    static final int KEYCODE_CTRL_RIGHT = -114;
     static final int KEYCODE_CAPS_LOCK = -115;
     static final int KEYCODE_SCROLL_LOCK = -116;
     static final int KEYCODE_META_LEFT = -117;
+    static final int KEYCODE_META_RIGHT = -118;
     static final int KEYCODE_FN = -119;
     static final int KEYCODE_SYSRQ = -120;
     static final int KEYCODE_BREAK = -121;
@@ -470,7 +476,6 @@ public class LatinKeyboardView extends LatinKeyboardBaseView {
         } else {
             mExtension.setVisibility(VISIBLE);
         }
-        mExtension.setShiftState(getShiftState()); // propagate shift state
     }
 
     @Override

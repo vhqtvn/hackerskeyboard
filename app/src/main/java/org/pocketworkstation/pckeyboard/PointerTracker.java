@@ -23,7 +23,9 @@ import org.pocketworkstation.pckeyboard.LatinKeyboardBaseView.OnKeyboardActionLi
 import org.pocketworkstation.pckeyboard.LatinKeyboardBaseView.UIHandler;
 
 import android.content.res.Resources;
+
 import org.pocketworkstation.pckeyboard.Keyboard.Key;
+
 import android.util.Log;
 import android.view.MotionEvent;
 
@@ -34,7 +36,9 @@ public class PointerTracker {
 
     public interface UIProxy {
         public void invalidateKey(Key key);
+
         public void showPreview(int keyIndex, PointerTracker tracker);
+
         public boolean hasDistinctMultitouch();
     }
 
@@ -46,7 +50,7 @@ public class PointerTracker {
 
     // Miscellaneous constants
     private static final int NOT_A_KEY = LatinKeyboardBaseView.NOT_A_KEY;
-    private static final int[] KEY_DELETE = { Keyboard.KEYCODE_DELETE };
+    private static final int[] KEY_DELETE = {Keyboard.KEYCODE_DELETE};
 
     private final UIProxy mProxy;
     private final UIHandler mHandler;
@@ -171,7 +175,7 @@ public class PointerTracker {
     }
 
     public PointerTracker(int id, UIHandler handler, KeyDetector keyDetector, UIProxy proxy,
-            Resources res, boolean slideKeyHack) {
+                          Resources res, boolean slideKeyHack) {
         if (proxy == null || handler == null || keyDetector == null)
             throw new NullPointerException();
         mPointerId = id;
@@ -195,7 +199,7 @@ public class PointerTracker {
         if (keys == null || keyHysteresisDistance < 0)
             throw new IllegalArgumentException();
         mKeys = keys;
-        mKeyHysteresisDistanceSquared = (int)(keyHysteresisDistance * keyHysteresisDistance);
+        mKeyHysteresisDistanceSquared = (int) (keyHysteresisDistance * keyHysteresisDistance);
         // Mark that keyboard layout has been changed.
         mKeyboardLayoutHasBeenChanged = true;
     }
@@ -221,12 +225,19 @@ public class PointerTracker {
         if (key == null || key.codes == null)
             return false;
         int primaryCode = key.codes[0];
-        return primaryCode == Keyboard.KEYCODE_SHIFT
+        return primaryCode == LatinKeyboardView.KEYCODE_SHIFT_LEFT
+                || primaryCode == LatinKeyboardView.KEYCODE_SHIFT_RIGHT
                 || primaryCode == Keyboard.KEYCODE_MODE_CHANGE
                 || primaryCode == LatinKeyboardView.KEYCODE_CTRL_LEFT
                 || primaryCode == LatinKeyboardView.KEYCODE_ALT_LEFT
                 || primaryCode == LatinKeyboardView.KEYCODE_META_LEFT
-                || primaryCode == LatinKeyboardView.KEYCODE_FN;
+                || primaryCode == LatinKeyboardView.KEYCODE_CTRL_RIGHT
+                || primaryCode == LatinKeyboardView.KEYCODE_ALT_RIGHT
+                || primaryCode == LatinKeyboardView.KEYCODE_META_RIGHT
+                || primaryCode == LatinKeyboardView.KEYCODE_FN
+                || primaryCode == LatinKeyboardView.KEYCODE_FN_1
+                || primaryCode == LatinKeyboardView.KEYCODE_FN_2
+                ;
     }
 
     public boolean isModifier() {
@@ -267,20 +278,20 @@ public class PointerTracker {
 
     public void onTouchEvent(int action, int x, int y, long eventTime) {
         switch (action) {
-        case MotionEvent.ACTION_MOVE:
-            onMoveEvent(x, y, eventTime);
-            break;
-        case MotionEvent.ACTION_DOWN:
-        case MotionEvent.ACTION_POINTER_DOWN:
-            onDownEvent(x, y, eventTime);
-            break;
-        case MotionEvent.ACTION_UP:
-        case MotionEvent.ACTION_POINTER_UP:
-            onUpEvent(x, y, eventTime);
-            break;
-        case MotionEvent.ACTION_CANCEL:
-            onCancelEvent(x, y, eventTime);
-            break;
+            case MotionEvent.ACTION_MOVE:
+                onMoveEvent(x, y, eventTime);
+                break;
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_POINTER_DOWN:
+                onDownEvent(x, y, eventTime);
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_UP:
+                onUpEvent(x, y, eventTime);
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                onCancelEvent(x, y, eventTime);
+                break;
         }
     }
 
@@ -326,34 +337,35 @@ public class PointerTracker {
             sSlideKeys.add(key);
         }
     }
-    
-    /*package*/ static void clearSlideKeys() {
+
+    /*package*/
+    static void clearSlideKeys() {
         sSlideKeys.clear();
     }
-    
+
     void sendSlideKeys() {
         if (!sSlideKeyHack) return;
         int slideMode = LatinIME.sKeyboardSettings.sendSlideKeys;
         if ((slideMode & 4) > 0) {
             // send all
             for (Key key : sSlideKeys) {
-                detectAndSendKey(key, key.x, key.y, -1);            
+                detectAndSendKey(key, key.x, key.y, -1);
             }
         } else {
             // Send first and/or last key only.
             int n = sSlideKeys.size();
             if (n > 0 && (slideMode & 1) > 0) {
                 Key key = sSlideKeys.get(0);
-                detectAndSendKey(key, key.x, key.y, -1);            
+                detectAndSendKey(key, key.x, key.y, -1);
             }
             if (n > 1 && (slideMode & 2) > 0) {
                 Key key = sSlideKeys.get(n - 1);
-                detectAndSendKey(key, key.x, key.y, -1);            
+                detectAndSendKey(key, key.x, key.y, -1);
             }
         }
         clearSlideKeys();
     }
-    
+
     public void onMoveEvent(int x, int y, long eventTime) {
         if (DEBUG_MOVE)
             debugLog("onMoveEvent:", x, y);
@@ -364,7 +376,8 @@ public class PointerTracker {
         final Key oldKey = getKey(keyState.getKeyIndex());
         if (isValidKeyIndex(keyIndex)) {
             boolean isMinorMoveBounce = isMinorMoveBounce(x, y, keyIndex);
-            if (DEBUG_MOVE) Log.i(TAG, "isMinorMoveBounce=" +isMinorMoveBounce + " oldKey=" + (oldKey== null ? "null" : oldKey));
+            if (DEBUG_MOVE)
+                Log.i(TAG, "isMinorMoveBounce=" + isMinorMoveBounce + " oldKey=" + (oldKey == null ? "null" : oldKey));
             if (oldKey == null) {
                 // The pointer has been slid in to the new key, but the finger was not on any keys.
                 // In this case, we must call onPress() to notify that the new key is being pressed.
@@ -412,7 +425,7 @@ public class PointerTracker {
                 if (mListener != null && oldKey.codes != null)
                     mListener.onRelease(oldKey.getPrimaryCode());
                 resetMultiTap();
-                keyState.onMoveToNewKey(keyIndex, x ,y);
+                keyState.onMoveToNewKey(keyIndex, x, y);
                 mHandler.cancelLongPressTimer();
             }
         }
@@ -453,7 +466,7 @@ public class PointerTracker {
         mIsInSlidingKeyInput = false;
         int keyIndex = mKeyState.getKeyIndex();
         if (isValidKeyIndex(keyIndex))
-           mProxy.invalidateKey(mKeys[keyIndex]);
+            mProxy.invalidateKey(mKeys[keyIndex]);
     }
 
     public void repeatKey(int keyIndex) {
@@ -537,7 +550,7 @@ public class PointerTracker {
         detectAndSendKey(getKey(index), x, y, eventTime);
         mLastSentIndex = index;
     }
-    
+
     private void detectAndSendKey(Key key, int x, int y, long eventTime) {
         final OnKeyboardActionListener listener = mListener;
 
@@ -592,11 +605,11 @@ public class PointerTracker {
             mPreviewLabel.append((char) key.codes[mTapCount < 0 ? 0 : mTapCount]);
             return mPreviewLabel;
         } else {
-        	if (key.isDeadKey()) {
-        		return DeadAccentSequence.normalize(" " + key.label);
-        	} else {
-        		return key.label;
-        	}
+            if (key.isDeadKey()) {
+                return DeadAccentSequence.normalize(" " + key.label);
+            } else {
+                return key.label;
+            }
         }
     }
 

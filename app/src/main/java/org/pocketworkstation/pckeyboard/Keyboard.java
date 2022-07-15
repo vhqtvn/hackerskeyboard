@@ -16,8 +16,6 @@
 
 package org.pocketworkstation.pckeyboard;
 
-import org.xmlpull.v1.XmlPullParserException;
-
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
@@ -32,12 +30,12 @@ import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
 
-import androidx.core.view.ViewCompat;
-
 import com.lge.ime.util.p118f.LGMultiDisplayUtils;
 import com.microsoft.device.display.DisplayMask;
 import com.microsoft.device.layoutmanager.PaneManager;
 import com.vhn.SurfaceDuoUtils;
+
+import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -88,7 +86,8 @@ public class Keyboard {
     public static final int EDGE_TOP = 0x04;
     public static final int EDGE_BOTTOM = 0x08;
 
-    public static final int KEYCODE_SHIFT = -1;
+    public static final int KEYCODE_VIRTUAL_SHIFT_LEFT = -10;
+    public static final int KEYCODE_VIRTUAL_SHIFT_RIGHT = -11;
     public static final int KEYCODE_MODE_CHANGE = -2;
     public static final int KEYCODE_CANCEL = -3;
     public static final int KEYCODE_DONE = -4;
@@ -129,29 +128,19 @@ public class Keyboard {
      */
     private int mDefaultVerticalGap;
 
-    public static final int SHIFT_OFF = 0;
-    public static final int SHIFT_ON = 1;
-    public static final int SHIFT_LOCKED = 2;
-    public static final int SHIFT_CAPS = 3;
-    public static final int SHIFT_CAPS_LOCKED = 4;
-
-    /**
-     * Is the keyboard in the shifted state
-     */
-    private int mShiftState = SHIFT_OFF;
-
     /**
      * Key instance for the shift key, if present
      */
-    private Key mShiftKey;
-    private Key mAltKey;
-    private Key mCtrlKey;
-    private Key mMetaKey;
-
-    /**
-     * Key index for the shift key, if present
-     */
-    private int mShiftKeyIndex = -1;
+    private Key mShiftLeftKey;
+    private Key mAltLeftKey;
+    private Key mCtrlLeftKey;
+    private Key mMetaLeftKey;
+    private Key mShiftRightKey;
+    private Key mAltRightKey;
+    private Key mCtrlRightKey;
+    private Key mMetaRightKey;
+    private Key mFn1Key;
+    private Key mFn2Key;
 
     /**
      * Total height of the keyboard, including the padding and keys
@@ -333,6 +322,8 @@ public class Keyboard {
          * being the most important.
          */
         public int[] codes;
+        public int[] fn1codes;
+        public int[] fn2codes;
 
         /**
          * Label to display
@@ -340,6 +331,8 @@ public class Keyboard {
         public CharSequence label;
         public CharSequence shiftLabel;
         public CharSequence capsLabel;
+        public CharSequence fn1Label;
+        public CharSequence fn2Label;
 
         /**
          * Icon to display instead of a label. Icon takes precedence over a label
@@ -524,6 +517,7 @@ public class Keyboard {
                     R.styleable.Keyboard_Key);
             this.realX = this.x + realGap - parent.parent.mHorizontalPad / 2;
             this.x = Math.round(this.realX);
+
             TypedValue codesValue = new TypedValue();
             a.getValue(R.styleable.Keyboard_Key_codes,
                     codesValue);
@@ -532,6 +526,26 @@ public class Keyboard {
                 codes = new int[]{codesValue.data};
             } else if (codesValue.type == TypedValue.TYPE_STRING) {
                 codes = parseCSV(codesValue.string.toString());
+            }
+
+            TypedValue fn1CodesValue = new TypedValue();
+            a.getValue(R.styleable.Keyboard_Key_fn1Codes,
+                    fn1CodesValue);
+            if (fn1CodesValue.type == TypedValue.TYPE_INT_DEC
+                    || fn1CodesValue.type == TypedValue.TYPE_INT_HEX) {
+                fn1codes = new int[]{fn1CodesValue.data};
+            } else if (fn1CodesValue.type == TypedValue.TYPE_STRING) {
+                fn1codes = parseCSV(fn1CodesValue.string.toString());
+            }
+
+            TypedValue fn2CodesValue = new TypedValue();
+            a.getValue(R.styleable.Keyboard_Key_fn2Codes,
+                    fn2CodesValue);
+            if (fn2CodesValue.type == TypedValue.TYPE_INT_DEC
+                    || fn2CodesValue.type == TypedValue.TYPE_INT_HEX) {
+                fn2codes = new int[]{fn2CodesValue.data};
+            } else if (fn2CodesValue.type == TypedValue.TYPE_STRING) {
+                fn2codes = parseCSV(fn2CodesValue.string.toString());
             }
 
             iconPreview = a.getDrawable(R.styleable.Keyboard_Key_iconPreview);
@@ -563,6 +577,8 @@ public class Keyboard {
             capsLabel = a.getText(R.styleable.Keyboard_Key_capsLabel);
             if (capsLabel != null && capsLabel.length() == 0) capsLabel = null;
             text = a.getText(R.styleable.Keyboard_Key_keyOutputText);
+            fn1Label = a.getText(R.styleable.Keyboard_Key_fn1Label);
+            fn2Label = a.getText(R.styleable.Keyboard_Key_fn2Label);
 
             if (codes == null && !TextUtils.isEmpty(label)) {
                 codes = getFromString(label);
@@ -602,22 +618,22 @@ public class Keyboard {
             a.recycle();
         }
 
-        public boolean isDistinctCaps() {
-            return isDistinctUppercase && keyboard.isShiftCaps();
-        }
-
-        public boolean isShifted() {
-            boolean shifted = keyboard.isShifted(isSimpleUppercase);
-            //Log.i(TAG, "FIXME isShifted=" + shifted + " for " + this);
-            return shifted;
-        }
-
-        public int getPrimaryCode(boolean isShiftCaps, boolean isShifted) {
-            if (isDistinctUppercase && isShiftCaps) {
+        public int getPrimaryCode(
+                boolean isFN1,
+                boolean isFN2,
+                boolean isShift
+        ) {
+            if (isFN1 && fn1codes != null && fn1codes.length > 0) {
+                return fn1codes[0];
+            }
+            if (isFN2 && fn2codes != null && fn2codes.length > 0) {
+                return fn2codes[0];
+            }
+            if (isDistinctUppercase && isShift) {
                 return capsLabel.charAt(0);
             }
             //Log.i(TAG, "getPrimaryCode(), shifted=" + shifted);
-            if (isShifted && shiftLabel != null) {
+            if (isShift && shiftLabel != null) {
                 if (shiftLabel.charAt(0) == DEAD_KEY_PLACEHOLDER && shiftLabel.length() >= 2) {
                     return shiftLabel.charAt(1);
                 } else {
@@ -629,7 +645,11 @@ public class Keyboard {
         }
 
         public int getPrimaryCode() {
-            return getPrimaryCode(keyboard.isShiftCaps(), keyboard.isShifted(isSimpleUppercase));
+            return getPrimaryCode(
+                    keyboard.isFN1(),
+                    keyboard.isFN2(),
+                    keyboard.isShift()
+            );
         }
 
         public boolean isDeadKey() {
@@ -652,36 +672,26 @@ public class Keyboard {
         }
 
         public String getCaseLabel() {
-            if (isDistinctUppercase && keyboard.isShiftCaps()) {
-                return capsLabel.toString();
-            }
-            boolean isShifted = keyboard.isShifted(isSimpleUppercase);
-            if (isShifted && shiftLabel != null) {
-                return shiftLabel.toString();
-            } else {
-                return label != null ? label.toString() : null;
-            }
+            return label != null ? label.toString() : null;
         }
 
-        private String getPopupKeyboardContent(boolean isShiftCaps, boolean isShifted, boolean addExtra) {
-            int mainChar = getPrimaryCode(false, false);
-            int shiftChar = getPrimaryCode(false, true);
-            int capsChar = getPrimaryCode(true, true);
+        private String getPopupKeyboardContent(boolean isShift, boolean addExtra) {
+            int mainChar = getPrimaryCode(false, false, false);
+            int shiftChar = getPrimaryCode(false, false, false);
 
             // Remove duplicates
             if (shiftChar == mainChar) shiftChar = 0;
-            if (capsChar == shiftChar || capsChar == mainChar) capsChar = 0;
 
             int popupLen = (popupCharacters == null) ? 0 : popupCharacters.length();
             StringBuilder popup = new StringBuilder(popupLen);
             for (int i = 0; i < popupLen; ++i) {
                 char c = popupCharacters.charAt(i);
-                if (isShifted || isShiftCaps) {
+                if (isShift) {
                     String upper = Character.toString(c).toUpperCase(LatinIME.sKeyboardSettings.inputLocale);
                     if (upper.length() == 1) c = upper.charAt(0);
                 }
 
-                if (c == mainChar || c == shiftChar || c == capsChar) continue;
+                if (c == mainChar || c == shiftChar) continue;
                 popup.append(c);
             }
 
@@ -690,12 +700,7 @@ public class Keyboard {
                 int flags = LatinIME.sKeyboardSettings.popupKeyboardFlags;
                 if ((flags & POPUP_ADD_SELF) != 0) {
                     // if shifted, add unshifted key to extra, and vice versa
-                    if (isDistinctUppercase && isShiftCaps) {
-                        if (capsChar > 0) {
-                            extra.append((char) capsChar);
-                            capsChar = 0;
-                        }
-                    } else if (isShifted) {
+                    if (isShift) {
                         if (shiftChar > 0) {
                             extra.append((char) shiftChar);
                             shiftChar = 0;
@@ -710,7 +715,7 @@ public class Keyboard {
 
                 if ((flags & POPUP_ADD_CASE) != 0) {
                     // if shifted, add unshifted key to popup, and vice versa
-                    if (isDistinctUppercase && isShiftCaps) {
+                    if (isDistinctUppercase && isShift) {
                         if (mainChar > 0) {
                             extra.append((char) mainChar);
                             mainChar = 0;
@@ -719,30 +724,22 @@ public class Keyboard {
                             extra.append((char) shiftChar);
                             shiftChar = 0;
                         }
-                    } else if (isShifted) {
+                    } else if (isShift) {
                         if (mainChar > 0) {
                             extra.append((char) mainChar);
                             mainChar = 0;
-                        }
-                        if (capsChar > 0) {
-                            extra.append((char) capsChar);
-                            capsChar = 0;
                         }
                     } else {
                         if (shiftChar > 0) {
                             extra.append((char) shiftChar);
                             shiftChar = 0;
                         }
-                        if (capsChar > 0) {
-                            extra.append((char) capsChar);
-                            capsChar = 0;
-                        }
                     }
                 }
 
                 if (!isSimpleUppercase && (flags & POPUP_ADD_SHIFT) != 0) {
                     // if shifted, add unshifted key to popup, and vice versa
-                    if (isShifted) {
+                    if (isShift) {
                         if (mainChar > 0) {
                             extra.append((char) mainChar);
                             mainChar = 0;
@@ -773,7 +770,7 @@ public class Keyboard {
 
             if ((LatinIME.sKeyboardSettings.popupKeyboardFlags & POPUP_DISABLE) != 0) return null;
 
-            String popup = getPopupKeyboardContent(keyboard.isShiftCaps(), keyboard.isShifted(isSimpleUppercase), true);
+            String popup = getPopupKeyboardContent(keyboard.isShift(), true);
             //Log.i(TAG, "getPopupKeyboard: popup='" + popup + "' for " + this);
             if (popup.length() > 0) {
                 int resId = popupResId;
@@ -800,7 +797,7 @@ public class Keyboard {
         public String getAltHintLabel(boolean wantAscii, boolean wantAll) {
             if (altHint == null) {
                 altHint = "";
-                String popup = getPopupKeyboardContent(false, false, false);
+                String popup = getPopupKeyboardContent(false, false);
                 if (popup.length() > 0) {
                     char c = popup.charAt(0);
                     if (wantAll || wantAscii && is7BitAscii(c)) {
@@ -1256,56 +1253,66 @@ public class Keyboard {
         return mTotalWidth;
     }
 
-    public boolean setShiftState(int shiftState, boolean updateKey) {
-        //Log.i(TAG, "setShiftState " + mShiftState + " -> " + shiftState);
-        if (updateKey && mShiftKey != null) {
-            mShiftKey.on = (shiftState != SHIFT_OFF);
-        }
-        if (mShiftState != shiftState) {
-            mShiftState = shiftState;
-            return true;
-        }
-        return false;
+    public Key setShiftLeftIndicator(boolean active) {
+        if (mShiftLeftKey != null) mShiftLeftKey.on = active;
+        return mShiftLeftKey;
     }
 
-    public boolean setShiftState(int shiftState) {
-        return setShiftState(shiftState, true);
+    public Key setShiftRightIndicator(boolean active) {
+        if (mShiftRightKey != null) mShiftRightKey.on = active;
+        return mShiftRightKey;
     }
 
-    public Key setCtrlIndicator(boolean active) {
-        //Log.i(TAG, "setCtrlIndicator " + active + " ctrlKey=" + mCtrlKey);
-        if (mCtrlKey != null) mCtrlKey.on = active;
-        return mCtrlKey;
+    public Key setCtrlLeftIndicator(boolean active) {
+        if (mCtrlLeftKey != null) mCtrlLeftKey.on = active;
+        return mCtrlLeftKey;
     }
 
-    public Key setAltIndicator(boolean active) {
-        if (mAltKey != null) mAltKey.on = active;
-        return mAltKey;
+    public Key setCtrlRightIndicator(boolean active) {
+        if (mCtrlRightKey != null) mCtrlRightKey.on = active;
+        return mCtrlRightKey;
     }
 
-    public Key setMetaIndicator(boolean active) {
-        if (mMetaKey != null) mMetaKey.on = active;
-        return mMetaKey;
+    public Key setAltLeftIndicator(boolean active) {
+        if (mAltLeftKey != null) mAltLeftKey.on = active;
+        return mAltLeftKey;
     }
 
-    public boolean isShiftCaps() {
-        return mShiftState == SHIFT_CAPS || mShiftState == SHIFT_CAPS_LOCKED;
+    public Key setAltRightIndicator(boolean active) {
+        if (mAltRightKey != null) mAltRightKey.on = active;
+        return mAltRightKey;
     }
 
-    public boolean isShifted(boolean applyCaps) {
-        if (applyCaps) {
-            return mShiftState != SHIFT_OFF;
-        } else {
-            return mShiftState == SHIFT_ON || mShiftState == SHIFT_LOCKED;
-        }
+    public Key setMetaLeftIndicator(boolean active) {
+        if (mMetaLeftKey != null) mMetaLeftKey.on = active;
+        return mMetaLeftKey;
     }
 
-    public int getShiftState() {
-        return mShiftState;
+    public Key setMetaRightIndicator(boolean active) {
+        if (mMetaRightKey != null) mMetaRightKey.on = active;
+        return mMetaRightKey;
     }
 
-    public int getShiftKeyIndex() {
-        return mShiftKeyIndex;
+    public Key setFn1Indicator(boolean active) {
+        if (mFn1Key != null) mFn1Key.on = active;
+        return mFn1Key;
+    }
+
+    public Key setFn2Indicator(boolean active) {
+        if (mFn2Key != null) mFn2Key.on = active;
+        return mFn2Key;
+    }
+
+    public boolean isFN1() {
+        return mFn1Key.on;
+    }
+
+    public boolean isFN2() {
+        return mFn2Key.on;
+    }
+
+    public boolean isShift() {
+        return mShiftLeftKey.on || mShiftRightKey.on;
     }
 
     private void computeNearestNeighbors() {
@@ -1435,20 +1442,36 @@ public class Keyboard {
                             } else {
                                 mKeys.add(key);
                                 prevKey = key;
-                                if (key.codes[0] == KEYCODE_SHIFT) {
-                                    if (mShiftKeyIndex == -1) {
-                                        mShiftKey = key;
-                                        mShiftKeyIndex = mKeys.size() - 1;
-                                    }
+                                if (key.codes[0] == LatinKeyboardView.KEYCODE_SHIFT_LEFT) {
+                                    mShiftLeftKey = key;
+                                    mModifierKeys.add(key);
+                                } else if (key.codes[0] == LatinKeyboardView.KEYCODE_SHIFT_RIGHT) {
+                                    mShiftRightKey = key;
                                     mModifierKeys.add(key);
                                 } else if (key.codes[0] == KEYCODE_ALT_SYM) {
                                     mModifierKeys.add(key);
                                 } else if (key.codes[0] == LatinKeyboardView.KEYCODE_CTRL_LEFT) {
-                                    mCtrlKey = key;
+                                    mCtrlLeftKey = key;
+                                    mModifierKeys.add(key);
                                 } else if (key.codes[0] == LatinKeyboardView.KEYCODE_ALT_LEFT) {
-                                    mAltKey = key;
+                                    mAltLeftKey = key;
+                                    mModifierKeys.add(key);
                                 } else if (key.codes[0] == LatinKeyboardView.KEYCODE_META_LEFT) {
-                                    mMetaKey = key;
+                                    mMetaLeftKey = key;
+                                    mModifierKeys.add(key);
+                                } else if (key.codes[0] == LatinKeyboardView.KEYCODE_CTRL_RIGHT) {
+                                    mCtrlRightKey = key;
+                                    mModifierKeys.add(key);
+                                } else if (key.codes[0] == LatinKeyboardView.KEYCODE_ALT_RIGHT) {
+                                    mAltRightKey = key;
+                                    mModifierKeys.add(key);
+                                } else if (key.codes[0] == LatinKeyboardView.KEYCODE_META_RIGHT) {
+                                    mMetaRightKey = key;
+                                    mModifierKeys.add(key);
+                                } else if (key.codes[0] == LatinKeyboardView.KEYCODE_FN_1) {
+                                    mFn1Key = key;
+                                } else if (key.codes[0] == LatinKeyboardView.KEYCODE_FN_2) {
+                                    mFn2Key = key;
                                 }
                             }
                         }

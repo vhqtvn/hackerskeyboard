@@ -39,10 +39,14 @@
     <color name="key_background_pressed_material_black">#19FFFFFF</color>
     <color name="key_text_color_material_black">#CCFFFFFF</color>
     <color name="key_hint_letter_color_material_black">#80FFFFFF</color>
+    <color name="key_fn1_letter_color_material_black">#FF22FF22</color>
+    <color name="key_fn2_letter_color_material_black">#FF2222FF</color>
     <color name="key_background_material_dark">#263238</color>
     <color name="key_background_pressed_material_dark">#19FFFFFF</color>
     <color name="key_text_color_material_dark">#CCFFFFFF</color>
     <color name="key_hint_letter_color_material_dark">#80FFFFFF</color>
+    <color name="key_fn1_letter_color_material_dark">#80FF0000</color>
+    <color name="key_fn2_letter_color_material_dark">#8000FF00</color>
     <color name="key_background_material_light">#ECEFF1</color>
     <color name="key_background_pressed_material_light">#2637474F</color>
     <color name="key_text_color_material_light">#000000</color>

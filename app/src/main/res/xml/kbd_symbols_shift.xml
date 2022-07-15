@@ -85,7 +85,7 @@
     </Row>
     <Row>
         <Key
-            android:codes="@integer/key_shift"
+            android:codes="@integer/key_shift_left"
             android:keyLabel="@string/label_alt_key"
             android:keyWidth="15%p"
             android:isModifier="true"

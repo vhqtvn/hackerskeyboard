@@ -207,11 +207,11 @@ public class ComposeSequence {
     // returns true if the compose sequence is valid but incomplete
     public String executeToString(int code) {
         KeyboardSwitcher ks = KeyboardSwitcher.getInstance();
-        if (ks.getInputView().isShiftCaps()
-                && ks.isAlphabetMode()
-                && Character.isLowerCase(code)) {
-            code = Character.toUpperCase(code);
-        }
+//        if (ks.getInputView().isShiftCaps()
+//                && ks.isAlphabetMode()
+//                && Character.isLowerCase(code)) {
+//            code = Character.toUpperCase(code);
+//        }
         bufferKey((char) code);
         composeUser.updateShiftKeyState(composeUser.getCurrentInputEditorInfo());
 

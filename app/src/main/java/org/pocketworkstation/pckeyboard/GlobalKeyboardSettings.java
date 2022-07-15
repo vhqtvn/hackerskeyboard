@@ -45,10 +45,6 @@ public final class GlobalKeyboardSettings {
     public int keyboardModePortrait = 0;
     public int keyboardModeLandscape = 2;
     public boolean compactModeEnabled = true;  // always on
-    public int ctrlAOverride = 0;
-    public int chordingCtrlKey = 0;
-    public int chordingAltKey = 0;
-    public int chordingMetaKey = 0;
     public float keyClickVolume = 0.0f;
     public int keyClickMethod = 0;
     public boolean capsLock = true;
@@ -174,31 +170,7 @@ public final class GlobalKeyboardSettings {
             public String getDefault() { return "1.0"; }
             public int getFlags() { return FLAG_PREF_RESET_KEYBOARDS; }
         });
-
-        addStringPref("pref_ctrl_a_override", new StringPref() {
-            public void set(String val) { ctrlAOverride = Integer.valueOf(val); }
-            public String getDefault() { return res.getString(R.string.default_ctrl_a_override); }
-            public int getFlags() { return FLAG_PREF_RESET_KEYBOARDS; }
-        });
-
-        addStringPref("pref_chording_ctrl_key", new StringPref() {
-            public void set(String val) { chordingCtrlKey = Integer.valueOf(val); }
-            public String getDefault() { return res.getString(R.string.default_chording_ctrl_key); }
-            public int getFlags() { return FLAG_PREF_RESET_KEYBOARDS; }
-        });
-
-        addStringPref("pref_chording_alt_key", new StringPref() {
-            public void set(String val) { chordingAltKey = Integer.valueOf(val); }
-            public String getDefault() { return res.getString(R.string.default_chording_alt_key); }
-            public int getFlags() { return FLAG_PREF_RESET_KEYBOARDS; }
-        });
-
-        addStringPref("pref_chording_meta_key", new StringPref() {
-            public void set(String val) { chordingMetaKey = Integer.valueOf(val); }
-            public String getDefault() { return res.getString(R.string.default_chording_meta_key); }
-            public int getFlags() { return FLAG_PREF_RESET_KEYBOARDS; }
-        });
-
+        
         addStringPref("pref_click_volume", new StringPref() {
             public void set(String val) { keyClickVolume = Float.valueOf(val); }
             public String getDefault() { return res.getString(R.string.default_click_volume); }

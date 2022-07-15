@@ -211,7 +211,7 @@
     </Row>
     <Row>
         <Key
-            android:codes="@integer/key_shift"
+            android:codes="@integer/key_shift_left"
             android:keyWidth="11.09090909%p"
             android:keyIcon="@drawable/sym_keyboard_shift"
             android:iconPreview="@drawable/sym_keyboard_feedback_shift"

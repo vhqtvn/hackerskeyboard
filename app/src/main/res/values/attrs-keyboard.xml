@@ -51,6 +51,8 @@
     <declare-styleable name="Keyboard_Key">
         <!-- The unicode value or comma-separated values that this key outputs. -->
         <attr name="codes" format="integer|string" />
+        <attr name="fn1Codes" format="integer|string" />
+        <attr name="fn2Codes" format="integer|string" />
         <!-- The XML keyboard layout of any popup keyboard. -->
         <attr name="popupKeyboard" format="reference" />
         <!-- The characters to display in the popup keyboard. -->
@@ -78,6 +80,8 @@
         <attr name="keyLabel" format="string" />
         <!-- The label to display on the shifted key. -->
         <attr name="shiftLabel" format="string" />
+        <attr name="fn1Label" format="string" />
+        <attr name="fn2Label" format="string" />
         <!-- The label to display on the caps-shifted key. -->
         <attr name="capsLabel" format="string" />
         <!-- The icon to display on the key instead of the label. -->

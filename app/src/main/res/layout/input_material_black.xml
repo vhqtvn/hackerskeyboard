@@ -32,6 +32,8 @@
         android:paddingBottom="@dimen/keyboard_bottom_padding"
         latin:keyBackground="@drawable/btn_keyboard_key_material_black"
         latin:keyHintColor="@color/key_hint_letter_color_material_black"
+        latin:keyFn1Color="@color/key_fn1_letter_color_material_black"
+        latin:keyFn2Color="@color/key_fn2_letter_color_material_black"
 
         latin:keyTextColor="@color/key_text_color_material_black"
         latin:popupLayout="@layout/input_popup_material_black" />

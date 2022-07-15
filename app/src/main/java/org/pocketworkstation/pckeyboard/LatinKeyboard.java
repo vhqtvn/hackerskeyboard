@@ -143,7 +143,7 @@ public class LatinKeyboard extends Keyboard {
         setDefaultBounds(m123MicPreviewIcon);
         sSpacebarVerticalCorrection = res.getDimensionPixelOffset(
                 R.dimen.spacebar_vertical_correction);
-        mIsAlphaKeyboard = xmlLayoutResId == R.xml.kbd_qwerty;
+        mIsAlphaKeyboard = false;
         mIsAlphaFullKeyboard = xmlLayoutResId == R.xml.kbd_full;
         mIsFnFullKeyboard = xmlLayoutResId == R.xml.kbd_full_fn || xmlLayoutResId == R.xml.kbd_compact_fn;
         // The index of space key is available only after Keyboard constructor has finished.
@@ -223,28 +223,6 @@ public class LatinKeyboard extends Keyboard {
             if (mEnterKey.iconPreview != null) {
                 setDefaultBounds(mEnterKey.iconPreview);
             }
-        }
-    }
-
-    void enableShiftLock() {
-        int index = getShiftKeyIndex();
-        if (index >= 0) {
-            mShiftKey = getKeys().get(index);
-            mOldShiftIcon = mShiftKey.icon;
-        }
-    }
-
-    @Override
-    public boolean setShiftState(int shiftState) {
-        if (mShiftKey != null) {
-            // Tri-state LED tracks "on" and "lock" states, icon shows Caps state.
-            mShiftKey.on = shiftState == SHIFT_ON || shiftState == SHIFT_LOCKED;
-            mShiftKey.locked = shiftState == SHIFT_LOCKED || shiftState == SHIFT_CAPS_LOCKED;
-            mShiftKey.icon = (shiftState == SHIFT_OFF || shiftState == SHIFT_ON || shiftState == SHIFT_LOCKED) ?
-                    mOldShiftIcon : mShiftLockIcon;
-            return super.setShiftState(shiftState, false);
-        } else {
-            return super.setShiftState(shiftState, true);
         }
     }
 
@@ -625,11 +603,11 @@ public class LatinKeyboard extends Keyboard {
      */
     boolean isInside(LatinKey key, int x, int y) {
         final int code = key.codes[0];
-        if (code == KEYCODE_SHIFT ||
+        if (code == LatinKeyboardView.KEYCODE_SHIFT_LEFT ||
                 code == KEYCODE_DELETE) {
         	// Adjust target area for these keys
             y -= key.height / 10;
-            if (code == KEYCODE_SHIFT) {
+            if (code == LatinKeyboardView.KEYCODE_SHIFT_LEFT) {
             	if (key.x == 0) {
             		x += key.width / 6;  // left shift
             	} else {

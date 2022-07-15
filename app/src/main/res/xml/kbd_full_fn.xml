@@ -202,7 +202,7 @@
     </Row>
     <Row>
         <Key
-            android:codes="@integer/key_shift"
+            android:codes="@integer/key_shift_left"
             android:keyIcon="@drawable/sym_keyboard_shift"
             android:iconPreview="@drawable/sym_keyboard_feedback_shift"
             android:keyWidth="10.7142855%p"
@@ -258,7 +258,7 @@
             android:isCursor="true"
             android:isModifier="true" />
         <Key
-            android:codes="@integer/key_shift"
+            android:codes="@integer/key_shift_right"
             android:keyIcon="@drawable/sym_keyboard_shift"
             android:keyEdgeFlags="right" 
             android:isModifier="true" />
@@ -296,7 +296,7 @@
             android:shiftLabel="@string/key_space_shift"
             android:keyIcon="@drawable/sym_keyboard_space"
             android:iconPreview="@drawable/sym_keyboard_feedback_space"
-            android:keyWidth="32.1428571372%p"
+            android:keyWidth="25%p"
             android:isModifier="true" />
         <Key
             android:codes="@integer/key_fn"

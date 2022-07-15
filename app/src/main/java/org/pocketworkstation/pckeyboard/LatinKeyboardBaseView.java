@@ -23,21 +23,15 @@ import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.Paint.Align;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
-import android.graphics.Region.Op;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.StateListDrawable;
-
-import org.pocketworkstation.pckeyboard.Keyboard.Key;
-
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
@@ -53,17 +47,15 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
-import androidx.core.view.ViewCompat;
+import org.pocketworkstation.pckeyboard.Keyboard.Key;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.WeakHashMap;
 
 /**
@@ -174,6 +166,8 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
     private float mLabelScale = 1.0f;
     private int mKeyTextColor;
     private int mKeyHintColor;
+    private int mKeyFn1Color;
+    private int mKeyFn2Color;
     private int mKeyCursorColor;
     private boolean mInvertSymbols;
     private boolean mRecolorSymbols;
@@ -186,7 +180,6 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
     private int mBackgroundAlpha;
     private float mBackgroundDimAmount;
     private float mKeyHysteresisDistance;
-    private float mVerticalCorrection;
     protected int mPreviewOffset;
     protected int mPreviewHeight;
     protected int mPopupLayout;
@@ -220,8 +213,6 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
     protected View mMiniKeyboardParent;
     protected boolean mMiniKeyboardVisible;
     protected final WeakHashMap<Key, Keyboard> mMiniKeyboardCacheMain = new WeakHashMap<Key, Keyboard>();
-    protected final WeakHashMap<Key, Keyboard> mMiniKeyboardCacheShift = new WeakHashMap<Key, Keyboard>();
-    protected final WeakHashMap<Key, Keyboard> mMiniKeyboardCacheCaps = new WeakHashMap<Key, Keyboard>();
     protected int mMiniKeyboardOriginX;
     protected int mMiniKeyboardOriginY;
     protected long mMiniKeyboardPopupTime;
@@ -275,6 +266,8 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
     private Canvas mCanvas;
     private final Paint mPaint;
     private final Paint mPaintHint;
+    private final Paint mPaintFn1;
+    private final Paint mPaintFn2;
     private final Rect mPadding;
     private final Rect mClipRegion = new Rect(0, 0, 0, 0);
     private int mViewWidth;
@@ -501,9 +494,6 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
                 case R.styleable.LatinKeyboardBaseView_keyHysteresisDistance:
                     mKeyHysteresisDistance = a.getDimensionPixelOffset(attr, 0);
                     break;
-                case R.styleable.LatinKeyboardBaseView_verticalCorrection:
-                    mVerticalCorrection = a.getDimensionPixelOffset(attr, 0);
-                    break;
                 case R.styleable.LatinKeyboardBaseView_keyTextSize:
                     mKeyTextSize = a.getDimensionPixelSize(attr, 18);
                     break;
@@ -512,6 +502,12 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
                     break;
                 case R.styleable.LatinKeyboardBaseView_keyHintColor:
                     mKeyHintColor = a.getColor(attr, 0xFFBBBBBB);
+                    break;
+                case R.styleable.LatinKeyboardBaseView_keyFn1Color:
+                    mKeyFn1Color = a.getColor(attr, 0xFFBB0000);
+                    break;
+                case R.styleable.LatinKeyboardBaseView_keyFn2Color:
+                    mKeyFn2Color = a.getColor(attr, 0xFF00BB00);
                     break;
                 case R.styleable.LatinKeyboardBaseView_keyCursorColor:
                     mKeyCursorColor = a.getColor(attr, 0xFF000000);
@@ -578,6 +574,18 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
         mPaintHint.setTextAlign(Align.RIGHT);
         mPaintHint.setAlpha(255);
         mPaintHint.setTypeface(Typeface.DEFAULT_BOLD);
+
+        mPaintFn1 = new Paint();
+        mPaintFn1.setAntiAlias(true);
+        mPaintFn1.setTextAlign(Align.LEFT);
+        mPaintFn1.setAlpha(255);
+        mPaintFn1.setTypeface(Typeface.DEFAULT_BOLD);
+
+        mPaintFn2 = new Paint();
+        mPaintFn2.setAntiAlias(true);
+        mPaintFn2.setTextAlign(Align.RIGHT);
+        mPaintFn2.setAlpha(255);
+        mPaintFn2.setTypeface(Typeface.DEFAULT_BOLD);
 
         mPadding = new Rect(0, 0, 0, 0);
         mKeyBackground.getPadding(mPadding);
@@ -663,6 +671,7 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
 
     static private int mInsetBottom = 0;
     static private int mInsetRight = 0;
+
     public void applyInset(int insetBottom, int insetRight) {
         mInsetBottom = insetBottom;
         mInsetRight = insetRight;
@@ -710,12 +719,10 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
         invalidateAllKeys();
         computeProximityThreshold(keyboard);
         mMiniKeyboardCacheMain.clear();
-        mMiniKeyboardCacheShift.clear();
-        mMiniKeyboardCacheCaps.clear();
         setRenderModeIfPossible(LatinIME.sKeyboardSettings.renderMode);
         mIgnoreMove = true;
 
-        if(shouldLayout) requestLayout();
+        if (shouldLayout) requestLayout();
     }
 
     /**
@@ -737,65 +744,43 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
         return mHasDistinctMultitouch;
     }
 
-    /**
-     * Sets the state of the shift key of the keyboard, if any.
-     *
-     * @param shiftState whether or not to enable the state of the shift key
-     * @return true if the shift key state changed, false if there was no change
-     */
-    public boolean setShiftState(int shiftState) {
-        //Log.i(TAG, "setShifted " + shiftState);
+    public void setShiftIndicator(boolean left, boolean right) {
         if (mKeyboard != null) {
-            if (mKeyboard.setShiftState(shiftState)) {
-                // The whole keyboard probably needs to be redrawn
-                invalidateAllKeys();
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void setCtrlIndicator(boolean active) {
-        if (mKeyboard != null) {
-            invalidateKey(mKeyboard.setCtrlIndicator(active));
+            invalidateKey(mKeyboard.setShiftLeftIndicator(left));
+            invalidateKey(mKeyboard.setShiftRightIndicator(right));
         }
     }
 
-    public void setAltIndicator(boolean active) {
+    public void setCtrlIndicator(boolean left, boolean right) {
         if (mKeyboard != null) {
-            invalidateKey(mKeyboard.setAltIndicator(active));
+            invalidateKey(mKeyboard.setCtrlLeftIndicator(left));
+            invalidateKey(mKeyboard.setCtrlRightIndicator(right));
         }
     }
 
-    public void setMetaIndicator(boolean active) {
+    public void setAltIndicator(boolean left, boolean right) {
         if (mKeyboard != null) {
-            invalidateKey(mKeyboard.setMetaIndicator(active));
+            invalidateKey(mKeyboard.setAltLeftIndicator(left));
+            invalidateKey(mKeyboard.setAltRightIndicator(right));
         }
     }
 
-    /**
-     * Returns the state of the shift key of the keyboard, if any.
-     *
-     * @return true if the shift is in a pressed state, false otherwise. If there is
-     * no shift key on the keyboard or there is no keyboard attached, it returns false.
-     */
-    public int getShiftState() {
+    public void setMetaIndicator(boolean left, boolean right) {
         if (mKeyboard != null) {
-            return mKeyboard.getShiftState();
+            invalidateKey(mKeyboard.setMetaLeftIndicator(left));
+            invalidateKey(mKeyboard.setMetaRightIndicator(right));
         }
-        return Keyboard.SHIFT_OFF;
     }
 
-    public boolean isShiftCaps() {
-        return getShiftState() != Keyboard.SHIFT_OFF;
+    public void setFn1Indicator(boolean active) {
+        if (mKeyboard != null) {
+            invalidateKey(mKeyboard.setFn1Indicator(active));
+        }
     }
 
-    public boolean isShiftAll() {
-        int state = getShiftState();
-        if (LatinIME.sKeyboardSettings.shiftLockModifiers) {
-            return state == Keyboard.SHIFT_ON || state == Keyboard.SHIFT_LOCKED;
-        } else {
-            return state == Keyboard.SHIFT_ON;
+    public void setFn2Indicator(boolean active) {
+        if (mKeyboard != null) {
+            invalidateKey(mKeyboard.setFn2Indicator(active));
         }
     }
 
@@ -956,6 +941,10 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
         final Paint paint = mPaint;
         final Paint paintHint = mPaintHint;
         paintHint.setColor(mKeyHintColor);
+        final Paint paintFn1 = mPaintFn1;
+        paintFn1.setColor(mKeyFn1Color);
+        final Paint paintFn2 = mPaintFn2;
+        paintFn2.setColor(mKeyFn2Color);
         final Drawable keyBackground = mKeyBackground;
         final Rect clipRegion = mClipRegion;
         final Rect padding = mPadding;
@@ -1072,7 +1061,7 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
 
                 // Draw hint label (if present) behind the main key
                 String hint = key.getHintLabel(showHints7Bit(), showHintsAll());
-                if (!hint.equals("") && !(key.isShifted() && key.shiftLabel != null && hint.charAt(0) == key.shiftLabel.charAt(0))) {
+                if (!hint.equals("")) {
                     int hintTextSize = (int) (mKeyTextSize * 0.6 * mLabelScale);
                     paintHint.setTextSize(hintTextSize);
 
@@ -1102,6 +1091,47 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
                     }
                 }
 
+                if (key.fn1Label != null) {
+                    String fn1 = key.fn1Label.toString();
+                    if (!fn1.equals("")) {
+                        int hintTextSize = (int) (mKeyTextSize * 0.3 * mLabelScale);
+                        paintFn1.setTextSize(hintTextSize);
+
+//                        final int fnLabelHeight = getLabelHeight(paintFn1, hintTextSize);
+                        int x = padding.left;
+                        int baseline = key.height - padding.bottom - 5;
+                        if (Character.getType(fn1.charAt(0)) == Character.NON_SPACING_MARK) {
+                            drawDeadKeyLabel(canvas, fn1, x, baseline, paintFn1);
+                        } else {
+                            canvas.drawText(fn1, x, baseline, paintFn1);
+                        }
+                    }
+                }
+                if (key.fn2Label != null) {
+                    String fn2 = key.fn2Label.toString();
+                    if (!fn2.equals("")) {
+                        int hintTextSize = (int) (mKeyTextSize * 0.3 * mLabelScale);
+                        paintFn2.setTextSize(hintTextSize);
+
+//                        final int fnLabelHeight = getLabelHeight(paintFn2, hintTextSize);
+                        int x = key.width - padding.right;
+                        int baseline = key.height - padding.bottom - 5;
+                        if (Character.getType(fn2.charAt(0)) == Character.NON_SPACING_MARK) {
+                            drawDeadKeyLabel(canvas, fn2, x, baseline, paintFn2);
+                        } else {
+                            canvas.drawText(fn2, x, baseline, paintFn2);
+                        }
+                    }
+                }
+
+                switch (key.getPrimaryCode()) {
+                    case LatinKeyboardView.KEYCODE_FN_1:
+                        paint.setColor(mKeyFn1Color);
+                        break;
+                    case LatinKeyboardView.KEYCODE_FN_2:
+                        paint.setColor(mKeyFn2Color);
+                        break;
+                }
                 // Draw main key label
                 final int centerX = (key.width + padding.left - padding.right) / 2;
                 final int centerY = (key.height + padding.top - padding.bottom) / 2;
@@ -1449,14 +1479,7 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
     }
 
     private Keyboard getLongPressKeyboard(Key popupKey) {
-        final WeakHashMap<Key, Keyboard> cache;
-        if (popupKey.isDistinctCaps()) {
-            cache = mMiniKeyboardCacheCaps;
-        } else if (popupKey.isShifted()) {
-            cache = mMiniKeyboardCacheShift;
-        } else {
-            cache = mMiniKeyboardCacheMain;
-        }
+        final WeakHashMap<Key, Keyboard> cache = mMiniKeyboardCacheMain;
         Keyboard kbd = cache.get(popupKey);
         if (kbd == null) {
             kbd = popupKey.getPopupKeyboard(getContext(), getPaddingLeft() + getPaddingRight());
@@ -1535,7 +1558,6 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
         mMiniKeyboardOriginX = adjustedX + mMiniKeyboardContainer.getPaddingLeft() - mWindowOffset[0];
         mMiniKeyboardOriginY = y + mMiniKeyboardContainer.getPaddingTop() - mWindowOffset[1];
         mMiniKeyboard.setPopupOffset(adjustedX, y);
-        mMiniKeyboard.setShiftState(getShiftState());
         // Mini keyboard needs no pop-up key preview displayed.
         mMiniKeyboard.setPreviewEnabled(false);
         mMiniKeyboardPopup.setContentView(mMiniKeyboardContainer);
@@ -1832,8 +1854,6 @@ public class LatinKeyboardBaseView extends View implements PointerTracker.UIProx
         //mBuffer = null;
         //mCanvas = null;
         mMiniKeyboardCacheMain.clear();
-        mMiniKeyboardCacheShift.clear();
-        mMiniKeyboardCacheCaps.clear();
     }
 
     @Override

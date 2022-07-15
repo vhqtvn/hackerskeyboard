@@ -120,43 +120,6 @@ public class LatinIMEUtil {
                 return mCharBuf[mEnd];
             }
         }
-        public char getLastChar() {
-            if (mLength < 1) {
-                return PLACEHOLDER_DELIMITER_CHAR;
-            } else {
-                return mCharBuf[normalize(mEnd - 1)];
-            }
-        }
-        public int getPreviousX(char c, int back) {
-            int index = normalize(mEnd - 2 - back);
-            if (mLength <= back
-                    || Character.toLowerCase(c) != Character.toLowerCase(mCharBuf[index])) {
-                return INVALID_COORDINATE;
-            } else {
-                return mXBuf[index];
-            }
-        }
-        public int getPreviousY(char c, int back) {
-            int index = normalize(mEnd - 2 - back);
-            if (mLength <= back
-                    || Character.toLowerCase(c) != Character.toLowerCase(mCharBuf[index])) {
-                return INVALID_COORDINATE;
-            } else {
-                return mYBuf[index];
-            }
-        }
-        public String getLastString() {
-            StringBuffer sb = new StringBuffer();
-            for (int i = 0; i < mLength; ++i) {
-                char c = mCharBuf[normalize(mEnd - 1 - i)];
-                if (!((LatinIME)mContext).isWordSeparator(c)) {
-                    sb.append(c);
-                } else {
-                    break;
-                }
-            }
-            return sb.reverse().toString();
-        }
         public void reset() {
             mLength = 0;
         }
