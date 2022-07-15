@@ -72,22 +72,6 @@ public class Main extends Activity {
             }
         });
 
-        final Button setup3 = (Button) findViewById(R.id.main_setup_btn_get_dicts);
-        setup3.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                Intent it = new Intent(Intent.ACTION_VIEW, Uri.parse(MARKET_URI));
-                try {
-                	startActivity(it);
-                } catch (ActivityNotFoundException e) {
-                    Toast.makeText(getApplicationContext(),
-                            getResources().getString(
-                            		R.string.no_market_warning), Toast.LENGTH_LONG)
-                            .show();
-                }
-            }
-        });
-        // PluginManager.getPluginDictionaries(getApplicationContext()); // why?
-
         final Button setup5 = (Button) findViewById(R.id.main_setup_btn_settings);
         setup5.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {

@@ -191,6 +191,11 @@ public class KeyboardSwitcher implements
             mKeyboards.clear();
     }
 
+    public void setSticky(boolean enable) {
+        if (mInputView == null) return;
+        mInputView.setStickIndicator(enable);
+    }
+
     /**
      * Represents the parameters necessary to construct a new LatinKeyboard,
      * which also serve as a unique identifier for each keyboard type.

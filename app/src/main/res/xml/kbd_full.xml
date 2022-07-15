@@ -250,6 +250,8 @@
             android:popupKeyboard="@xml/kbd_popup_template"
             android:shiftLabel="@string/key_ac01_shift" />
         <Key
+            android:fn1Codes="@integer/key_stick"
+            android:fn1Label="Stick"
             android:keyLabel="@string/key_ac02_main"
             android:popupCharacters="@string/key_ac02_alt"
             android:popupKeyboard="@xml/kbd_popup_template"
@@ -388,15 +390,15 @@
     <Row android:rowEdgeFlags="bottom">
         <Key
             android:codes="@integer/key_ctrl_left"
-            android:keyLabel="Ctrl"
+            android:isModifier="true"
             android:isSticky="true"
             android:keyEdgeFlags="left"
-            android:isModifier="true" />
+            android:keyLabel="Ctrl" />
         <Key
             android:codes="@integer/key_fn_2"
-            android:keyLabel="Fn"
+            android:isModifier="true"
             android:isSticky="true"
-            android:isModifier="true" />
+            android:keyLabel="Fn" />
         <Key
             android:codes="@integer/key_fullscreen_dual"
             android:isModifier="false"
@@ -430,9 +432,9 @@
             android:keyLabel="&#x2756;" />
         <Key
             android:codes="@integer/key_ctrl_right"
-            android:keyLabel="Ctrl"
+            android:isModifier="true"
             android:isSticky="true"
-            android:isModifier="true" />
+            android:keyLabel="Ctrl" />
         <Key
             android:codes="@integer/key_dpad_left"
             android:fn2Codes="@integer/key_home"

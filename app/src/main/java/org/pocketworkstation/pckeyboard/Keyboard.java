@@ -88,6 +88,7 @@ public class Keyboard {
 
     public static final int KEYCODE_VIRTUAL_SHIFT_LEFT = -10;
     public static final int KEYCODE_VIRTUAL_SHIFT_RIGHT = -11;
+    public static final int KEYCODE_STICK = -1;
     public static final int KEYCODE_MODE_CHANGE = -2;
     public static final int KEYCODE_CANCEL = -3;
     public static final int KEYCODE_DONE = -4;
@@ -131,6 +132,7 @@ public class Keyboard {
     /**
      * Key instance for the shift key, if present
      */
+    private Key mStickKey;
     private Key mShiftLeftKey;
     private Key mAltLeftKey;
     private Key mCtrlLeftKey;
@@ -1258,6 +1260,11 @@ public class Keyboard {
         return mShiftLeftKey;
     }
 
+    public Key setStickIndicator(boolean active) {
+        if (mStickKey != null) mStickKey.on = active;
+        return mStickKey;
+    }
+
     public Key setShiftRightIndicator(boolean active) {
         if (mShiftRightKey != null) mShiftRightKey.on = active;
         return mShiftRightKey;
@@ -1448,6 +1455,8 @@ public class Keyboard {
                                 } else if (key.codes[0] == LatinKeyboardView.KEYCODE_SHIFT_RIGHT) {
                                     mShiftRightKey = key;
                                     mModifierKeys.add(key);
+                                } else if (key.codes[0] == KEYCODE_STICK) {
+                                    mStickKey = key;
                                 } else if (key.codes[0] == KEYCODE_ALT_SYM) {
                                     mModifierKeys.add(key);
                                 } else if (key.codes[0] == LatinKeyboardView.KEYCODE_CTRL_LEFT) {

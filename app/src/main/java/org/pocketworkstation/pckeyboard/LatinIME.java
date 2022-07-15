@@ -57,6 +57,7 @@ import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.InputBinding;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -157,6 +158,7 @@ public class LatinIME extends InputMethodService implements
     private boolean mDeadKeysActive;
     private boolean mFullscreenOverride;
     private boolean mForceKeyboardOn;
+    private boolean mStick = false;
     private boolean mKeyboardNotification;
     private String mSwipeUpAction;
     private String mSwipeDownAction;
@@ -365,7 +367,7 @@ public class LatinIME extends InputMethodService implements
         if (!LGMultiDisplayUtils.supportDualScreen()) {
             boolean isPortrait = isPortrait();
             int kbMode;
-            mNumKeyboardModes = sKeyboardSettings.compactModeEnabled ? 3 : 2; // FIXME!
+            mNumKeyboardModes = 2;
             if (isPortrait) {
                 kbMode = getKeyboardModeNum(sKeyboardSettings.keyboardModePortrait, mKeyboardModeOverridePortrait);
             } else {
@@ -382,7 +384,7 @@ public class LatinIME extends InputMethodService implements
         try {
             boolean isPortrait = isPortrait();
             int kbMode;
-            mNumKeyboardModes = sKeyboardSettings.compactModeEnabled ? 3 : 2; // FIXME!
+            mNumKeyboardModes = 2;
             if (isPortrait) {
                 kbMode = getKeyboardModeNum(sKeyboardSettings.keyboardModePortrait, mKeyboardModeOverridePortrait);
             } else {
@@ -728,6 +730,7 @@ public class LatinIME extends InputMethodService implements
 
         @Override
         public void hideSoftInput(int flags, ResultReceiver resultReceiver) {
+            if (mStick) return;
             super.hideSoftInput(flags, resultReceiver);
             if (!LGMultiDisplayUtils.supportDualScreen()) return;
             Log.i(TAG, this.hashCode() + " (" + inputMethodAttachCnt + ") " + "hideSoftInput");
@@ -953,7 +956,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public boolean onEvaluateInputViewShown() {
         boolean parent = super.onEvaluateInputViewShown();
-        return mForceKeyboardOn || parent;
+        return mForceKeyboardOn || mStick || parent;
     }
 
     @Override
@@ -992,7 +995,6 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        Log.d("VHVH", "KeyDown" + keyCode + "; " + event);
 //        if (keyCode == KeyEvent.KEYCODE_NUMPAD_1) {
 //            if (event.getRepeatCount() > 0) return true;
 //            keyCode = KeyEvent.KEYCODE_META_LEFT;
@@ -1243,6 +1245,15 @@ public class LatinIME extends InputMethodService implements
         }
     }
 
+    private void handleFNModifierKeysUp(boolean sendKey) {
+        if (mModFn1 && (!mFn1KeyState.isChording())) {
+            setModFn1(false);
+        }
+        if (mModFn2 && (!mFn2KeyState.isChording())) {
+            setModFn2(false);
+        }
+    }
+
     private void handleModifierKeysUp(boolean sendKey) {
         InputConnection ic = getCurrentInputConnection();
         if (mModMetaLeft && (!mMetaKeyState.left.isChording())) {
@@ -1276,12 +1287,6 @@ public class LatinIME extends InputMethodService implements
         if (mModShiftRight && (!mShiftKeyState.right.isChording())) {
             if (sendKey) sendShiftKey(ic, false, false);
             if (!mShiftKeyState.right.isChording()) setModShift(mModShiftLeft, false);
-        }
-        if (mModFn1 && (!mFn1KeyState.isChording())) {
-            if (!mFn1KeyState.isChording()) setModFn1(false);
-        }
-        if (mModFn2 && (!mFn2KeyState.isChording())) {
-            if (!mFn2KeyState.isChording()) setModFn2(false);
         }
     }
 
@@ -1400,9 +1405,9 @@ public class LatinIME extends InputMethodService implements
         mLastKeyTime = when;
         final boolean distinctMultiTouch = mKeyboardSwitcher
                 .hasDistinctMultitouch();
-        Log.d("VHVH", "Key " + primaryCode + " ; " + distinctMultiTouch);
         switch (primaryCode) {
             case Keyboard.KEYCODE_DELETE:
+                handleFNModifierKeysUp(false);
                 if (processMultiKey(primaryCode)) {
                     break;
                 }
@@ -1459,6 +1464,10 @@ public class LatinIME extends InputMethodService implements
 //                if (!distinctMultiTouch)
 //                    setModFn(!mModFn);
 //                break;
+            case Keyboard.KEYCODE_STICK:
+                handleFNModifierKeysUp(false);
+                setSticky(!mStick);
+                break;
             case Keyboard.KEYCODE_CANCEL:
                 if (!isShowingOptionDialog()) {
                     handleClose();
@@ -1496,6 +1505,7 @@ public class LatinIME extends InputMethodService implements
                 sendTab();
                 break;
             case LatinKeyboardView.KEYCODE_ESCAPE:
+                handleFNModifierKeysUp(false);
                 if (processMultiKey(primaryCode)) {
                     break;
                 }
@@ -1533,6 +1543,7 @@ public class LatinIME extends InputMethodService implements
                 }
                 // send as plain keys, or as escape sequence if needed
                 sendSpecialKey(-primaryCode);
+                handleFNModifierKeysUp(false);
                 break;
             default:
                 if (!mComposeMode && mDeadKeysActive && Character.getType(primaryCode) == Character.NON_SPACING_MARK) {
@@ -1545,16 +1556,24 @@ public class LatinIME extends InputMethodService implements
                     break;
                 }
                 if (processMultiKey(primaryCode)) {
+                    handleFNModifierKeysUp(false);
                     break;
                 }
                 RingCharBuffer.getInstance().push((char) primaryCode, x, y);
                 handleCharacter(primaryCode, keyCodes);
+                handleFNModifierKeysUp(false);
                 // Cancel the just reverted state
         }
         mKeyboardSwitcher.onKey(primaryCode);
         // Reset after any single keystroke
         mEnteredText = null;
         //mDeadAccentBuffer.clear();  // FIXME
+    }
+
+    private void setSticky(boolean enable) {
+        mStick = enable;
+        mKeyboardSwitcher.setSticky(mStick);
+        Toast.makeText(this, mStick ? R.string.sticky_enabled : R.string.sticky_disabled, Toast.LENGTH_SHORT).show();
     }
 
     static long lastRequestDualMilli = 0;
@@ -1851,7 +1870,6 @@ public class LatinIME extends InputMethodService implements
     }
 
     public void onPress(int primaryCode) {
-        Log.d("VHVH", "onPress " + primaryCode);
         InputConnection ic = getCurrentInputConnection();
         if (mKeyboardSwitcher.isVibrateAndSoundFeedbackRequired()) {
             vibrate();
@@ -1936,10 +1954,10 @@ public class LatinIME extends InputMethodService implements
             }
         } else if (distinctMultiTouch
                 && primaryCode == LatinKeyboardView.KEYCODE_META_RIGHT) {
-            if(mModMetaRight) {
+            if (mModMetaRight) {
                 setModMeta(mModMetaLeft, false);
                 mMetaKeyState.right.onRelease();
-            }else {
+            } else {
                 setModMeta(mModMetaLeft, true);
                 mMetaKeyState.right.onPress();
                 sendMetaKey(ic, false, true, true);

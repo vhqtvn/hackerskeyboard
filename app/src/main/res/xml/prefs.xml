@@ -45,33 +45,6 @@
             android:persistent="true"
             />
 
-    <org.pocketworkstation.pckeyboard.AutoSummaryListPreference
-            android:key="pref_keyboard_mode_portrait"
-            android:title="@string/title_keyboard_mode_portrait"
-            android:entryValues="@array/keyboard_mode_values"
-            android:entries="@array/keyboard_mode_entries"
-            android:defaultValue="@string/default_keyboard_mode_portrait"
-            android:persistent="true"
-            />
-
-    <org.pocketworkstation.pckeyboard.AutoSummaryListPreference
-            android:key="pref_keyboard_mode_landscape"
-            android:title="@string/title_keyboard_mode_landscape"
-            android:entryValues="@array/keyboard_mode_values"
-            android:entries="@array/keyboard_mode_entries"
-            android:defaultValue="@string/default_keyboard_mode_landscape"
-            android:persistent="true"
-            />
-
-    <CheckBoxPreference
-            android:key="suggestions_in_landscape"
-            android:title="@string/title_suggestions_in_landscape"
-            android:persistent="true" 
-            android:defaultValue="@bool/default_suggestions_in_landscape"
-            android:summaryOn="@string/summary_suggestions_in_landscape_true"
-            android:summaryOff="@string/summary_suggestions_in_landscape_false"
-            />
-
     <PreferenceScreen
             android:title="@string/pref_screen_view_title"
             android:summary="@string/pref_screen_view_title_summary">
@@ -83,15 +56,6 @@
     <PreferenceCategory
             android:title="@string/title_key_layout_options"
             android:key="layout_settings">
-
-    <ListPreference
-            android:key="settings_key"
-            android:title="@string/prefs_settings_key"
-            android:persistent="true"
-            android:entryValues="@array/settings_key_modes_values"
-            android:entries="@array/settings_key_modes"
-            android:defaultValue="@string/settings_key_mode_auto"
-            />
 
     <ListPreference
             android:key="voice_mode"
@@ -114,31 +78,6 @@
             android:title="@string/title_key_behavior_settings"
             android:key="key_settings">
 
-    <CheckBoxPreference
-            android:key="auto_cap"
-            android:title="@string/auto_cap"
-            android:persistent="true"
-            android:defaultValue="@bool/default_auto_cap"
-            />
-
-    <CheckBoxPreference
-            android:key="pref_caps_lock"
-            android:title="@string/title_caps_lock"
-            android:persistent="true"
-            android:defaultValue="@bool/default_caps_lock"
-            android:summaryOn="@string/summary_caps_lock_true"
-            android:summaryOff="@string/summary_caps_lock_false"
-            />
-    
-    <CheckBoxPreference
-            android:key="pref_shift_lock_modifiers"
-            android:title="@string/title_shift_lock_modifiers"
-            android:persistent="true"
-            android:defaultValue="@bool/default_shift_lock_modifiers"
-            android:summaryOn="@string/summary_shift_lock_modifiers_true"
-            android:summaryOff="@string/summary_shift_lock_modifiers_false"
-            />
-    
     <PreferenceScreen
             android:title="@string/pref_screen_feedback_title"
             android:summary="@string/pref_screen_feedback_title_summary">
@@ -151,42 +90,6 @@
             android:summary="@string/pref_screen_actions_title_summary">
         <intent android:action="org.pocketworkstation.pckeyboard.PREFS_ACTIONS"/>
     </PreferenceScreen>
-
-    <org.pocketworkstation.pckeyboard.AutoSummaryListPreference
-            android:key="pref_ctrl_a_override"
-            android:title="@string/title_ctrl_a_override"
-            android:persistent="true"
-            android:entries="@array/ctrl_a_override_entries"
-            android:entryValues="@array/ctrl_a_override_values"
-            android:defaultValue="@string/default_ctrl_a_override"
-            />
-
-    <org.pocketworkstation.pckeyboard.AutoSummaryListPreference
-            android:key="pref_chording_ctrl_key"
-            android:title="@string/title_chording_ctrl_key"
-            android:persistent="true"
-            android:entries="@array/chording_ctrl_key_entries"
-            android:entryValues="@array/chording_ctrl_key_values"
-            android:defaultValue="@string/default_chording_ctrl_key"
-            />
-
-    <org.pocketworkstation.pckeyboard.AutoSummaryListPreference
-            android:key="pref_chording_alt_key"
-            android:title="@string/title_chording_alt_key"
-            android:persistent="true"
-            android:entries="@array/chording_alt_key_entries"
-            android:entryValues="@array/chording_alt_key_values"
-            android:defaultValue="@string/default_chording_alt_key"
-            />
-
-    <org.pocketworkstation.pckeyboard.AutoSummaryListPreference
-            android:key="pref_chording_meta_key"
-            android:title="@string/title_chording_meta_key"
-            android:persistent="true"
-            android:entries="@array/chording_meta_key_entries"
-            android:entryValues="@array/chording_meta_key_values"
-            android:defaultValue="@string/default_chording_meta_key"
-            />
 
     <org.pocketworkstation.pckeyboard.AutoSummaryListPreference
             android:key="pref_slide_keys_int"
@@ -225,61 +128,8 @@
     </PreferenceCategory>
 
     <PreferenceCategory
-            android:title="@string/prediction_category"
-            android:key="prediction_settings">
-
-        <CheckBoxPreference
-            android:key="quick_fixes"
-            android:title="@string/quick_fixes"
-            android:summary="@string/quick_fixes_summary"
-            android:persistent="true"
-            android:defaultValue="@bool/default_quick_fixes"
-            />
-
-        <CheckBoxPreference
-            android:key="show_suggestions"
-            android:title="@string/show_suggestions"
-            android:summary="@string/show_suggestions_summary"
-            android:persistent="true"
-            android:defaultValue="@bool/default_suggestions"
-            />
-
-        <CheckBoxPreference
-            android:key="auto_complete"
-            android:title="@string/auto_complete"
-            android:summary="@string/auto_complete_summary"
-            android:persistent="true" 
-            android:defaultValue="@bool/enable_autocorrect"
-            android:dependency="show_suggestions"
-            />
-
-        <org.pocketworkstation.pckeyboard.AutoSummaryEditTextPreference
-            android:key="pref_suggested_punctuation"
-            android:title="@string/title_suggested_punctuation"
-            android:defaultValue="@string/suggested_punctuations"
-            />
-    </PreferenceCategory>
-
-    <PreferenceCategory
             android:title="@string/title_input_mode_settings"
             android:key="graphics_settings">
-
-    <CheckBoxPreference
-            android:key="recorrection_enabled"
-            android:title="@string/prefs_enable_recorrection"
-            android:summary="@string/prefs_enable_recorrection_summary"
-            android:persistent="true"
-            android:defaultValue="@bool/default_recorrection_enabled"
-            />
-
-    <CheckBoxPreference
-            android:key="fullscreen_override"
-            android:title="@string/title_fullscreen_override"
-            android:persistent="true" 
-            android:defaultValue="@bool/default_fullscreen_override"
-            android:summaryOn="@string/summary_fullscreen_override_true"
-            android:summaryOff="@string/summary_fullscreen_override_false"
-            />
 
     <CheckBoxPreference
             android:key="force_keyboard_on"
@@ -298,21 +148,6 @@
             android:summaryOn="@string/summary_keyboard_notification_true"
             android:summaryOff="@string/summary_keyboard_notification_false"
             />
-    </PreferenceCategory>
-
-    <PreferenceCategory
-            android:title="@string/title_application_category"
-            android:key="application_settings">
-
-        <CheckBoxPreference
-            android:key="connectbot_tab_hack"
-            android:title="@string/title_connectbot_tab_hack"
-            android:persistent="true" 
-            android:defaultValue="true"
-            android:summaryOn="@string/summary_connectbot_tab_hack_true"
-            android:summaryOff="@string/summary_connectbot_tab_hack_false"
-            />
-
     </PreferenceCategory>
 
     <PreferenceCategory

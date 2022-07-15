@@ -49,112 +49,9 @@
     <!-- Option to pop up the character with a larger font above soft keyboard -->
     <string name="popup_on_keypress">Popup on keypress</string>
 
-    <!-- Option to enable using nearby keys when correcting/predicting -->
-    <string name="hit_correction">Correct typing errors</string>
-    
-    <!-- Description for hit_correction  -->
-    <string name="hit_correction_summary">Enable input error correction</string>
-    
-    <!-- Option to enable using nearby keys when correcting/predicting in landscape-->
-    <string name="hit_correction_land">Landscape input errors</string>
-    
-    <!-- Description for hit_correction in landscape -->
-    <string name="hit_correction_land_summary">Enable input error correction</string>
-    
-    <!-- Option to automatically correct word on hitting space -->
-    <string name="auto_correction">Word suggestions</string> 
-    
-    <!-- Description for auto_correction -->
-    <string name="auto_correction_summary">Automatically correct the previous word</string>
-	
-    <!-- Option to enable text prediction -->
-    <string name="prediction">Word suggestions</string>
-    <!-- Category title for text prediction -->
-    <string name="prediction_category">Word suggestion settings</string>
-    <!-- Description for text prediction -->
-    <string name="prediction_summary">Enable auto completion while typing</string>
-	
-    <!-- Dialog title for auto complete choices -->
-    <string name="auto_complete_dialog_title">Auto completion</string>
-    
     <!-- Option to enable text prediction in landscape -->
     <string name="prediction_landscape">Increase text field size</string> 
-    <!-- Description for text prediction -->
-    <string name="prediction_landscape_summary">Hide word suggestions in landscape view</string>
-	
-    <!-- Option to enable auto capitalization of sentences -->
-    <string name="auto_cap">Auto-capitalization</string> 
-    <!-- Description for auto cap -->
-    <string name="auto_cap_summary">Capitalize the start of a sentence</string>
-    <!-- Option to enable auto punctuate -->
-    <string name="auto_punctuate">Auto-punctuate</string> 
-    <!-- Description for auto punctuate -->
-    <string name="auto_punctuate_summary"></string>
-    
-    <!-- Option to enable quick fixes -->
-    <string name="quick_fixes">Quick fixes</string>
-    <!-- Description for quick fixes -->
-    <string name="quick_fixes_summary">Corrects commonly typed mistakes</string>
-    
-    <!-- Option to enable showing suggestions -->
-    <string name="show_suggestions">Show suggestions</string>
-    <!-- Description for show suggestions -->
-    <string name="show_suggestions_summary">Display suggested words while typing</string>
-    
-    <!-- Option to enable auto completion -->
-    <string name="auto_complete">Auto-complete</string>
-    <!-- Description for auto completion -->
-    <string name="auto_complete_summary">Spacebar and punctuation automatically insert highlighted word</string>
-    
-    <!-- Option to show/hide the settings key -->
-    <string name="prefs_settings_key">Show settings key</string>
-    <!-- Array of the settings key mode values -->
-    <string-array name="settings_key_modes_values" translatable="false">
-        <item>@string/settings_key_mode_auto</item>
-        <item>@string/settings_key_mode_always_show</item>
-        <item>@string/settings_key_mode_always_hide</item>
-    </string-array>
-    <!-- Option to automatically decide to show/hide the settings key -->
-    <string name="settings_key_mode_auto_name">Automatic</string>
-    <!-- Option to always show the settings key -->
-    <string name="settings_key_mode_always_show_name">Always show</string>
-    <!-- Option to always hide the settings key -->
-    <string name="settings_key_mode_always_hide_name">Always hide</string>
-    <!-- Array of the settings key modes -->
-    <string-array name="settings_key_modes">
-        <item>@string/settings_key_mode_auto_name</item>
-        <item>@string/settings_key_mode_always_show_name</item>
-        <item>@string/settings_key_mode_always_hide_name</item>
-    </string-array>
 
-    <!-- Option to enable bigram completion -->
-    <string name="bigram_suggestion">Bigram Suggestions</string>
-    <!-- Description for auto completion -->
-    <string name="bigram_suggestion_summary">Use previous word to improve suggestion</string>
-
-    <!-- Array of prediction modes -->
-    <string-array name="prediction_modes">
-        <item>None</item>
-        <item>Basic</item>
-        <item>Advanced</item>
-    </string-array>
-    
-    <!-- Don't translate -->
-    <string name="prediction_none" translatable="false">0</string>
-    <!-- Don't translate -->
-    <string name="prediction_basic" translatable="false">1</string>
-    <!-- Don't translate -->
-    <string name="prediction_full"  translatable="false">2</string>
-
-    <string-array name="prediction_modes_values" translatable="false">
-        <item>@string/prediction_none</item>
-        <item>@string/prediction_basic</item>
-        <item>@string/prediction_full</item>
-    </string-array>
-
-    <!-- Indicates that a word has been added to the dictionary -->
-    <string name="added_word"><xliff:g id="word">%s</xliff:g> : Saved</string>
-    
     <!-- Tip to long press on keys -->
     <string name="tip_long_press">Hold a key down to see accents (ø, ö, etc.)</string>
     <!-- Tip to dismiss keyboard -->
@@ -328,15 +225,6 @@
     <!-- Inform the user that a particular language has an available dictionary -->
     <string name="has_dictionary">Dictionary available</string>
 
-    <!-- Preferences item for enabling to send user statistics to Google -->
-    <string name="prefs_enable_log">Enable user feedback</string>
-    <!-- Description for enabling to send user statistics to Google -->
-    <string name="prefs_description_log">Help improve this input method editor by automatically sending usage statistics and crash reports to Google.</string>
-    <!-- Preferences item for enabling to correct suggestions by touching words you have typed -->
-    <string name="prefs_enable_recorrection">Touch to correct words</string>
-    <!-- The summary for the preferences item for enabling to correct suggestions by touching words you have typed -->
-    <string name="prefs_enable_recorrection_summary">Touch entered words to correct them</string>
-
     <string name="pref_screen_feedback_title">Key feedback settings</string>
     <string name="pref_screen_feedback_title_summary">Configure key sound, vibrate, preview popup etc.</string>
 
@@ -359,14 +247,9 @@
     <string name="layout_material_light" translatable="false">Material Light</string>
 
     <string-array name="keyboard_layout_modes" translatable="false">
-        <item>@string/layout_ics</item>
-        <item>@string/layout_ics_darker</item>
 		<item>@string/layout_material_black</item>
         <item>@string/layout_material_dark</item>
         <item>@string/layout_material_light</item>
-        <item>@string/layout_gingerbread</item>
-        <item>@string/layout_stone_bold</item>
-        <item>@string/layout_trans_neon</item>
     </string-array>
 
     <!--
@@ -377,91 +260,12 @@
     -->
     <string-array name="keyboard_layout_modes_values" translatable="false">
         <item>0</item>
-        <item>6</item>
-        <item>5</item>
-        <item>4</item>
-        <item>7</item>
         <item>1</item>
         <item>2</item>
-        <item>3</item>
     </string-array>
 
     <string name="subtype_mode_keyboard">keyboard</string>
     <string name="subtype_mode_voice">voice</string>
-
-    <string name="title_keyboard_mode_portrait">Keyboard mode, portrait</string>
-    <string name="title_keyboard_mode_landscape">Keyboard mode, landscape</string>
-    <string-array name="keyboard_mode_entries">
-        <item>4-row Gingerbread layout</item>
-        <item>5-row compact layout (US QWERTY only!)</item>
-        <item>Full 5-row layout</item>
-    </string-array>
-    <string-array name="keyboard_mode_values">
-        <item>0</item>
-        <item>1</item>
-        <item>2</item>
-    </string-array>
-
-    <string name="title_ctrl_a_override">Ctrl-A (select all) override</string>
-    <string name="toast_ctrl_a_override_info">Ctrl-A is disabled. Use Ctrl-Alt-A instead, or enable it in settings.</string>
-    <string name="default_ctrl_a_override">0</string>
-    <string-array name="ctrl_a_override_entries">
-        <item>Disable Ctrl-A, use Ctrl-Alt-A instead</item>
-        <item>Disable Ctrl-A completely</item>
-        <item>Use Ctrl-A (no override)</item>
-    </string-array>
-    <string-array name="ctrl_a_override_values">
-        <item>0</item>
-        <item>1</item>
-        <item>2</item>
-    </string-array>
-
-    <string name="title_chording_ctrl_key">Ctrl key code</string>
-    <string name="default_chording_ctrl_key">0</string>
-    <string-array name="chording_ctrl_key_entries">
-        <item>None (ignored when not modifying other keys)</item>
-        <item>Left Ctrl</item>
-        <item>Right Ctrl</item>
-    </string-array>
-    <string-array name="chording_ctrl_key_values">
-        <item>0</item>
-        <item>113</item>
-        <item>114</item>
-    </string-array>
-
-    <string name="title_chording_alt_key">Alt key code</string>
-    <string name="default_chording_alt_key">0</string>
-    <string-array name="chording_alt_key_entries">
-        <item>None (ignored when not modifying other keys)</item>
-        <item>Left Alt</item>
-        <item>Right Alt</item>
-    </string-array>
-    <string-array name="chording_alt_key_values">
-        <item>0</item>
-        <item>57</item>
-        <item>58</item>
-    </string-array>
-
-    <string name="title_chording_meta_key">Meta key code</string>
-    <string name="default_chording_meta_key">0</string>
-    <string-array name="chording_meta_key_entries">
-        <item>None (ignored when not modifying other keys)</item>
-        <item>Left Meta</item>
-        <item>Right Meta</item>
-    </string-array>
-    <string-array name="chording_meta_key_values">
-        <item>0</item>
-        <item>117</item>
-        <item>118</item>
-    </string-array>
-    
-    <string name="title_suggestions_in_landscape">Suggestions in landscape mode</string>
-    <string name="summary_suggestions_in_landscape_true">Same as in portrait mode</string>
-    <string name="summary_suggestions_in_landscape_false">Hide suggestions in landscape mode</string>
-
-    <string name="title_fullscreen_override">Landscape mode fullscreen editor</string>
-    <string name="summary_fullscreen_override_true">Disabled, use standard view</string>
-    <string name="summary_fullscreen_override_false">Enabled on small devices</string>
 
     <string name="title_force_keyboard_on">Show soft keyboard</string>
     <string name="summary_force_keyboard_on_true">Always</string>
@@ -471,20 +275,6 @@
     <string name="summary_keyboard_notification_true">Activate the keyboard by tapping the notification</string>
     <string name="summary_keyboard_notification_false">No notification</string>
 
-    <string name="title_application_category">Application-specific settings</string>
-    
-    <string name="title_connectbot_tab_hack">ConnectBot tab key mode</string>
-    <string name="summary_connectbot_tab_hack_true">Enable compatibility workaround</string>
-    <string name="summary_connectbot_tab_hack_false">Send plain Tab key event</string>
-
-    <string name="title_caps_lock">Double-tap Shift mode</string>
-    <string name="summary_caps_lock_true">Caps Lock (q1 => Q1)</string>
-    <string name="summary_caps_lock_false">Shift Lock (q1 => Q!)</string>
-
-    <string name="title_shift_lock_modifiers">Apply Shift Lock to modifier keys?</string>
-    <string name="summary_shift_lock_modifiers_true">Yes, including arrow keys</string>
-    <string name="summary_shift_lock_modifiers_false">No, normal keys only</string>
-    
     <string name="title_hint_mode">Labeled alternate keys</string>
     <string-array name="hint_modes">
         <item>Hide hint labels</item>
@@ -637,9 +427,9 @@
     <string name="main_setup_test">Test</string>
     <string name="main_body"><Data>
       <![CDATA["
-        <h2>Enabling Hacker's Keyboard</h2>
+        <h2>Enabling Hacker's Keyboard 2</h2>
         
-        <p><i>Hacker's Keyboard</i> provides a new Android input method. It is <b>disabled by default</b>, and for security reasons Android doesn't allow programs to change input method settings. Please follow the following steps to activate it.<p>
+        <p><i>Hacker's Keyboard 2</i> provides a new Android input method. It is <b>disabled by default</b>, and for security reasons Android doesn't allow programs to change input method settings. Please follow the following steps to activate it.<p>
         
         <h3>Add the keyboard to the system's input method list:</h3>
         <blockquote>
@@ -678,4 +468,6 @@
     <string name="notification_channel_name">Hacker\'s Keyboard</string>
     <string name="notification_channel_description">Hacker\'s Keyboard</string>
     <string name="notification_action_settings">Settings</string>
+    <string name="sticky_enabled">Keyboard sticky enabled</string>
+    <string name="sticky_disabled">Keyboard sticky disabled</string>
 </resources>

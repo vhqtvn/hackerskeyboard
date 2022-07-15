@@ -18,14 +18,6 @@
         android:title="@string/prefs_debug_mode"
         android:key="english_ime_debug_settings">
 
-    <CheckBoxPreference
-            android:key="enable_logging"
-            android:title="@string/prefs_enable_log"
-            android:summary="@string/prefs_description_log"
-            android:persistent="true"
-            android:defaultValue="false"
-            />
-
     <ListPreference
             android:key="pref_keyboard_layout_20100902"
             android:title="@string/keyboard_layout"

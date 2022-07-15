@@ -44,7 +44,6 @@ public final class GlobalKeyboardSettings {
     public String suggestedPunctuation = "!?,.";
     public int keyboardModePortrait = 0;
     public int keyboardModeLandscape = 2;
-    public boolean compactModeEnabled = true;  // always on
     public float keyClickVolume = 0.0f;
     public int keyClickMethod = 0;
     public boolean capsLock = true;
