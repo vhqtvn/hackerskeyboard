@@ -56,7 +56,7 @@
 
         <activity
             android:name="vn.vhn.pckeyboard.Main"
-            android:label="Hacker's Keyboard">
+            android:label="VHKeyboard">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
