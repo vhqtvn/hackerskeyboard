@@ -359,7 +359,6 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         val mNotificationManager = getSystemService(ns) as NotificationManager
         if (visible && mNotificationReceiver == null) {
             createNotificationChannel()
-            val icon = R.drawable.icon
             val text: CharSequence = "Keyboard notification enabled."
             val `when` = System.currentTimeMillis()
 
