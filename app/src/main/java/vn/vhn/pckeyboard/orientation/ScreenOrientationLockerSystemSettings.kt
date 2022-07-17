@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.view.Surface
 import android.view.Window
 import android.view.WindowManager
 import android.widget.Toast
@@ -24,8 +25,8 @@ import java.io.StringWriter
 
 class ScreenOrientationLockerSystemSettings(private val mContext: Context) :
     IScreenOrientationLocker {
-    private var mSavedRotation: Int? = null
-    private var mSavedOrientation: Int? = null
+    private var mSavedAccelerometerEnable: Int? = null
+    private var mSavedLockRotation: Int? = null
     private var mLockedOrientation: Int? = null
     override fun saveCurrentWindowManager(window: Window?, wm: WindowManager?) {}
     override fun lock(): Boolean {
@@ -33,35 +34,36 @@ class ScreenOrientationLockerSystemSettings(private val mContext: Context) :
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             lock(mContext.display?.rotation ?: 0)
         } else {
+            @Suppress("DEPRECATION")
             lock(wm.defaultDisplay.rotation)
         }
     }
 
-    override fun lock(orientation: Int): Boolean {
+    override fun lock(screenRotation: Int): Boolean {
         val contentResolver = mContext.contentResolver
-        if (mSavedRotation == null)
-            mSavedRotation = Settings.System.getInt(contentResolver,
+        if (mSavedAccelerometerEnable == null)
+            mSavedAccelerometerEnable = Settings.System.getInt(contentResolver,
                 Settings.System.ACCELEROMETER_ROTATION, 0)
-        if (mSavedOrientation == null)
-            mSavedOrientation = Settings.System.getInt(contentResolver,
+        if (mSavedLockRotation == null)
+            mSavedLockRotation = Settings.System.getInt(contentResolver,
                 Settings.System.USER_ROTATION, 0)
-        var targetOrientation = orientation
+        var targetRotation = screenRotation
         if (LGMultiDisplayUtils.supportDualScreen()) {
             //Hack for LG
-            if (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+            if (screenRotation == Surface.ROTATION_90 || screenRotation == Surface.ROTATION_270) {
                 val wm = mContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                targetOrientation = if (wm.defaultDisplay.displayId != 0) {
-                    1
+                targetRotation = if (wm.defaultDisplay.displayId != 0) {
+                    Surface.ROTATION_90
                 } else {
-                    3
+                    Surface.ROTATION_270
                 }
             }
         }
-        Log.d(TAG, "Force rotation $targetOrientation")
-        mLockedOrientation = targetOrientation
+        Log.d(TAG, "Force rotation $targetRotation")
+        mLockedOrientation = targetRotation
         if (!Settings.System.putInt(contentResolver,
                 Settings.System.USER_ROTATION,
-                targetOrientation)
+                targetRotation)
         ) return false
         if (!Settings.System.putInt(contentResolver,
                 Settings.System.ACCELEROMETER_ROTATION,
@@ -69,7 +71,7 @@ class ScreenOrientationLockerSystemSettings(private val mContext: Context) :
         ) return false
         if (!Settings.System.putInt(contentResolver,
                 Settings.System.USER_ROTATION,
-                targetOrientation)
+                targetRotation)
         ) return false
         return true
     }
@@ -78,11 +80,11 @@ class ScreenOrientationLockerSystemSettings(private val mContext: Context) :
         val contentResolver = mContext.contentResolver
         var orientation = mLockedOrientation
         mLockedOrientation = null
-        mSavedOrientation?.also {
+        mSavedLockRotation?.also {
             Settings.System.putInt(contentResolver, Settings.System.USER_ROTATION, it)
-            mSavedOrientation = null
+            mSavedLockRotation = null
         }
-        mSavedRotation?.also {
+        mSavedAccelerometerEnable?.also {
             Log.d(TAG, "Restore acc $it")
             if (!Settings.System.putInt(contentResolver,
                     Settings.System.ACCELEROMETER_ROTATION,
@@ -90,7 +92,7 @@ class ScreenOrientationLockerSystemSettings(private val mContext: Context) :
             ) {
                 Log.e(TAG, "Restore acc $it failed")
             }
-            mSavedRotation = null
+            mSavedAccelerometerEnable = null
         }
         return orientation
     }

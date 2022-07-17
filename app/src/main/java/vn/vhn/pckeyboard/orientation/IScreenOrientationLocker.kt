@@ -7,7 +7,7 @@ import android.view.WindowManager
 interface IScreenOrientationLocker {
     fun saveCurrentWindowManager(window: Window?, wm: WindowManager?)
     fun lock(): Boolean
-    fun lock(orientation: Int): Boolean
+    fun lock(screenRotation: Int): Boolean
     fun unlock(): Int?
 }
 

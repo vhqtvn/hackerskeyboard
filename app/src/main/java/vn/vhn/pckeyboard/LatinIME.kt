@@ -573,7 +573,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                     if (stillNeedKeyboard) {
                         Handler().postDelayed({
                             Log.d(TAG, "show keyboard again")
-                            orientationLocker?.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                            orientationLocker?.lock(Surface.ROTATION_90)
                             forceShowKeyboard()
                             if (!checkForceLandscape(this@LatinIME)) setDualDisplay(true)
                         }, 100)
@@ -608,7 +608,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             if (isDualEnabled && inputMethodAttachCnt > 0 && !lastActionIsShow) {
                 Handler().postDelayed({
                     Log.d(TAG, "show keyboard again")
-                    orientationLocker!!.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                    orientationLocker!!.lock(Surface.ROTATION_90)
                     forceShowKeyboard()
                 }, 100)
             }
@@ -1276,7 +1276,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         }
         if (enabled) {
             Log.d(TAG, "(dual) orientation lock")
-            orientationLocker!!.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+            orientationLocker!!.lock(Surface.ROTATION_90)
         } else {
             postOrientationUnlock(1000)
         }
