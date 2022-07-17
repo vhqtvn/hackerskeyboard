@@ -15,7 +15,10 @@
  */
 package vn.vhn.pckeyboard
 
-import android.app.*
+import android.app.AlertDialog
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.*
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.content.pm.ActivityInfo
@@ -27,7 +30,9 @@ import android.os.*
 import android.preference.PreferenceActivity
 import android.preference.PreferenceManager
 import android.text.TextUtils
-import android.util.*
+import android.util.Log
+import android.util.PrintWriterPrinter
+import android.util.Printer
 import android.view.*
 import android.view.inputmethod.*
 import android.widget.Toast
@@ -40,9 +45,11 @@ import com.lge.ime.util.p118f.LGMultiDisplayUtils.supportDualScreen
 import com.novia.lg_dualscreen_ime.ToggleFullScreenIME
 import com.vhn.SurfaceDuoPaneManager
 import com.vhn.SurfaceDuoUtils
-import vn.vhn.pckeyboard.LatinIMESettings
 import vn.vhn.pckeyboard.LatinIMEUtil.GCUtils
 import vn.vhn.pckeyboard.LatinIMEUtil.RingCharBuffer
+import vn.vhn.pckeyboard.orientation.IScreenOrientationLocker
+import vn.vhn.pckeyboard.orientation.createScreenOrientationLocker
+import vn.vhn.pckeyboard.root.RootCompat
 import java.io.FileDescriptor
 import java.io.PrintWriter
 import java.util.regex.Pattern
@@ -53,7 +60,18 @@ import java.util.regex.Pattern
 class LatinIME : InputMethodService(), ComposeSequencing,
     LatinKeyboardBaseView.OnKeyboardActionListener, OnSharedPreferenceChangeListener {
     // private LatinKeyboardView mInputView;
-    private var orientationLocker: ScreenOrientationLocker? = null
+
+    private var mOrientationLockerCreationTries = 0
+    private var mOrientationLockerImpl: IScreenOrientationLocker? = null
+    private val orientationLocker: IScreenOrientationLocker?
+        get() {
+            //there should be no race here
+            if (mOrientationLockerImpl == null && mOrientationLockerCreationTries <= 5) {
+                mOrientationLockerCreationTries++
+                mOrientationLockerImpl = createScreenOrientationLocker(this)
+            }
+            return mOrientationLockerImpl
+        }
     private var mOptionsDialog: AlertDialog? = null
 
     /* package */
@@ -85,6 +103,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     private var mFullscreenOverride = false
     private var mForceKeyboardOn = false
     private var mStick = false
+    private var mOrientationLocked = false
     private var mKeyboardNotification = false
     private var mSwipeUpAction: String? = null
     private var mSwipeDownAction: String? = null
@@ -143,7 +162,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     override fun onCreate() {
         Log.i("PCKeyboard", "onCreate(), os.version=" + System.getProperty("os.version"))
-        KeyboardSwitcher.Companion.init(this)
+        KeyboardSwitcher.init(this)
         super.onCreate()
         WindowCompat.setDecorFitsSystemWindows(window.window!!, false)
         if (SurfaceDuoUtils.isDeviceSurfaceDuo(packageManager)) {
@@ -161,14 +180,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mResources = resources
         val conf = mResources.getConfiguration()
         var orientationUpdated = updateOrientation(conf)
-        if (supportDualScreen()) {
-            orientationLocker = ScreenOrientationLocker(applicationContext)
-        }
         val prefs = PreferenceManager
             .getDefaultSharedPreferences(this)
         mLanguageSwitcher = LanguageSwitcher(this)
         mLanguageSwitcher!!.loadLocales(prefs)
-        mKeyboardSwitcher = KeyboardSwitcher.Companion.instance
+        mKeyboardSwitcher = KeyboardSwitcher.instance
         mKeyboardSwitcher.setLanguageSwitcher(mLanguageSwitcher)
         mSystemLocale = conf.locale.toString()
         mLanguageSwitcher!!.setSystemLocale(conf.locale)
@@ -211,7 +227,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             if (updateOrientation(conf)) orientationUpdated = true
         }
         if (orientationUpdated) reloadKeyboards()
-        GCUtils.Companion.instance.reset()
+        GCUtils.instance.reset()
         // register to receive ringer mode changes for silent mode
         val filter = IntentFilter(
             AudioManager.RINGER_MODE_CHANGED_ACTION)
@@ -349,14 +365,14 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
             // TODO: clean this up?
             mNotificationReceiver = NotificationReceiver(this)
-            val pFilter = IntentFilter(NotificationReceiver.Companion.ACTION_SHOW)
-            pFilter.addAction(NotificationReceiver.Companion.ACTION_SETTINGS)
+            val pFilter = IntentFilter(NotificationReceiver.ACTION_SHOW)
+            pFilter.addAction(NotificationReceiver.ACTION_SETTINGS)
             registerReceiver(mNotificationReceiver, pFilter)
-            val notificationIntent = Intent(NotificationReceiver.Companion.ACTION_SHOW)
+            val notificationIntent = Intent(NotificationReceiver.ACTION_SHOW)
             val contentIntent =
                 PendingIntent.getBroadcast(applicationContext, 1, notificationIntent, 0)
             //PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-            val configIntent = Intent(NotificationReceiver.Companion.ACTION_SETTINGS)
+            val configIntent = Intent(NotificationReceiver.ACTION_SETTINGS)
             val configPendingIntent = PendingIntent.getBroadcast(
                 applicationContext, 2, configIntent, 0)
             val title = "Show VHKeyboard"
@@ -412,9 +428,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             unregisterReceiver(mNotificationReceiver)
             mNotificationReceiver = null
         }
-        if (supportDualScreen()) {
-            orientationLocker!!.unlock()
-        }
+        unlockOrientationLocker()
         super.onDestroy()
         if (supportDualScreen()) {
             synchronized(glocker) {
@@ -481,7 +495,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         setCandidatesViewShown(false) // Workaround for "already has a parent" when reconfiguring
         mKeyboardSwitcher.recreateInputView()
         mKeyboardSwitcher.makeKeyboards(true)
-        mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.Companion.MODE_TEXT, 0, false)
+        mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_TEXT, 0, false)
         return mKeyboardSwitcher.rootView as View
     }
 
@@ -559,13 +573,26 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                     if (stillNeedKeyboard) {
                         Handler().postDelayed({
                             Log.d(TAG, "show keyboard again")
-                            orientationLocker!!.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
-                            orientationLocker!!.showKeyboard()
+                            orientationLocker?.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                            forceShowKeyboard()
                             if (!checkForceLandscape(this@LatinIME)) setDualDisplay(true)
                         }, 100)
                     }
                 }
             }, 200)
+        }
+
+        private fun forceShowKeyboard() {
+            if (RootCompat.isCompatibleRooted()) {
+                RootCompat.rootRun("input keyevent 108", false)
+            } else {
+                //FIXME: this wont work
+                val inputManager =
+                    getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                inputManager.toggleSoftInput(InputMethodManager.SHOW_FORCED,
+                    InputMethodManager.HIDE_IMPLICIT_ONLY);
+            }
+
         }
 
         override fun restartInput(ic: InputConnection?, attribute: EditorInfo?) {
@@ -582,13 +609,19 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 Handler().postDelayed({
                     Log.d(TAG, "show keyboard again")
                     orientationLocker!!.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
-                    orientationLocker!!.showKeyboard()
+                    forceShowKeyboard()
                 }, 100)
             }
         }
 
         override fun showSoftInput(flags: Int, resultReceiver: ResultReceiver?) {
             super.showSoftInput(flags, resultReceiver)
+            savedOrientation?.also {
+                mOrientationLocked = true
+                Log.d(TAG, "reenable lock")
+                orientationLocker?.lock(it)
+                savedOrientation = null
+            }
             if (!supportDualScreen()) return
             Log.i(TAG,
                 this.hashCode().toString() + " (" + inputMethodAttachCnt + ") " + "showSoftInput")
@@ -601,16 +634,14 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
         override fun hideSoftInput(flags: Int, resultReceiver: ResultReceiver?) {
             if (mStick) return
+            if (mOrientationLocked) savedOrientation = unlockOrientationLocker()
+            else savedOrientation = null
             super.hideSoftInput(flags, resultReceiver)
             if (!supportDualScreen()) return
             Log.i(TAG,
                 this.hashCode().toString() + " (" + inputMethodAttachCnt + ") " + "hideSoftInput")
             lastActionIsShow = false
         }
-    }
-
-    override fun onBindInput() {
-        super.onBindInput()
     }
 
     fun updateSurfaceDuoKeyboardPanePosition() {
@@ -683,27 +714,27 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         sKeyboardSettings.useExtension = false
         when (attribute.inputType and EditorInfo.TYPE_MASK_CLASS) {
             EditorInfo.TYPE_CLASS_NUMBER, EditorInfo.TYPE_CLASS_DATETIME, EditorInfo.TYPE_CLASS_PHONE -> mKeyboardSwitcher.setKeyboardMode(
-                KeyboardSwitcher.Companion.MODE_PHONE,
+                KeyboardSwitcher.MODE_PHONE,
                 attribute.imeOptions,
                 false)
             EditorInfo.TYPE_CLASS_TEXT -> {
-                mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.Companion.MODE_TEXT,
+                mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_TEXT,
                     attribute.imeOptions, false)
                 if (variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS) {
-                    mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.Companion.MODE_EMAIL,
+                    mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_EMAIL,
                         attribute.imeOptions, false)
                 } else if (variation == EditorInfo.TYPE_TEXT_VARIATION_URI) {
-                    mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.Companion.MODE_URL,
+                    mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_URL,
                         attribute.imeOptions, false)
                 } else if (variation == EditorInfo.TYPE_TEXT_VARIATION_SHORT_MESSAGE) {
-                    mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.Companion.MODE_IM,
+                    mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_IM,
                         attribute.imeOptions, false)
                 } else if (variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT) {
-                    mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.Companion.MODE_WEB,
+                    mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_WEB,
                         attribute.imeOptions, false)
                 }
             }
-            else -> mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.Companion.MODE_TEXT,
+            else -> mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_TEXT,
                 attribute.imeOptions, false)
         }
         inputView.closing()
@@ -718,47 +749,9 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mKeyboardSwitcher.inputView?.closing()
     }
 
-    override fun onFinishInputView(finishingInput: Boolean) {
-        super.onFinishInputView(finishingInput)
-    }
-
     override fun onUpdateExtractedText(token: Int, text: ExtractedText) {
         super.onUpdateExtractedText(token, text)
         val ic = currentInputConnection
-    }
-
-    override fun onUpdateSelection(
-        oldSelStart: Int, oldSelEnd: Int,
-        newSelStart: Int, newSelEnd: Int, candidatesStart: Int,
-        candidatesEnd: Int,
-    ) {
-        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
-            candidatesStart, candidatesEnd)
-    }
-
-    /**
-     * This is called when the user has clicked on the extracted text view, when
-     * running in fullscreen mode. The default implementation hides the
-     * candidates view when this happens, but only if the extracted text editor
-     * has a vertical scroll bar because its text doesn't fit. Here we override
-     * the behavior due to the possibility that a re-correction could cause the
-     * candidate strip to disappear and re-appear.
-     */
-    override fun onExtractedTextClicked() {
-        super.onExtractedTextClicked()
-    }
-
-    /**
-     * This is called when the user has performed a cursor movement in the
-     * extracted text view, when it is running in fullscreen mode. The default
-     * implementation hides the candidates view when a vertical movement
-     * happens, but only if the extracted text editor has a vertical scroll bar
-     * because its text doesn't fit. Here we override the behavior due to the
-     * possibility that a re-correction could cause the candidate strip to
-     * disappear and re-appear.
-     */
-    override fun onExtractedCursorMovement(dx: Int, dy: Int) {
-        super.onExtractedCursorMovement(dx, dy)
     }
 
     override fun hideWindow() {
@@ -769,23 +762,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         super.hideWindow()
     }
 
-    override fun onInitializeInterface() {
-        super.onInitializeInterface()
-    }
-
-    override fun onDisplayCompletions(completions: Array<CompletionInfo>) {}
-    override fun onFinishCandidatesView(finishingInput: Boolean) {
-        //Log.i(TAG, "onFinishCandidatesView(), mCandidateViewContainer=" + mCandidateViewContainer);
-        super.onFinishCandidatesView(finishingInput)
-    }
+    override fun onDisplayCompletions(completions: Array<CompletionInfo?>?) {}
 
     override fun onEvaluateInputViewShown(): Boolean {
         val parent = super.onEvaluateInputViewShown()
         return mForceKeyboardOn || mStick || parent
-    }
-
-    override fun setCandidatesViewShown(shown: Boolean) {
-        super.setCandidatesViewShown(shown)
     }
 
     override fun onComputeInsets(outInsets: Insets) {
@@ -874,7 +855,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     private fun reloadKeyboards() {
         mKeyboardSwitcher.setLanguageSwitcher(mLanguageSwitcher)
         if (mKeyboardSwitcher.inputView != null
-            && mKeyboardSwitcher.keyboardMode != KeyboardSwitcher.Companion.MODE_NONE
+            && mKeyboardSwitcher.keyboardMode != KeyboardSwitcher.MODE_NONE
         ) {
             mKeyboardSwitcher.setVoiceMode(false, false)
         }
@@ -1136,7 +1117,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     // Implementation of KeyboardViewListener
     override fun onKey(primaryCode: Int, keyCodes: IntArray?, x: Int, y: Int) {
         val `when` = SystemClock.uptimeMillis()
-        if (primaryCode != Keyboard.Companion.KEYCODE_DELETE
+        if (primaryCode != Keyboard.KEYCODE_DELETE
             || `when` > mLastKeyTime + QUICK_PRESS
         ) {
             mDeleteCount = 0
@@ -1145,65 +1126,69 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         val distinctMultiTouch = mKeyboardSwitcher
             .hasDistinctMultitouch()
         when (primaryCode) {
-            Keyboard.Companion.KEYCODE_DELETE -> {
+            Keyboard.KEYCODE_DELETE -> {
                 handleFNModifierKeysUp(false)
                 if (!processMultiKey(primaryCode)) {
                     handleBackspace()
                     mDeleteCount++
                 }
             }
-            LatinKeyboardView.Companion.KEYCODE_SHIFT_LEFT ->
+            LatinKeyboardView.KEYCODE_SHIFT_LEFT ->
                 if (!distinctMultiTouch) setModShift(!mModShiftLeft, mModShiftRight)
-            LatinKeyboardView.Companion.KEYCODE_SHIFT_RIGHT ->
+            LatinKeyboardView.KEYCODE_SHIFT_RIGHT ->
                 if (!distinctMultiTouch) setModShift(mModShiftLeft, !mModShiftRight)
-            Keyboard.Companion.KEYCODE_MODE_CHANGE ->
+            Keyboard.KEYCODE_MODE_CHANGE ->
                 // Symbol key is handled in onPress() when device has distinct
                 // multi-touch panel.
                 if (!distinctMultiTouch) changeKeyboardMode()
-            LatinKeyboardView.Companion.KEYCODE_CTRL_LEFT ->
+            LatinKeyboardView.KEYCODE_CTRL_LEFT ->
                 if (!distinctMultiTouch) setModCtrl(!mModCtrlLeft, mModCtrlRight)
-            LatinKeyboardView.Companion.KEYCODE_CTRL_RIGHT ->
+            LatinKeyboardView.KEYCODE_CTRL_RIGHT ->
                 if (!distinctMultiTouch) setModCtrl(mModCtrlLeft, !mModCtrlRight)
-            LatinKeyboardView.Companion.KEYCODE_ALT_LEFT ->
+            LatinKeyboardView.KEYCODE_ALT_LEFT ->
                 if (!distinctMultiTouch) setModAlt(!mModAltLeft, mModAltRight)
-            LatinKeyboardView.Companion.KEYCODE_ALT_RIGHT ->
+            LatinKeyboardView.KEYCODE_ALT_RIGHT ->
                 if (!distinctMultiTouch) setModAlt(mModAltLeft, !mModAltRight)
-            LatinKeyboardView.Companion.KEYCODE_META_LEFT ->
+            LatinKeyboardView.KEYCODE_META_LEFT ->
                 if (!distinctMultiTouch) setModMeta(!mModMetaLeft, mModMetaRight)
-            LatinKeyboardView.Companion.KEYCODE_META_RIGHT ->
+            LatinKeyboardView.KEYCODE_META_RIGHT ->
                 if (!distinctMultiTouch) setModMeta(mModMetaLeft, !mModMetaRight)
-            LatinKeyboardView.Companion.KEYCODE_FN_1 ->
+            LatinKeyboardView.KEYCODE_FN_1 ->
                 if (!distinctMultiTouch) setModFn1(!mModFn1)
-            LatinKeyboardView.Companion.KEYCODE_FN_2 ->
+            LatinKeyboardView.KEYCODE_FN_2 ->
                 if (!distinctMultiTouch) setModFn2(!mModFn2)
-            Keyboard.Companion.KEYCODE_STICK -> {
+            Keyboard.KEYCODE_STICK -> {
                 handleFNModifierKeysUp(false)
                 setSticky(!mStick)
             }
-            Keyboard.Companion.KEYCODE_CANCEL -> if (!isShowingOptionDialog) {
+            LatinKeyboardView.KEYCODE_ORIENTATION_LOCK -> {
+                handleFNModifierKeysUp(false)
+                setOrientationLock(!mOrientationLocked)
+            }
+            Keyboard.KEYCODE_CANCEL -> if (!isShowingOptionDialog) {
                 handleClose()
             }
-            LatinKeyboardView.Companion.KEYCODE_FULLSCREEN_DUAL -> setDualDisplay(null)
-            LatinKeyboardView.Companion.KEYCODE_OPTIONS -> onOptionKeyPressed()
-            LatinKeyboardView.Companion.KEYCODE_OPTIONS_LONGPRESS -> onOptionKeyLongPressed()
-            LatinKeyboardView.Companion.KEYCODE_COMPOSE -> {
+            LatinKeyboardView.KEYCODE_FULLSCREEN_DUAL -> setDualDisplay(null)
+            LatinKeyboardView.KEYCODE_OPTIONS -> onOptionKeyPressed()
+            LatinKeyboardView.KEYCODE_OPTIONS_LONGPRESS -> onOptionKeyLongPressed()
+            LatinKeyboardView.KEYCODE_COMPOSE -> {
                 mComposeMode = !mComposeMode
                 mComposeBuffer.clear()
             }
-            LatinKeyboardView.Companion.KEYCODE_NEXT_LANGUAGE -> toggleLanguage(false, true)
-            LatinKeyboardView.Companion.KEYCODE_PREV_LANGUAGE -> toggleLanguage(false, false)
+            LatinKeyboardView.KEYCODE_NEXT_LANGUAGE -> toggleLanguage(false, true)
+            LatinKeyboardView.KEYCODE_PREV_LANGUAGE -> toggleLanguage(false, false)
             9 -> {
                 if (!processMultiKey(primaryCode)) {
                     sendTab()
                 }
             }
-            LatinKeyboardView.Companion.KEYCODE_ESCAPE -> {
+            LatinKeyboardView.KEYCODE_ESCAPE -> {
                 handleFNModifierKeysUp(false)
                 if (!processMultiKey(primaryCode)) {
                     sendEscape()
                 }
             }
-            LatinKeyboardView.Companion.KEYCODE_DPAD_UP, LatinKeyboardView.Companion.KEYCODE_DPAD_DOWN, LatinKeyboardView.Companion.KEYCODE_DPAD_LEFT, LatinKeyboardView.Companion.KEYCODE_DPAD_RIGHT, LatinKeyboardView.Companion.KEYCODE_DPAD_CENTER, LatinKeyboardView.Companion.KEYCODE_HOME, LatinKeyboardView.Companion.KEYCODE_END, LatinKeyboardView.Companion.KEYCODE_PAGE_UP, LatinKeyboardView.Companion.KEYCODE_PAGE_DOWN, LatinKeyboardView.Companion.KEYCODE_FKEY_F1, LatinKeyboardView.Companion.KEYCODE_FKEY_F2, LatinKeyboardView.Companion.KEYCODE_FKEY_F3, LatinKeyboardView.Companion.KEYCODE_FKEY_F4, LatinKeyboardView.Companion.KEYCODE_FKEY_F5, LatinKeyboardView.Companion.KEYCODE_FKEY_F6, LatinKeyboardView.Companion.KEYCODE_FKEY_F7, LatinKeyboardView.Companion.KEYCODE_FKEY_F8, LatinKeyboardView.Companion.KEYCODE_FKEY_F9, LatinKeyboardView.Companion.KEYCODE_FKEY_F10, LatinKeyboardView.Companion.KEYCODE_FKEY_F11, LatinKeyboardView.Companion.KEYCODE_FKEY_F12, LatinKeyboardView.Companion.KEYCODE_FORWARD_DEL, LatinKeyboardView.Companion.KEYCODE_INSERT, LatinKeyboardView.Companion.KEYCODE_SYSRQ, LatinKeyboardView.Companion.KEYCODE_BREAK, LatinKeyboardView.Companion.KEYCODE_NUM_LOCK, LatinKeyboardView.Companion.KEYCODE_SCROLL_LOCK -> {
+            LatinKeyboardView.KEYCODE_DPAD_UP, LatinKeyboardView.KEYCODE_DPAD_DOWN, LatinKeyboardView.KEYCODE_DPAD_LEFT, LatinKeyboardView.KEYCODE_DPAD_RIGHT, LatinKeyboardView.KEYCODE_DPAD_CENTER, LatinKeyboardView.KEYCODE_HOME, LatinKeyboardView.KEYCODE_END, LatinKeyboardView.KEYCODE_PAGE_UP, LatinKeyboardView.KEYCODE_PAGE_DOWN, LatinKeyboardView.KEYCODE_FKEY_F1, LatinKeyboardView.KEYCODE_FKEY_F2, LatinKeyboardView.KEYCODE_FKEY_F3, LatinKeyboardView.KEYCODE_FKEY_F4, LatinKeyboardView.KEYCODE_FKEY_F5, LatinKeyboardView.KEYCODE_FKEY_F6, LatinKeyboardView.KEYCODE_FKEY_F7, LatinKeyboardView.KEYCODE_FKEY_F8, LatinKeyboardView.KEYCODE_FKEY_F9, LatinKeyboardView.KEYCODE_FKEY_F10, LatinKeyboardView.KEYCODE_FKEY_F11, LatinKeyboardView.KEYCODE_FKEY_F12, LatinKeyboardView.KEYCODE_FORWARD_DEL, LatinKeyboardView.KEYCODE_INSERT, LatinKeyboardView.KEYCODE_SYSRQ, LatinKeyboardView.KEYCODE_BREAK, LatinKeyboardView.KEYCODE_NUM_LOCK, LatinKeyboardView.KEYCODE_SCROLL_LOCK -> {
                 if (!processMultiKey(primaryCode)) {
                     // send as plain keys, or as escape sequence if needed
                     sendSpecialKey(-primaryCode)
@@ -1219,7 +1204,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 } else if (processMultiKey(primaryCode)) {
                     handleFNModifierKeysUp(false)
                 } else {
-                    RingCharBuffer.Companion.instance.push(primaryCode.toChar(), x, y)
+                    RingCharBuffer.instance.push(primaryCode.toChar(), x, y)
                     handleCharacter(primaryCode, keyCodes)
                     handleFNModifierKeysUp(false)
                 }
@@ -1229,6 +1214,35 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // Reset after any single keystroke
         mEnteredText = null
         //mDeadAccentBuffer.clear();  // FIXME
+    }
+
+    private fun setOrientationLock(enable: Boolean) {
+        Log.d(TAG, "setOrientationLock $enable")
+        if (enable) {
+            val locker = orientationLocker
+            if (locker == null) {
+//                Toast.makeText(applicationContext,
+//                    R.string.orientation_locker_not_supported,
+//                    Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (!locker.lock()) {
+                Toast.makeText(applicationContext,
+                    R.string.orientation_lock_failed,
+                    Toast.LENGTH_SHORT).show()
+            } else {
+                mOrientationLocked = true
+                Toast.makeText(applicationContext,
+                    R.string.orientation_locked,
+                    Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            mOrientationLocked = false
+            unlockOrientationLocker()
+            Toast.makeText(applicationContext,
+                R.string.orientation_unlocked,
+                Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setSticky(enable: Boolean) {
@@ -1241,7 +1255,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     private fun setDualDisplay(newState: Boolean?) {
         if (!supportDualScreen()) return
-        orientationLocker!!.cancelUnlock()
+        cancelOrientationUnlock()
         var enabled = false
         if (!checkForceLandscape(this) && (newState == null || newState)) {
             Log.d(TAG, "set lastRequestDualMilli")
@@ -1261,11 +1275,32 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             }
         }
         if (enabled) {
+            Log.d(TAG, "(dual) orientation lock")
             orientationLocker!!.lock(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
         } else {
-            orientationLocker!!.postUnlock(1000)
+            postOrientationUnlock(1000)
         }
     }
+
+    private var unlockToken = 0
+
+    fun cancelOrientationUnlock() {
+        ++unlockToken
+    }
+
+    fun postOrientationUnlock(delay: Int) {
+        val currToken = ++unlockToken
+        mDefaultHandler.postDelayed({
+            if (currToken == unlockToken) {
+                unlockOrientationLocker()
+            }
+        }, delay.toLong())
+    }
+
+    fun unlockOrientationLocker(): Int? {
+        return mOrientationLockerImpl?.unlock()
+    }
+
 
     override fun onText(text: CharSequence?) {
         //mDeadAccentBuffer.clear();  // FIXME
@@ -1385,21 +1420,21 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
         // Apply globally handled shared prefs
         sKeyboardSettings.sharedPreferenceChanged(sharedPreferences, key)
-        if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.Companion.FLAG_PREF_NEED_RELOAD)) {
+        if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.FLAG_PREF_NEED_RELOAD)) {
             needReload = true
         }
-        if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.Companion.FLAG_PREF_RECREATE_INPUT_VIEW)) {
+        if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.FLAG_PREF_RECREATE_INPUT_VIEW)) {
             mKeyboardSwitcher.recreateInputView()
         }
-        if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.Companion.FLAG_PREF_RESET_MODE_OVERRIDE)) {
+        if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.FLAG_PREF_RESET_MODE_OVERRIDE)) {
             mKeyboardModeOverrideLandscape = 0
             mKeyboardModeOverridePortrait = 0
         }
-        if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.Companion.FLAG_PREF_RESET_KEYBOARDS)) {
+        if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.FLAG_PREF_RESET_KEYBOARDS)) {
             toggleLanguage(true, true)
         }
         val unhandledFlags = sKeyboardSettings.unhandledFlags()
-        if (unhandledFlags != GlobalKeyboardSettings.Companion.FLAG_PREF_NONE) {
+        if (unhandledFlags != GlobalKeyboardSettings.FLAG_PREF_NONE) {
             Log.w(TAG, "Not all flag settings handled, remaining=$unhandledFlags")
         }
         if (PREF_SELECTED_LANGUAGES == key) {
@@ -1542,13 +1577,13 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         val distinctMultiTouch = mKeyboardSwitcher
             .hasDistinctMultitouch()
         if (distinctMultiTouch
-            && primaryCode == Keyboard.Companion.KEYCODE_MODE_CHANGE
+            && primaryCode == Keyboard.KEYCODE_MODE_CHANGE
         ) {
             changeKeyboardMode()
             mSymbolKeyState.onPress()
             mKeyboardSwitcher.setAutoModeSwitchStateMomentary()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_SHIFT_LEFT
+            && primaryCode == LatinKeyboardView.KEYCODE_SHIFT_LEFT
         ) {
             if (mModShiftLeft) {
                 setModShift(false, mModShiftRight)
@@ -1559,7 +1594,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 sendShiftKey(ic, true, true)
             }
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_CTRL_LEFT
+            && primaryCode == LatinKeyboardView.KEYCODE_CTRL_LEFT
         ) {
             if (mModCtrlLeft) {
                 setModCtrl(false, mModCtrlRight)
@@ -1570,7 +1605,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 sendCtrlKey(ic, true, true, true)
             }
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_ALT_LEFT
+            && primaryCode == LatinKeyboardView.KEYCODE_ALT_LEFT
         ) {
             if (mModAltLeft) {
                 setModAlt(true, mModAltRight)
@@ -1581,7 +1616,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 sendAltKey(ic, true, true, true)
             }
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_META_LEFT
+            && primaryCode == LatinKeyboardView.KEYCODE_META_LEFT
         ) {
             if (mModMetaLeft) {
                 setModMeta(false, mModMetaRight)
@@ -1592,7 +1627,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 sendMetaKey(ic, true, true, true)
             }
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_SHIFT_RIGHT
+            && primaryCode == LatinKeyboardView.KEYCODE_SHIFT_RIGHT
         ) {
             if (mModShiftRight) {
                 setModShift(mModShiftLeft, false)
@@ -1603,7 +1638,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 sendShiftKey(ic, false, true)
             }
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_CTRL_RIGHT
+            && primaryCode == LatinKeyboardView.KEYCODE_CTRL_RIGHT
         ) {
             if (mModCtrlRight) {
                 setModCtrl(mModCtrlLeft, false)
@@ -1614,7 +1649,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 sendCtrlKey(ic, false, true, true)
             }
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_ALT_RIGHT
+            && primaryCode == LatinKeyboardView.KEYCODE_ALT_RIGHT
         ) {
             if (mModAltRight) {
                 setModAlt(mModAltLeft, false)
@@ -1625,7 +1660,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 sendAltKey(ic, false, true, true)
             }
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_META_RIGHT
+            && primaryCode == LatinKeyboardView.KEYCODE_META_RIGHT
         ) {
             if (mModMetaRight) {
                 setModMeta(mModMetaLeft, false)
@@ -1636,12 +1671,12 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 sendMetaKey(ic, false, true, true)
             }
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_FN_1
+            && primaryCode == LatinKeyboardView.KEYCODE_FN_1
         ) {
             setModFn1(!mModFn1)
             mFn1KeyState.onPress()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_FN_2
+            && primaryCode == LatinKeyboardView.KEYCODE_FN_2
         ) {
             setModFn2(!mModFn2)
             mFn2KeyState.onPress()
@@ -1669,7 +1704,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             .hasDistinctMultitouch()
         val ic = currentInputConnection
         if (distinctMultiTouch
-            && primaryCode == Keyboard.Companion.KEYCODE_MODE_CHANGE
+            && primaryCode == Keyboard.KEYCODE_MODE_CHANGE
         ) {
             // Snap back to the previous keyboard mode if the user chords the
             // mode change key and
@@ -1677,7 +1712,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             if (mKeyboardSwitcher.isInChordingAutoModeSwitchState) changeKeyboardMode()
             mSymbolKeyState.onRelease()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_CTRL_LEFT
+            && primaryCode == LatinKeyboardView.KEYCODE_CTRL_LEFT
         ) {
             if (mCtrlKeyState.left.isChording) {
                 setModCtrl(false, mModCtrlRight)
@@ -1685,7 +1720,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             sendCtrlKey(ic, true, false, true)
             mCtrlKeyState.left.onRelease()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_SHIFT_LEFT
+            && primaryCode == LatinKeyboardView.KEYCODE_SHIFT_LEFT
         ) {
             if (mShiftKeyState.left.isChording) {
                 setModShift(false, mModShiftRight)
@@ -1693,7 +1728,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             sendShiftKey(ic, true, false)
             mShiftKeyState.left.onRelease()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_ALT_LEFT
+            && primaryCode == LatinKeyboardView.KEYCODE_ALT_LEFT
         ) {
             if (mAltKeyState.left.isChording) {
                 setModAlt(false, mModAltRight)
@@ -1701,7 +1736,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             sendAltKey(ic, true, false, true)
             mAltKeyState.left.onRelease()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_META_LEFT
+            && primaryCode == LatinKeyboardView.KEYCODE_META_LEFT
         ) {
             if (mMetaKeyState.left.isChording) {
                 setModMeta(false, mModMetaRight)
@@ -1709,7 +1744,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             sendMetaKey(ic, true, false, true)
             mMetaKeyState.left.onRelease()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_SHIFT_RIGHT
+            && primaryCode == LatinKeyboardView.KEYCODE_SHIFT_RIGHT
         ) {
             if (mShiftKeyState.right.isChording) {
                 setModShift(mModShiftLeft, false)
@@ -1717,7 +1752,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             sendShiftKey(ic, false, false)
             mShiftKeyState.right.onRelease()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_CTRL_RIGHT
+            && primaryCode == LatinKeyboardView.KEYCODE_CTRL_RIGHT
         ) {
             if (mCtrlKeyState.right.isChording) {
                 setModCtrl(mModCtrlLeft, false)
@@ -1725,7 +1760,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             sendCtrlKey(ic, false, false, true)
             mCtrlKeyState.right.onRelease()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_ALT_RIGHT
+            && primaryCode == LatinKeyboardView.KEYCODE_ALT_RIGHT
         ) {
             if (mAltKeyState.right.isChording) {
                 setModAlt(mModAltLeft, false)
@@ -1733,7 +1768,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             sendAltKey(ic, false, false, true)
             mAltKeyState.right.onRelease()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_META_RIGHT
+            && primaryCode == LatinKeyboardView.KEYCODE_META_RIGHT
         ) {
             if (mMetaKeyState.right.isChording) {
                 setModMeta(mModMetaLeft, false)
@@ -1747,14 +1782,14 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 //            }
 //            mFnKeyState.onRelease();
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_FN_1
+            && primaryCode == LatinKeyboardView.KEYCODE_FN_1
         ) {
             if (mFn1KeyState.isChording) {
                 setModFn1(false)
             }
             mFn1KeyState.onRelease()
         } else if (distinctMultiTouch
-            && primaryCode == LatinKeyboardView.Companion.KEYCODE_FN_2
+            && primaryCode == LatinKeyboardView.KEYCODE_FN_2
         ) {
             if (mFn2KeyState.isChording) {
                 setModFn2(false)
@@ -1847,7 +1882,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             // FIXME: These should be triggered after auto-repeat logic
             var sound = AudioManager.FX_KEYPRESS_STANDARD
             when (primaryCode) {
-                Keyboard.Companion.KEYCODE_DELETE -> sound = AudioManager.FX_KEYPRESS_DELETE
+                Keyboard.KEYCODE_DELETE -> sound = AudioManager.FX_KEYPRESS_DELETE
                 ASCII_ENTER -> sound = AudioManager.FX_KEYPRESS_RETURN
                 ASCII_SPACE -> sound = AudioManager.FX_KEYPRESS_SPACEBAR
             }
@@ -1979,6 +2014,8 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         private const val QUICK_PRESS = 200
         const val ASCII_ENTER = '\n'.code
         const val ASCII_SPACE = ' '.code
+
+        private var savedOrientation: Int? = null
 
         // Contextual menu positions
         private const val POS_METHOD = 0

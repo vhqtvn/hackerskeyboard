@@ -1,10 +1,12 @@
-package vn.vhn.pckeyboard
+package vn.vhn.pckeyboard.orientation
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.PixelFormat
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.provider.Settings
 import android.util.Log
@@ -15,17 +17,27 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import java.io.IOException
 
-class ScreenOrientationLockerNormal     //        mDisplayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
-    (private val mContext: Context) {
-    fun saveCurrentWindowManager(window: Window?, wm: WindowManager) {
+class ScreenOrientationLockerView(private val mContext: Context) : IScreenOrientationLocker {
+
+    override fun saveCurrentWindowManager(window: Window?, wm: WindowManager?) {
         mSavedWindowManager = wm
         mSavedWindow = window
         mSavedFocus = mSavedWindow!!.currentFocus
         Log.i(TAG,
-            "Saving Current window: " + wm.defaultDisplay.name + ", current focus: " + mSavedFocus)
+            "Saving Current window: " + wm?.defaultDisplay?.name + ", current focus: " + mSavedFocus)
     }
 
-    fun lock(orientation: Int): Boolean {
+    override fun lock(): Boolean {
+        val wm = mSavedWindowManager
+            ?: mContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            lock(mContext.display?.rotation ?: 0)
+        } else {
+            lock(wm.defaultDisplay.rotation)
+        }
+    }
+
+    override fun lock(orientation: Int): Boolean {
         var orientation = orientation
         Log.d(TAG, "orientation lock: $orientation")
         if (mOverlayViewForOrientationLock == null) mOverlayViewForOrientationLock = View(mContext)
@@ -74,55 +86,39 @@ class ScreenOrientationLockerNormal     //        mDisplayManager = (DisplayMana
         return true
     }
 
-    fun unlock() {
+    override fun unlock(): Int? {
         Log.d(TAG, "orientation unlock")
         if (mLastWindowManager != null) {
             mLastWindowManager!!.removeView(mOverlayViewForOrientationLock)
             mLastWindowManager = null
         }
+        return null
     }
 
-    fun cancelUnlock() {
-        ++unlockToken
-        Log.d(TAG, "Cancel unlock -> " + unlockToken)
-    }
-
-    fun postUnlock(delay: Int) {
-        val currToken = ++unlockToken
-        Log.d(TAG, "Post unlock $currToken")
-        Handler().postDelayed({
-            if (currToken == unlockToken) {
-                Log.d(TAG, "unlock call " + currToken + " vs " + unlockToken)
-                unlock()
-            }
-        }, delay.toLong())
-    }
-
-    fun showKeyboard() {
-        Log.d(TAG, "show keyboard " + mSavedWindowManager)
-        try {
-            val keyCommand = "su -c input keyevent 108"
-            val runtime = Runtime.getRuntime()
-            val proc = runtime.exec(keyCommand)
-        } catch (e: IOException) {
-            // TODO Auto-generated catch block
-            e.printStackTrace()
-        }
-        val inputManager =
-            mContext.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        inputManager.toggleSoftInput(InputMethodManager.SHOW_FORCED,
-            InputMethodManager.HIDE_IMPLICIT_ONLY)
-    }
 
     companion object {
         private const val TAG = "ScreenOrientationLocker"
         var mLastWindowManager: WindowManager? = null
         var mSavedWindowManager: WindowManager? = null
+
+        @SuppressLint("StaticFieldLeak")
         private var mOverlayViewForOrientationLock: View? = null
+
+        @SuppressLint("StaticFieldLeak")
         private var mSavedFocus: View? = null
 
         //    private DisplayManager mDisplayManager;
         private var mSavedWindow: Window? = null
-        private var unlockToken = 0
+
+        fun check(context: Context): Boolean {
+            return Settings.canDrawOverlays(context)
+        }
+
+        fun request(context: Context) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:" + context.packageName))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        }
     }
 }

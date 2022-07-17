@@ -470,4 +470,9 @@
     <string name="notification_action_settings">Settings</string>
     <string name="sticky_enabled">Keyboard sticky enabled</string>
     <string name="sticky_disabled">Keyboard sticky disabled</string>
+    <string name="orientation_locker_not_supported">Orientation locker not supported!</string>
+    <string name="orientation_locked">Orientation locked</string>
+    <string name="orientation_unlocked">Orientation unlocked</string>
+    <string name="orientation_lock_failed">Orientation lock failed!</string>
+    <string name="locking_orientation_rewrite_write_settings">\"Modify system settings\" permission needs to be enabled!</string>
 </resources>

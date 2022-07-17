@@ -210,6 +210,8 @@
             android:shiftLabel="@string/key_ad08_shift" />
         <Key
             android:keyLabel="@string/key_ad09_main"
+            android:fn1Codes="@integer/key_orientation_lock"
+            android:fn1Label="OLck"
             android:popupCharacters="@string/key_ad09_alt"
             android:popupKeyboard="@xml/kbd_popup_narrow_template"
             android:shiftLabel="@string/key_ad09_shift" />
