@@ -45,6 +45,7 @@ import com.lge.ime.util.p118f.LGMultiDisplayUtils.supportDualScreen
 import com.novia.lg_dualscreen_ime.ToggleFullScreenIME
 import com.vhn.SurfaceDuoPaneManager
 import com.vhn.SurfaceDuoUtils
+import james.crasher.Crasher
 import vn.vhn.pckeyboard.LatinIMEUtil.GCUtils
 import vn.vhn.pckeyboard.LatinIMEUtil.RingCharBuffer
 import vn.vhn.pckeyboard.orientation.IScreenOrientationLocker
@@ -164,6 +165,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         Log.i("PCKeyboard", "onCreate(), os.version=" + System.getProperty("os.version"))
         KeyboardSwitcher.init(this)
         super.onCreate()
+        Crasher(applicationContext)
         WindowCompat.setDecorFitsSystemWindows(window.window!!, false)
         if (SurfaceDuoUtils.isDeviceSurfaceDuo(packageManager)) {
             surfaceDuoPaneManager = SurfaceDuoPaneManager(applicationContext)
