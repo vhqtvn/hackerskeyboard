@@ -21,7 +21,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.*
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
-import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.inputmethodservice.InputMethodService
@@ -38,7 +37,6 @@ import android.view.inputmethod.*
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.view.WindowCompat
 import com.lge.ime.util.p118f.DualKeyboardManager.Companion.setContext
 import com.lge.ime.util.p118f.LGMultiDisplayUtils.checkForceLandscape
 import com.lge.ime.util.p118f.LGMultiDisplayUtils.supportDualScreen
@@ -54,6 +52,7 @@ import vn.vhn.pckeyboard.root.RootCompat
 import java.io.FileDescriptor
 import java.io.PrintWriter
 import java.util.regex.Pattern
+
 
 /**
  * Input method implementation for Qwerty'ish keyboard.
@@ -166,7 +165,19 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         KeyboardSwitcher.init(this)
         super.onCreate()
         Crasher(applicationContext)
-        WindowCompat.setDecorFitsSystemWindows(window.window!!, false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.window!!.setDecorFitsSystemWindows(false)
+        } else {
+            @Suppress("DEPRECATION")
+            val decorFitsFlags = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+
+            val decorView: View = window.window!!.decorView
+            val sysUiVis = decorView.systemUiVisibility
+            @Suppress("DEPRECATION")
+            decorView.systemUiVisibility = sysUiVis or decorFitsFlags
+        }
         if (SurfaceDuoUtils.isDeviceSurfaceDuo(packageManager)) {
             surfaceDuoPaneManager = SurfaceDuoPaneManager(applicationContext)
             surfaceDuoPaneManager!!.ensureInitialized()
