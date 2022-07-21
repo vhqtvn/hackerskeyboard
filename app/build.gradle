@@ -5,6 +5,7 @@ android {
     compileSdkVersion project.properties.compileSdkVersion.toInteger() ?: 31
     defaultConfig {
 //        applicationId 'vn.vhn.pckeyboard'
+        buildConfigField "Boolean", "GOOGLEPLAY_BUILD", project.properties.googlePlayBuild ?: "true"
         minSdkVersion 24
         targetSdkVersion project.properties.targetSdkVersion.toInteger() ?: 31
         versionCode 1

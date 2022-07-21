@@ -164,7 +164,8 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         Log.i("PCKeyboard", "onCreate(), os.version=" + System.getProperty("os.version"))
         KeyboardSwitcher.init(this)
         super.onCreate()
-        Crasher(applicationContext)
+        if (!BuildConfig.GOOGLEPLAY_BUILD)
+            Crasher(applicationContext)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.window!!.setDecorFitsSystemWindows(false)
         } else {
