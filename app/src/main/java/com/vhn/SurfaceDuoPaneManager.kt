@@ -4,7 +4,7 @@ import android.content.Context
 import com.microsoft.device.layoutmanager.PaneManager
 import com.microsoft.device.layoutmanager.PaneManager.PaneState
 
-class SurfaceDuoPaneManager(prigvate val mContext: Context) {
+class SurfaceDuoPaneManager(private val mContext: Context) {
     var mConnected: Boolean = false
     var paneManager: PaneManager? = null
     @Suppress("ObjectLiteralToLambda")
