@@ -205,6 +205,8 @@
             android:shiftLabel="@string/key_ad07_shift" />
         <Key
             android:keyLabel="@string/key_ad08_main"
+            android:fn1Codes="@integer/key_noime"
+            android:fn1Label="NoIME"
             android:popupCharacters="@string/key_ad08_alt"
             android:popupKeyboard="@xml/kbd_popup_template"
             android:shiftLabel="@string/key_ad08_shift" />

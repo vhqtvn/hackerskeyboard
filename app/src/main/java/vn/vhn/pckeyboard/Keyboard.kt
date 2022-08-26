@@ -88,6 +88,7 @@ open class Keyboard @JvmOverloads constructor(
      * Key instance for the shift key, if present
      */
     private var mStickKey: Key? = null
+    private var mNoIMEKey: Key? = null
     private var mShiftLeftKey: Key? = null
     private var mAltLeftKey: Key? = null
     private var mCtrlLeftKey: Key? = null
@@ -1095,6 +1096,11 @@ open class Keyboard @JvmOverloads constructor(
         return mStickKey
     }
 
+    fun setNoIMEIndicator(active: Boolean): Key? {
+        if (mNoIMEKey != null) mNoIMEKey!!.on = active
+        return mNoIMEKey
+    }
+
     fun setShiftRightIndicator(active: Boolean): Key? {
         if (mShiftRightKey != null) mShiftRightKey!!.on = active
         return mShiftRightKey
@@ -1426,6 +1432,7 @@ open class Keyboard @JvmOverloads constructor(
         const val KEYCODE_DONE = -4
         const val KEYCODE_DELETE = -5
         const val KEYCODE_ALT_SYM = -6
+        const val KEYCODE_NOIME = -10000
 
         // Backwards compatible setting to avoid having to change all the kbd_qwerty files
         const val DEFAULT_LAYOUT_ROWS = 4

@@ -103,6 +103,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     private var mFullscreenOverride = false
     private var mForceKeyboardOn = false
     private var mStick = false
+    private var mNoIME = false
     private var mOrientationLocked = false
     private var mKeyboardNotification = false
     private var mSwipeUpAction: String? = null
@@ -194,8 +195,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mResources = resources
         val conf = mResources.getConfiguration()
         var orientationUpdated = updateOrientation(conf)
-        val prefs = PreferenceManager
-            .getDefaultSharedPreferences(this)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         mLanguageSwitcher = LanguageSwitcher(this)
         mLanguageSwitcher!!.loadLocales(prefs)
         mKeyboardSwitcher = KeyboardSwitcher.instance
@@ -213,6 +213,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             res.getBoolean(R.bool.default_force_keyboard_on))
         mKeyboardNotification = prefs.getBoolean(PREF_KEYBOARD_NOTIFICATION,
             res.getBoolean(R.bool.default_keyboard_notification))
+        mNoIME = prefs.getBoolean(PREF_NOIME, false)
         mHeightPortrait =
             getHeight(prefs, PREF_HEIGHT_PORTRAIT, res.getString(R.string.default_height_portrait))
         mHeightLandscape = getHeight(prefs,
@@ -938,6 +939,8 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         val now = System.currentTimeMillis()
         ic?.sendKeyEvent(KeyEvent(
             now, now, KeyEvent.ACTION_DOWN, key, 0, meta))
+        if (mNoIME)
+            Thread.sleep(75)
     }
 
     private fun sendKeyUp(ic: InputConnection?, key: Int, meta: Int) {
@@ -1094,7 +1097,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     fun sendModifiableKeyChar(ch: Char) {
         // Support modified key events
-        if ((mModShiftLeft || mModShiftRight || mModCtrlLeft || mModAltLeft || mModMetaLeft || mModCtrlRight || mModAltRight || mModMetaRight) && ch.code > 0 && ch.code < 127) {
+        if ((mNoIME || mModShiftLeft || mModShiftRight || mModCtrlLeft || mModAltLeft || mModMetaLeft || mModCtrlRight || mModAltRight || mModMetaRight) && ch.code > 0 && ch.code < 127) {
             val combinedCode = asciiToKeyCode[ch.code]
             if (combinedCode > 0) {
                 val code = combinedCode and KF_MASK
@@ -1173,6 +1176,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             Keyboard.KEYCODE_STICK -> {
                 handleFNModifierKeysUp(false)
                 setSticky(!mStick)
+            }
+            Keyboard.KEYCODE_NOIME -> {
+                handleFNModifierKeysUp(false)
+                setNoIME(!mNoIME)
             }
             LatinKeyboardView.KEYCODE_ORIENTATION_LOCK -> {
                 handleFNModifierKeysUp(false)
@@ -1259,11 +1266,22 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     }
 
     private fun setSticky(enable: Boolean) {
+        if (enable == mStick) return
         mStick = enable
         mKeyboardSwitcher.setSticky(mStick)
         Toast.makeText(baseContext,
             if (mStick) R.string.sticky_enabled else R.string.sticky_disabled,
             Toast.LENGTH_SHORT).show()
+    }
+
+    private fun setNoIME(enable: Boolean) {
+        if (enable == mNoIME) return
+        mNoIME = enable
+        mKeyboardSwitcher.setNoIME(mNoIME)
+        Toast.makeText(baseContext,
+            if (mNoIME) R.string.noime_enabled else R.string.noime_disabled,
+            Toast.LENGTH_SHORT).show()
+        PreferenceManager.getDefaultSharedPreferences(this).edit().putBoolean(PREF_NOIME, mNoIME).apply()
     }
 
     private fun setDualDisplay(newState: Boolean?) {
@@ -1446,6 +1464,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.FLAG_PREF_RESET_KEYBOARDS)) {
             toggleLanguage(true, true)
         }
+
         val unhandledFlags = sKeyboardSettings.unhandledFlags()
         if (unhandledFlags != GlobalKeyboardSettings.FLAG_PREF_NONE) {
             Log.w(TAG, "Not all flag settings handled, remaining=$unhandledFlags")
@@ -1510,6 +1529,8 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             mVibrateLen = getPrefInt(sharedPreferences,
                 PREF_VIBRATE_LEN,
                 resources.getString(R.string.vibrate_duration_ms))
+        } else if (PREF_NOIME == key) {
+            setNoIME(sharedPreferences.getBoolean(PREF_NOIME, false))
         }
         updateKeyboardOptions()
         if (needReload) {
@@ -1999,6 +2020,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         private const val NOTIFICATION_ONGOING_ID = 1001
         private const val PREF_VIBRATE_ON = "vibrate_on"
         const val PREF_VIBRATE_LEN = "vibrate_len"
+        private const val PREF_NOIME = "noime"
         private const val PREF_SOUND_ON = "sound_on"
         private const val PREF_POPUP_ON = "popup_on"
         private const val PREF_AUTO_CAP = "auto_cap"

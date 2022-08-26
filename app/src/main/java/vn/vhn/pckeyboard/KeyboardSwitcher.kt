@@ -113,6 +113,11 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
         inputView!!.setStickIndicator(enable)
     }
 
+    fun setNoIME(enable: Boolean) {
+        if (inputView == null) return
+        inputView!!.setNoIMEIndicator(enable)
+    }
+
     /**
      * Represents the parameters necessary to construct a new LatinKeyboard,
      * which also serve as a unique identifier for each keyboard type.

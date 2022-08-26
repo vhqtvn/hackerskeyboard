@@ -586,6 +586,12 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
         }
     }
 
+    fun setNoIMEIndicator(enable: Boolean) {
+        if (mKeyboard != null) {
+            invalidateKey(mKeyboard!!.setNoIMEIndicator(enable))
+        }
+    }
+
     fun setCtrlIndicator(left: Boolean, right: Boolean) {
         if (mKeyboard != null) {
             invalidateKey(mKeyboard!!.setCtrlLeftIndicator(left))

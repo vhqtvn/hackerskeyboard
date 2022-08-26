@@ -475,4 +475,6 @@
     <string name="orientation_unlocked">Orientation unlocked</string>
     <string name="orientation_lock_failed">Orientation lock failed!</string>
     <string name="locking_orientation_rewrite_write_settings">\"Modify system settings\" permission needs to be enabled!</string>
+    <string name="noime_enabled">Send key for each press</string>
+    <string name="noime_disabled">Normal send key (with IME)</string>
 </resources>
