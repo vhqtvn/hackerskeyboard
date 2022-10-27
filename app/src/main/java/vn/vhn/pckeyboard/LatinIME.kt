@@ -663,7 +663,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         if (states!!.size >= 2) {
             val targetState = if (isPortrait) false else true
             for (state in surfaceDuoPaneManager!!.paneStateForKeyboard()!!) {
-                if (state!!.isInFocus == targetState) {
+                if (state!!.inFocus == targetState) {
                     try {
                         if (isPortrait) surfaceDuoPaneManager!!.overrideKeyboardPane(state.paneId or 3)
                     } catch (e: Exception) {

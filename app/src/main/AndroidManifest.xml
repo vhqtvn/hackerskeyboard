@@ -41,6 +41,7 @@
 
         <meta-data android:name="to.dualscreen" android:value="true"/>
         <meta-data android:name="duosdk.dualScreenAware" android:value="true"/>
+
         <service
             android:exported="true"
             android:name="vn.vhn.pckeyboard.LatinIME"
