@@ -16,19 +16,22 @@ class SurfaceDuoPaneManager(private val mContext: Context) {
         lateinit var PaneManager_ServiceConnectionListener: Class<*>
 
         init {
-            val pathClassLoader = PathClassLoader(
-                "/system/framework/com.microsoft.device-private.jar",
-                ClassLoader.getSystemClassLoader())
-            PaneManagerClass = Class.forName("com.microsoft.device.layoutmanager.PaneManager",
-                true,
-                pathClassLoader)
-            for (clz in PaneManagerClass.declaredClasses) {
-                when (clz.simpleName) {
-                    "PaneState" -> PaneManager_PaneState = clz
-                    "ServiceConnectionListener" -> PaneManager_ServiceConnectionListener = clz
+            try {
+                val pathClassLoader = PathClassLoader(
+                    "/system/framework/com.microsoft.device-private.jar",
+                    ClassLoader.getSystemClassLoader())
+                PaneManagerClass = Class.forName("com.microsoft.device.layoutmanager.PaneManager",
+                    true,
+                    pathClassLoader)
+                for (clz in PaneManagerClass.declaredClasses) {
+                    when (clz.simpleName) {
+                        "PaneState" -> PaneManager_PaneState = clz
+                        "ServiceConnectionListener" -> PaneManager_ServiceConnectionListener = clz
+                    }
                 }
+            } catch (e: java.lang.Exception) {
+                //maybe another device
             }
-//            PaneManager_ServiceConnectionListener.
         }
     }
 
