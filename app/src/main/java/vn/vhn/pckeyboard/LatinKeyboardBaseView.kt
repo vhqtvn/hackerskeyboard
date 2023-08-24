@@ -888,6 +888,9 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                     paint.typeface = mKeyTextStyle
                 }
                 paint.isFakeBoldText = key.isCursor
+//                if (-key.primaryCode >= -LatinKeyboardView.KEYCODE_FKEY_F1 && -key.primaryCode <= -LatinKeyboardView.KEYCODE_FKEY_F12) {
+//                    paint.isFakeBoldText = true
+//                }
                 paint.textSize = labelSize.toFloat()
                 val labelHeight = getLabelHeight(paint, labelSize)
 

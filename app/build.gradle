@@ -1,11 +1,11 @@
-apply plugin: 'com.android.library'
+apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion project.properties.compileSdkVersion.toInteger() ?: 31
     defaultConfig {
-//        applicationId 'vn.vhn.pckeyboard'
-        buildConfigField "Boolean", "GOOGLEPLAY_BUILD", project.properties.googlePlayBuild ?: "true"
+        applicationId 'vn.vhn.pckeyboard'
+        buildConfigField "Boolean", "GOOGLEPLAY_BUILD", project.properties.googlePlayBuild ?: "false"
         minSdkVersion 24
         targetSdkVersion project.properties.targetSdkVersion.toInteger() ?: 31
         versionCode 1
@@ -29,6 +29,7 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    namespace 'vn.vhn.pckeyboard'
 }
 
 dependencies {

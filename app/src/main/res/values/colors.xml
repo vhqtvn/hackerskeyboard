@@ -35,12 +35,12 @@
     <color name="latinkeyboard_key_color_black">#FF000000</color>
 
 <!--Material Keyboard Colors-->
-    <color name="key_background_material_black">#000000</color>
-    <color name="key_background_pressed_material_black">#19FFFFFF</color>
+    <color name="key_background_material_black">#00000000</color>
+    <color name="key_background_pressed_material_black">#00000000</color>
     <color name="key_text_color_material_black">#CCFFFFFF</color>
-    <color name="key_hint_letter_color_material_black">#80FFFFFF</color>
-    <color name="key_fn1_letter_color_material_black">#FF22FF22</color>
-    <color name="key_fn2_letter_color_material_black">#FF2222FF</color>
+    <color name="key_hint_letter_color_material_black">#FF555555</color>
+    <color name="key_fn1_letter_color_material_black">#FF44FF44</color>
+    <color name="key_fn2_letter_color_material_black">#FFFFFF88</color>
     <color name="key_background_material_dark">#263238</color>
     <color name="key_background_pressed_material_dark">#19FFFFFF</color>
     <color name="key_text_color_material_dark">#CCFFFFFF</color>

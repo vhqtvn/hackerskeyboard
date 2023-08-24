@@ -1642,7 +1642,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             && primaryCode == LatinKeyboardView.KEYCODE_ALT_LEFT
         ) {
             if (mModAltLeft) {
-                setModAlt(true, mModAltRight)
+                setModAlt(false, mModAltRight)
                 mAltKeyState.left.onRelease()
             } else {
                 setModAlt(true, mModAltRight)
