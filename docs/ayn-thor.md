@@ -82,8 +82,20 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
   Runtime setup on device: `appops set vn.vhn.pckeyboard SYSTEM_ALERT_WINDOW allow` and
   pre-authorize su in Magisk (`magisk --sqlite "REPLACE INTO policies (uid,policy,until,logging,notification) VALUES (<uid>,2,0,0,0)"`).
   Start: `am start-foreground-service -n vn.vhn.pckeyboard/.thor.OverlayKeyboardService`.
-  Note: both displays are FLAG_SECURE, so `screencap` returns 0 bytes — verify functionally
-  (`input -d 4 tap x y` on the keyboard, read the display-0 editor via `uiautomator dump`).
+  Note: both displays are FLAG_SECURE, so `screencap` needs the **physical** display id, not
+  logical `4`: `screencap -p -d 4630946482288158084 <file>` (main = `4630946441858561667`).
+  See `dumpsys SurfaceFlinger --display-id`.
+- **Deck layout:** full-screen opaque `FrameLayout` on display 4; keyboard bottom-anchored
+  `WRAP_CONTENT` at 68% height (must stay a bottom-anchored wrap-content child — a weighted
+  LinearLayout breaks the keyboard's buffered rendering, drew all black), utility strip on top
+  (trackpad/dev-tools placeholder), ▾ minimize button; floating ⌨ button restores when minimized.
+- **Phase 3 core DONE & validated on device.** Our app is the selected IME; `ThorController`
+  (in-process flag) makes `LatinIME.onEvaluateInputViewShown()` return false while the deck is
+  shown, so no keyboard appears on screen 1 (DSKeyboard/Gboard suppressed). Set default IME:
+  `ime enable vn.vhn.pckeyboard/.LatinIME && ime set vn.vhn.pckeyboard/.LatinIME`.
+  Current minimized behavior: focusing a screen-1 field shows our HK on screen 1 (normal IME).
+  Still TODO: auto-focus greying of the deck when no editor is focused; option to re-pop the
+  deck on focus instead of showing a screen-1 keyboard.
 
 ## Phases
 
