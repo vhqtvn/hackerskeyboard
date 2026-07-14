@@ -80,4 +80,42 @@ object KeyMap {
 
     /** Returns the evdev code for an Android keycode, or null if unmapped. */
     fun androidToEvdev(androidKeyCode: Int): Int? = map[androidKeyCode]
+
+    /** evdev code + whether Shift must be held to produce a character. */
+    data class CharKey(val evdev: Int, val shift: Boolean)
+
+    // US-QWERTY printable-ASCII -> (evdev, shift). Built once.
+    private val charMap: Map<Char, CharKey> = HashMap<Char, CharKey>().apply {
+        // Letters
+        val letters = "abcdefghijklmnopqrstuvwxyz"
+        val letterEvdev = intArrayOf(
+            30, 48, 46, 32, 18, 33, 34, 35, 23, 36, 37, 38, 50,   // a..m
+            49, 24, 25, 16, 19, 31, 20, 22, 47, 17, 45, 21, 44    // n..z
+        )
+        for (i in letters.indices) {
+            put(letters[i], CharKey(letterEvdev[i], false))            // lower
+            put(letters[i].uppercaseChar(), CharKey(letterEvdev[i], true)) // upper
+        }
+        // Digit row: unshifted digit / shifted symbol
+        val digits = "1234567890"
+        val digitEvdev = intArrayOf(2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+        val digitShift = "!@#$%^&*()"
+        for (i in digits.indices) {
+            put(digits[i], CharKey(digitEvdev[i], false))
+            put(digitShift[i], CharKey(digitEvdev[i], true))
+        }
+        // Other keys: base char (unshifted) and shifted char share one evdev code
+        fun pair(base: Char, shifted: Char, evdev: Int) {
+            put(base, CharKey(evdev, false))
+            put(shifted, CharKey(evdev, true))
+        }
+        pair('-', '_', 12); pair('=', '+', 13)
+        pair('[', '{', 26); pair(']', '}', 27); pair('\\', '|', 43)
+        pair(';', ':', 39); pair('\'', '"', 40); pair('`', '~', 41)
+        pair(',', '<', 51); pair('.', '>', 52); pair('/', '?', 53)
+        put(' ', CharKey(57, false))   // Space
+    }
+
+    /** Returns the (evdev, shift) for a printable US-layout char, or null. */
+    fun charToEvdev(ch: Char): CharKey? = charMap[ch]
 }

@@ -93,12 +93,10 @@ object InputInjector {
 
     // --- Android-keycode-level API --------------------------------------------
     /**
-     * Inject an Android [KeyEvent] keyCode with the given meta state, bracketing
-     * the tap with modifier down/up as needed. Returns false if the keycode has
-     * no evdev mapping (caller may fall back to another path, e.g. commitText).
+     * Tap an evdev key, bracketing it with modifier key down/up derived from an
+     * Android meta state (Shift/Ctrl/Alt/Meta).
      */
-    fun injectAndroidKey(androidKeyCode: Int, metaState: Int = 0): Boolean {
-        val evdev = KeyMap.androidToEvdev(androidKeyCode) ?: return false
+    fun tapWithMeta(evdev: Int, metaState: Int) {
         val mods = ArrayList<Int>(4)
         if (metaState and KeyEvent.META_SHIFT_ON != 0) mods.add(KeyMap.KEY_LEFTSHIFT)
         if (metaState and KeyEvent.META_CTRL_ON != 0) mods.add(KeyMap.KEY_LEFTCTRL)
@@ -107,6 +105,15 @@ object InputInjector {
         for (m in mods) down(m)
         tap(evdev)
         for (i in mods.indices.reversed()) up(mods[i])
+    }
+
+    /**
+     * Inject an Android [KeyEvent] keyCode with the given meta state. Returns
+     * false if the keycode has no evdev mapping.
+     */
+    fun injectAndroidKey(androidKeyCode: Int, metaState: Int = 0): Boolean {
+        val evdev = KeyMap.androidToEvdev(androidKeyCode) ?: return false
+        tapWithMeta(evdev, metaState)
         return true
     }
 }
