@@ -147,16 +147,23 @@ class OverlayKeyboardService : Service() {
     private fun buildDeck(ctx: Context): View {
         val root = FrameLayout(ctx).apply { setBackgroundColor(Color.BLACK) }
 
+        // Trackpad fills the whole deck but is only exposed in the top area not
+        // covered by the (bottom-anchored) keyboard; relative moves work anywhere.
+        val trackpad = TrackpadView(ctx)
+        root.addView(trackpad, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+
         val hint = TextView(ctx).apply {
-            text = "utility area — trackpad / dev tools coming soon"
-            setTextColor(0xFF666666.toInt())
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            text = "trackpad — drag to move, tap = click, 2-finger = scroll"
+            setTextColor(0xFF555555.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             gravity = Gravity.CENTER
+            isClickable = false
         }
         root.addView(hint, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            topMargin = dp(24f)
+            topMargin = dp(12f)
         })
 
         val minimize = TextView(ctx).apply {
