@@ -73,6 +73,17 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
   types into display-0's focused editor (Chrome omnibox test: "hello world", "vhkbd").
   Kotlin `thor/InputInjector.kt` (daemon lifecycle over `su`, line protocol) +
   `thor/KeyMap.kt` (Android keycode → evdev) are code-complete; exercised for real in Phase 2.
+- **Phase 2 DONE & validated on device.** `thor/OverlayKeyboardService` (foreground) draws
+  HK's full `LatinKeyboardView` on display 4 as a `FLAG_NOT_FOCUSABLE` overlay via
+  `createDisplayContext`; `thor/ThorKeyboardHost` routes `onKey` → uinput injection (modifiers
+  as one-shot toggles, no re-shift). Floating toggle button shows/hides it. `LanguageSwitcher`
+  now takes a `Context` so the stack builds outside the IME. Verified: tapping keys on screen 2
+  types into the focused editor on screen 1; toggle works.
+  Runtime setup on device: `appops set vn.vhn.pckeyboard SYSTEM_ALERT_WINDOW allow` and
+  pre-authorize su in Magisk (`magisk --sqlite "REPLACE INTO policies (uid,policy,until,logging,notification) VALUES (<uid>,2,0,0,0)"`).
+  Start: `am start-foreground-service -n vn.vhn.pckeyboard/.thor.OverlayKeyboardService`.
+  Note: both displays are FLAG_SECURE, so `screencap` returns 0 bytes — verify functionally
+  (`input -d 4 tap x y` on the keyboard, read the display-0 editor via `uiautomator dump`).
 
 ## Phases
 
