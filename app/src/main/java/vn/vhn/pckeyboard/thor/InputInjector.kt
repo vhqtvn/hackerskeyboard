@@ -91,6 +91,11 @@ object InputInjector {
     fun tap(evdev: Int) = send("T$evdev")
     fun sync() = send("S")
 
+    // --- Mouse (trackpad) ------------------------------------------------------
+    fun moveMouse(dx: Int, dy: Int) = send("M $dx $dy")
+    fun click(button: Int = 0) = send("C$button")
+    fun scroll(dy: Int) = send("W$dy")
+
     // --- Android-keycode-level API --------------------------------------------
     /**
      * Tap an evdev key, bracketing it with modifier key down/up derived from an
