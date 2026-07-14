@@ -162,6 +162,22 @@ class ThorKeyboardHost(
     override fun swipeDown(): Boolean = false
     override fun swipeUp(): Boolean = false
 
+    /**
+     * Force the keyboard to re-measure and repaint its offscreen buffer after it
+     * is attached to a window. Without this the software-rendered view sometimes
+     * draws before it has a valid size and stays black.
+     */
+    fun forceRedraw() {
+        val redraw = Runnable {
+            try {
+                inputView.requestLayout()
+                inputView.invalidateAllKeys()
+            } catch (_: Exception) {}
+        }
+        inputView.post(redraw)
+        inputView.postDelayed(redraw, 300)
+    }
+
     fun destroy() {
         try { inputView.closing() } catch (_: Exception) {}
     }

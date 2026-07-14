@@ -122,6 +122,7 @@ class OverlayKeyboardService : Service() {
             deckView = deck
             expanded = true
             ThorController.setDeckShown(true)
+            host?.forceRedraw()
         } catch (e: Exception) {
             Log.e(TAG, "addView(deck) failed", e)
         }
@@ -130,9 +131,12 @@ class OverlayKeyboardService : Service() {
     private fun minimize() {
         if (!expanded) return
         deckView?.let { safeRemove(it) }
-        // Detach the keyboard from the deck so it can be re-added on next expand.
-        (host?.rootView?.parent as? ViewGroup)?.removeView(host?.rootView)
         deckView = null
+        // Destroy the keyboard host; a fresh one is built on the next expand.
+        // Re-parenting the same LatinKeyboardView breaks its software-rendered
+        // buffer (draws all black), so we never reuse it.
+        host?.destroy()
+        host = null
         expanded = false
         ThorController.setDeckShown(false)
         addFloatingButton()
