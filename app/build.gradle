@@ -3,6 +3,7 @@ apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion project.properties.compileSdkVersion.toInteger() ?: 31
+    ndkVersion "25.1.8937393"
     defaultConfig {
         applicationId 'vn.vhn.pckeyboard'
         buildConfigField "Boolean", "GOOGLEPLAY_BUILD", project.properties.googlePlayBuild ?: "false"
@@ -16,6 +17,17 @@ android {
                 cppFlags ""
             }
         }
+        // AYN Thor is arm64 (kalama / SD8 Gen2); build only that ABI for fast cycles.
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+    // The kbdinject binary ships as libkbdinject.so and must be extracted to disk
+    // (nativeLibraryDir) so it can be exec'd as a root daemon.
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
     buildTypes {
         release {
@@ -28,6 +40,11 @@ android {
     }
     kotlinOptions {
         jvmTarget = '1.8'
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
     }
     namespace 'vn.vhn.pckeyboard'
 }
