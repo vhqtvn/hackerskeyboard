@@ -23,8 +23,10 @@ import vn.vhn.pckeyboard.R
  * never re-shifted (setShifted), so keys report their base codes and Shift is
  * applied purely at injection time, which mirrors a physical PC keyboard.
  */
-class ThorKeyboardHost(private val displayContext: Context) :
-    LatinKeyboardBaseView.OnKeyboardActionListener {
+class ThorKeyboardHost(
+    private val displayContext: Context,
+    private val keyboardHeightPercent: Float = 40f,
+) : LatinKeyboardBaseView.OnKeyboardActionListener {
 
     val rootView: ViewGroup
     private val inputView: LatinKeyboardView
@@ -54,6 +56,9 @@ class ThorKeyboardHost(private val displayContext: Context) :
         // Ensure the shared keyboard settings are initialized even if the IME
         // service has never run in this process.
         LatinIME.sKeyboardSettings.initPrefs(prefs, res)
+        // Fill more of the near-square second screen (both the view and the
+        // Keyboard read this global height percent).
+        LatinIME.sKeyboardSettings.keyboardHeightPercent = keyboardHeightPercent
 
         val inflater = LayoutInflater.from(displayContext)
         rootView = inflater.inflate(R.layout.input_material_dark, null) as ViewGroup
@@ -63,8 +68,7 @@ class ThorKeyboardHost(private val displayContext: Context) :
         lang.loadLocales(prefs)
 
         val kb = LatinKeyboard(
-            displayContext, R.xml.kbd_full, 0,
-            LatinIME.sKeyboardSettings.keyboardHeightPercent
+            displayContext, R.xml.kbd_full, 0, keyboardHeightPercent
         )
         kb.setLanguageSwitcher(lang, false)
         inputView.setKeyboard(kb)
