@@ -764,6 +764,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     override fun onFinishInput() {
         super.onFinishInput()
+        vn.vhn.pckeyboard.thor.ThorController.onEditorFocus(false)
         mKeyboardSwitcher.inputView?.closing()
     }
 
@@ -783,11 +784,17 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     override fun onDisplayCompletions(completions: Array<CompletionInfo?>?) {}
 
     override fun onEvaluateInputViewShown(): Boolean {
-        // While the Thor second-screen deck is up, keep the main-screen IME view
-        // hidden -- the deck injects instead, so screen 1 stays clear.
-        if (vn.vhn.pckeyboard.thor.ThorController.deckShown) return false
+        // While Thor mode is active (the second-screen deck service is running),
+        // never show a keyboard on the main screen -- the deck injects instead.
+        // Focusing a field auto-shows the deck on screen 2 (see onStartInput).
+        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) return false
         val parent = super.onEvaluateInputViewShown()
         return mForceKeyboardOn || mStick || parent
+    }
+
+    override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(attribute, restarting)
+        vn.vhn.pckeyboard.thor.ThorController.onEditorFocus(true)
     }
 
     override fun onComputeInsets(outInsets: Insets) {

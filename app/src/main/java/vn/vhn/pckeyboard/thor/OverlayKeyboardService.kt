@@ -57,6 +57,8 @@ class OverlayKeyboardService : Service() {
             stopSelf()
             return
         }
+        ThorController.expandRequest = { expand() }
+        ThorController.setServiceRunning(true)
         expand()
     }
 
@@ -66,7 +68,8 @@ class OverlayKeyboardService : Service() {
     }
 
     override fun onDestroy() {
-        ThorController.setDeckShown(false)
+        ThorController.setServiceRunning(false)
+        ThorController.expandRequest = null
         deckView?.let { safeRemove(it) }
         floatingButton?.let { safeRemove(it) }
         deckView = null
