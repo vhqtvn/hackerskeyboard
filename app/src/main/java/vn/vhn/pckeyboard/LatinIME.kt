@@ -200,6 +200,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mLanguageSwitcher!!.loadLocales(prefs)
         mKeyboardSwitcher = KeyboardSwitcher.instance
         mKeyboardSwitcher.setLanguageSwitcher(mLanguageSwitcher)
+        vn.vhn.pckeyboard.thor.ThorController.ime = this
         mSystemLocale = conf.locale.toString()
         mLanguageSwitcher!!.setSystemLocale(conf.locale)
         var inputLanguage = mLanguageSwitcher!!.getInputLanguage()
@@ -433,6 +434,9 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         private get() = mOrientation == Configuration.ORIENTATION_PORTRAIT
 
     override fun onDestroy() {
+        if (vn.vhn.pckeyboard.thor.ThorController.ime === this) {
+            vn.vhn.pckeyboard.thor.ThorController.ime = null
+        }
         if (surfaceDuoPaneManager != null) {
             surfaceDuoPaneManager!!.disconnect()
             surfaceDuoPaneManager = null
@@ -779,6 +783,9 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     override fun onDisplayCompletions(completions: Array<CompletionInfo?>?) {}
 
     override fun onEvaluateInputViewShown(): Boolean {
+        // While the Thor second-screen deck is up, keep the main-screen IME view
+        // hidden -- the deck injects instead, so screen 1 stays clear.
+        if (vn.vhn.pckeyboard.thor.ThorController.deckShown) return false
         val parent = super.onEvaluateInputViewShown()
         return mForceKeyboardOn || mStick || parent
     }

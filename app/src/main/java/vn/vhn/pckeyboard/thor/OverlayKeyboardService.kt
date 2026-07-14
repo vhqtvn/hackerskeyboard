@@ -63,6 +63,7 @@ class OverlayKeyboardService : Service() {
     }
 
     override fun onDestroy() {
+        ThorController.setDeckShown(false)
         deckView?.let { safeRemove(it) }
         floatingButton?.let { safeRemove(it) }
         deckView = null
@@ -114,6 +115,7 @@ class OverlayKeyboardService : Service() {
             wm.addView(deck, lp)
             deckView = deck
             expanded = true
+            ThorController.setDeckShown(true)
         } catch (e: Exception) {
             Log.e(TAG, "addView(deck) failed", e)
         }
@@ -126,6 +128,7 @@ class OverlayKeyboardService : Service() {
         (host?.rootView?.parent as? ViewGroup)?.removeView(host?.rootView)
         deckView = null
         expanded = false
+        ThorController.setDeckShown(false)
         addFloatingButton()
     }
 
