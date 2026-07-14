@@ -48,6 +48,9 @@ class OverlayKeyboardService : Service() {
     override fun onCreate() {
         super.onCreate()
         startForeground(NOTIF_ID, buildNotification())
+        // Self-configure via root (overlay permission + default IME) so the deck
+        // works standalone, however it was started (button or boot).
+        ThorSetup.ensure(this)
         InputInjector.start(this)
         if (!setupDisplay()) {
             Log.e(TAG, "no secondary display found; stopping")
