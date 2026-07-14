@@ -97,6 +97,32 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
   Still TODO: auto-focus greying of the deck when no editor is focused; option to re-pop the
   deck on focus instead of showing a screen-1 keyboard.
 
+- **Phase 4 DONE.** Standalone: in-app Start/Stop buttons; `ThorSetup` (on service start,
+  via root) grants the overlay appop, enables+selects our IME, and installs a Magisk
+  `service.d/thor_keyboard.sh` that starts the deck on boot (RECEIVE_BOOT_COMPLETED is
+  ungranted on this ROM, so the manifest receiver is only a fallback). Verified: revoke overlay
+  + reboot → deck returns automatically with perms + IME restored.
+- **Phase 5 DONE.** Auto-show: while the deck service runs, `LatinIME.onEvaluateInputViewShown`
+  returns false unconditionally (screen 1 never shows a keyboard); focusing a field auto-shows
+  the deck on screen 2 (`onStartInput` → `ThorController.expandRequest`). Greying was dropped
+  (view `alpha`<1 and a scrim both interfered with the software renderer).
+- **Phase 6 DONE.** Trackpad: `kbdinject` also creates a uinput mouse (M/C/W commands);
+  `TrackpadView` in the deck's top area does drag-move / tap-click / two-finger-scroll. Verified
+  via getevent (REL_X/REL_Y + BTN_LEFT).
+
+## Known considerations
+- **Software-render flakiness**: the app is `hardwareAccelerated=false` and `LatinKeyboardView`
+  paints an offscreen buffer that can draw black if it renders before it has a valid size, or
+  when the compositor is stressed. Mitigations in place: build a **fresh** keyboard host per
+  expand (never re-parent the view), and `forceRedraw()` (requestLayout + invalidateAllKeys,
+  immediate + 300ms) after attach. Clean boots render reliably; heavy rapid restart/inject
+  cycles during dev could still degrade compositor state (a reboot fixes it).
+- **Focus routing**: injected keys/mouse go to the *top-focused display*'s focused window, so
+  screen 1 must be top-focused to type into it (normal when you're using screen 1).
+- Testing readback via Chrome on this device is unreliable: `io.github.muntashirakon.AppManager`
+  intercepts `am start` intents, and stale multi-tab `url_bar` nodes confuse `uiautomator`.
+  Prefer `getevent` on the `VHKeyboard Virtual Keyboard/Mouse` devices to verify injection.
+
 ## Phases
 
 1. **Native uinput injector + Kotlin bridge** — `cpp/kbdinject.c`, CMake target, `InputInjector.kt`
