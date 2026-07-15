@@ -95,8 +95,14 @@ object InputInjector {
     fun moveMouse(dx: Int, dy: Int) = send("M $dx $dy")
     fun click(button: Int = 0) = send("C$button")
     fun scroll(dy: Int) = send("W$dy")
-    /** High-resolution scroll (1/120 notch units) for smooth scrolling. */
+    /** High-resolution scroll (1/120 notch units); Android 13 ignores it, kept as a note. */
     fun scrollHiRes(dy: Int) = send("H$dy")
+
+    // --- Touch (smooth scroll via injected finger drag on the main display) -----
+    // Coordinates are normalised 0..32767 (Android maps to the display's pixels).
+    fun touchDown(x: Int, y: Int) = send("GD $x $y")
+    fun touchMove(x: Int, y: Int) = send("GM $x $y")
+    fun touchUp() = send("GU")
 
     // --- Gamepad -> mouse/scroll (folded joyscroll) ----------------------------
     fun setGamepad(enabled: Boolean) = send(if (enabled) "J1" else "J0")
