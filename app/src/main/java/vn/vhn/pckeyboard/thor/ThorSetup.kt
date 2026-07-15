@@ -17,7 +17,11 @@ object ThorSetup {
         val cmd = buildString {
             append("appops set $pkg SYSTEM_ALERT_WINDOW allow; ")
             append("ime enable $ime; ")
-            append("ime set $ime")
+            append("ime set $ime; ")
+            // Android 12+ kills "phantom" child processes -- our uinput daemon (launched
+            // via su) is one. Disable that monitor so it isn't killed in normal use.
+            append("settings put global settings_enable_monitor_phantom_procs false; ")
+            append("device_config put activity_manager max_phantom_processes 2147483647")
         }
         runAsRoot(cmd)
         installBootScript(pkg)
