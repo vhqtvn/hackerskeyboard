@@ -963,7 +963,9 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                 // Draw hint label (if present) behind the main key
                 val hint = key.getHintLabel(showHints7Bit(), showHintsAll())
                 if (hint != "") {
-                    val hintTextSize = (mKeyTextSize * 0.6 * mLabelScale).toInt()
+                    // Larger shift sub-char (!@#…) on the Thor deck for legibility.
+                    val hintScale = if (colorCodeKeys) 0.8 else 0.6
+                    val hintTextSize = (mKeyTextSize * hintScale * mLabelScale).toInt()
                     paintHint.textSize = hintTextSize.toFloat()
                     val hintLabelHeight = getLabelHeight(paintHint, hintTextSize)
                     val x = key.width - padding.right

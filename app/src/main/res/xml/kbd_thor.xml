@@ -17,19 +17,19 @@
     <Row>
         <Key android:codes="@integer/key_escape" android:keyLabel="Esc" android:isModifier="true"
              android:keyEdgeFlags="left" />
-        <Key android:keyLabel="`" android:shiftLabel="~" />
         <Key android:codes="@integer/key_tab"
              android:keyIcon="@drawable/sym_keyboard_tab"
              android:iconPreview="@drawable/sym_keyboard_feedback_tab"
              android:isModifier="true" />
+        <Key android:keyLabel="`" android:shiftLabel="~" />
         <Key android:keyLabel="[" android:shiftLabel="{" />
         <Key android:keyLabel="]" android:shiftLabel="}" />
         <Key android:keyLabel="\\" android:shiftLabel="|" />
+        <Key android:keyLabel="/" android:shiftLabel="\?" />
         <Key android:keyLabel="-" android:shiftLabel="_"
              android:fn2Codes="@integer/key_fkey_f11" android:fn2Label="F11" />
         <Key android:keyLabel="=" android:shiftLabel="+"
              android:fn2Codes="@integer/key_fkey_f12" android:fn2Label="F12" />
-        <Key android:keyLabel="/" android:shiftLabel="\?" />
         <Key android:codes="@integer/key_forward_del" android:isModifier="true"
              android:keyLabel="Del" android:keyEdgeFlags="right" />
     </Row>
@@ -118,30 +118,28 @@
         <Key android:keyLabel="." android:shiftLabel="&gt;" android:keyEdgeFlags="right" />
     </Row>
 
-    <!-- Row 6: modifiers + wide space + ; ' + right Shift/Ctrl + Home/End. -->
+    <!-- Row 6: modifiers + wide space + ; ' + right Shift/Ctrl. (Home/End are on the
+         dedicated nav line above the keyboard, flanking the cursor pad.) -->
     <Row android:rowEdgeFlags="bottom">
         <Key android:codes="@integer/key_ctrl_left" android:keyLabel="Ctrl"
              android:isModifier="true" android:isSticky="true"
-             android:keyWidth="8%p" android:keyEdgeFlags="left" />
+             android:keyWidth="10%p" android:keyEdgeFlags="left" />
         <Key android:codes="@integer/key_fn_2" android:keyLabel="Fn"
-             android:isModifier="true" android:isSticky="true" android:keyWidth="8%p" />
+             android:isModifier="true" android:isSticky="true" android:keyWidth="10%p" />
         <Key android:codes="@integer/key_alt_left" android:keyLabel="Alt"
-             android:isModifier="true" android:isSticky="true" android:keyWidth="8%p" />
+             android:isModifier="true" android:isSticky="true" android:keyWidth="10%p" />
         <Key android:codes="@integer/key_space"
              android:keyIcon="@drawable/sym_keyboard_space"
              android:iconPreview="@drawable/sym_keyboard_feedback_space"
-             android:isModifier="true" android:keyWidth="28%p" />
-        <Key android:keyLabel=";" android:shiftLabel=":" android:keyWidth="8%p" />
-        <Key android:keyLabel="'" android:shiftLabel="&quot;" android:keyWidth="8%p" />
+             android:isModifier="true" android:keyWidth="32%p" />
+        <Key android:keyLabel=";" android:shiftLabel=":" android:keyWidth="9%p" />
+        <Key android:keyLabel="'" android:shiftLabel="&quot;" android:keyWidth="9%p" />
         <Key android:codes="@integer/key_shift_right"
              android:keyIcon="@drawable/sym_keyboard_shift"
              android:iconPreview="@drawable/sym_keyboard_feedback_shift"
-             android:isModifier="true" android:isSticky="true" android:keyWidth="8%p" />
+             android:isModifier="true" android:isSticky="true" android:keyWidth="10%p" />
         <Key android:codes="@integer/key_ctrl_right" android:keyLabel="Ctrl"
-             android:isModifier="true" android:isSticky="true" android:keyWidth="8%p" />
-        <Key android:codes="@integer/key_home" android:isModifier="true"
-             android:keyLabel="&#x21f1;" android:keyWidth="8%p" />
-        <Key android:codes="@integer/key_end" android:isModifier="true"
-             android:keyLabel="&#x21f2;" android:keyWidth="8%p" android:keyEdgeFlags="right" />
+             android:isModifier="true" android:isSticky="true"
+             android:keyWidth="10%p" android:keyEdgeFlags="right" />
     </Row>
 </Keyboard>

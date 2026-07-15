@@ -235,15 +235,22 @@ class OverlayKeyboardService : Service() {
             topMargin = dp(6f)
         })
 
-        // Cursor-navigation pad, centred and filling the gap between recents/keyboard.
+        // Nav line (one keyboard-row tall, fills the gap): [Home] [cursor pad] [End].
+        // Home/End are key-styled buttons at the same height as the keyboard rows;
+        // they inject with the deck's active modifiers (so Shift+Home selects).
         val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
-        val navBox = FrameLayout(ctx)
-        navBox.addView(navPad, FrameLayout.LayoutParams(
-            dp(280f), FrameLayout.LayoutParams.MATCH_PARENT).apply {
-            gravity = Gravity.CENTER; topMargin = dp(6f); bottomMargin = dp(6f)
-        })
-        col.addView(navBox, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))   // weight: fills remaining space
+        val homeBtn = navKey(ctx, "⇱", android.view.KeyEvent.KEYCODE_MOVE_HOME)
+        val endBtn = navKey(ctx, "⇲", android.view.KeyEvent.KEYCODE_MOVE_END)
+        val navRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
+        val m = dp(4f)
+        navRow.addView(homeBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+            .apply { marginStart = m; topMargin = m; bottomMargin = m; marginEnd = m })
+        navRow.addView(navPad, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 8f)
+            .apply { topMargin = m; bottomMargin = m })
+        navRow.addView(endBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+            .apply { marginStart = m; topMargin = m; bottomMargin = m; marginEnd = m })
+        col.addView(navRow, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))   // weight: fills remaining (~1 row)
 
         // Keyboard (natural height ~KEYBOARD_HEIGHT_PERCENT) at the bottom.
         val kb = host!!.rootView
@@ -343,6 +350,23 @@ class OverlayKeyboardService : Service() {
 
     private fun dp(value: Float): Int = (value * resources.displayMetrics.density).toInt()
 
+    /** A key-styled button (black body, gold edit/nav border) for the nav line. */
+    private fun navKey(ctx: Context, label: String, keyCode: Int): TextView {
+        return TextView(ctx).apply {
+            text = label
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(8f).toFloat()
+                setColor(Color.BLACK)
+                setStroke(dp(2f), 0x88F3CB63.toInt())
+            }
+            setOnClickListener { InputInjector.injectAndroidKey(keyCode, host?.navMetaState() ?: 0) }
+        }
+    }
+
     // --- notification ----------------------------------------------------------
     private fun buildNotification(): Notification {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -364,7 +388,7 @@ class OverlayKeyboardService : Service() {
         private const val TAG = "ThorOverlay"
         private const val CHANNEL_ID = "thor_keyboard"
         private const val NOTIF_ID = 0x54484f52 // "THOR"
-        private const val KEYBOARD_HEIGHT_PERCENT = 74f
+        private const val KEYBOARD_HEIGHT_PERCENT = 75f
         // Trackpad is kept in the codebase but not shown (little strip space left).
         private const val TRACKPAD_ENABLED = false
         private const val PREF_GAMEPAD = "thor_gamepad_mouse"
