@@ -12,6 +12,7 @@ import android.graphics.drawable.GradientDrawable
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.IBinder
+import android.preference.PreferenceManager
 import android.util.Log
 import android.util.TypedValue
 import android.view.Display
@@ -41,7 +42,9 @@ class OverlayKeyboardService : Service() {
     private var host: ThorKeyboardHost? = null
     private var deckView: View? = null
     private var floatingButton: View? = null
+    private var gamepadButton: TextView? = null
     private var expanded = false
+    private var gamepadOn = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -52,6 +55,8 @@ class OverlayKeyboardService : Service() {
         // works standalone, however it was started (button or boot).
         ThorSetup.ensure(this)
         InputInjector.start(this)
+        gamepadOn = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(PREF_GAMEPAD, false)
+        InputInjector.setGamepad(gamepadOn)
         if (!setupDisplay()) {
             Log.e(TAG, "no secondary display found; stopping")
             stopSelf()
@@ -144,6 +149,14 @@ class OverlayKeyboardService : Service() {
 
     private fun toggle() { if (expanded) minimize() else expand() }
 
+    private fun toggleGamepad() {
+        gamepadOn = !gamepadOn
+        InputInjector.setGamepad(gamepadOn)
+        PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putBoolean(PREF_GAMEPAD, gamepadOn).apply()
+        gamepadButton?.alpha = if (gamepadOn) 1f else 0.4f
+    }
+
     // --- deck view -------------------------------------------------------------
     // Full-screen opaque backdrop with the keyboard bottom-anchored (same layout
     // path as the standalone window, which renders correctly) and the utility
@@ -184,6 +197,23 @@ class OverlayKeyboardService : Service() {
         root.addView(minimize, FrameLayout.LayoutParams(s, s).apply {
             gravity = Gravity.TOP or Gravity.END
             topMargin = dp(8f); rightMargin = dp(8f)
+        })
+
+        // Gamepad-mouse toggle (folded joyscroll).
+        val gp = TextView(ctx).apply {
+            text = "🎮"  // gamepad emoji
+            gravity = Gravity.CENTER
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt())
+            }
+            alpha = if (gamepadOn) 1f else 0.4f
+            setOnClickListener { toggleGamepad() }
+        }
+        gamepadButton = gp
+        root.addView(gp, FrameLayout.LayoutParams(s, s).apply {
+            gravity = Gravity.TOP or Gravity.END
+            topMargin = dp(8f); rightMargin = dp(8f) + s + dp(8f)
         })
 
         val kb = host!!.rootView
@@ -255,6 +285,7 @@ class OverlayKeyboardService : Service() {
         private const val CHANNEL_ID = "thor_keyboard"
         private const val NOTIF_ID = 0x54484f52 // "THOR"
         private const val KEYBOARD_HEIGHT_PERCENT = 68f
+        private const val PREF_GAMEPAD = "thor_gamepad_mouse"
         const val ACTION_TOGGLE = "vn.vhn.pckeyboard.thor.TOGGLE"
 
         fun start(context: Context) {
