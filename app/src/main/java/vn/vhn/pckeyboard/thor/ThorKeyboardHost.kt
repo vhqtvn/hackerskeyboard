@@ -37,32 +37,48 @@ class ThorKeyboardHost(
     /** Invoked when the keyboard requests to hide itself (Cancel key). */
     var onHideRequested: (() -> Unit)? = null
 
-    /** One modifier's state: held (finger down), latched (sticky), used (in a chord). */
-    private class Mod {
+    /**
+     * One modifier key's state: held (finger down), latched (sticky), used (in a
+     * chord), and the exact evdev code it injects. Left and right variants are
+     * tracked independently and inject their own code, so e.g. right-Alt reaches
+     * apps as AltGr and left/right Ctrl/Shift are distinct.
+     */
+    private class Mod(val evdev: Int) {
         var held = false
         var latched = false
         var used = false
         fun active() = held || latched
     }
 
-    private val shift = Mod()
-    private val ctrl = Mod()
-    private val alt = Mod()
-    private val meta = Mod()
+    private val ctrlL = Mod(KeyMap.KEY_LEFTCTRL)
+    private val ctrlR = Mod(KeyMap.KEY_RIGHTCTRL)
+    private val altL = Mod(KeyMap.KEY_LEFTALT)
+    private val altR = Mod(KeyMap.KEY_RIGHTALT)
+    private val shiftL = Mod(KeyMap.KEY_LEFTSHIFT)
+    private val shiftR = Mod(KeyMap.KEY_RIGHTSHIFT)
+    private val metaL = Mod(KeyMap.KEY_LEFTMETA)
+    private val metaR = Mod(KeyMap.KEY_RIGHTMETA)
+    private val allMods = arrayOf(ctrlL, ctrlR, altL, altR, shiftL, shiftR, metaL, metaR)
     private var caps = false   // caps lock: persistent letter-case flip
 
     // Fn layers: unlike Ctrl/Shift, these change which *code* the keyboard emits
     // (fn1codes/fn2codes), so we flip the keyboard's Fn state (setFn1/2Indicator)
     // whenever active. Fn1 (green) = IME/device functions (no-op on the deck);
     // Fn2 (blue) = PgUp/PgDn/Home/End (useful, injected).
-    private val fn1 = Mod()
-    private val fn2 = Mod()
+    private val fn1 = Mod(0)
+    private val fn2 = Mod(0)
+
+    private fun anyShift() = shiftL.active() || shiftR.active()
 
     private fun modFor(code: Int): Mod? = when (code) {
-        LatinKeyboardView.KEYCODE_SHIFT_LEFT, LatinKeyboardView.KEYCODE_SHIFT_RIGHT -> shift
-        LatinKeyboardView.KEYCODE_CTRL_LEFT, LatinKeyboardView.KEYCODE_CTRL_RIGHT -> ctrl
-        LatinKeyboardView.KEYCODE_ALT_LEFT, LatinKeyboardView.KEYCODE_ALT_RIGHT -> alt
-        LatinKeyboardView.KEYCODE_META_LEFT, LatinKeyboardView.KEYCODE_META_RIGHT -> meta
+        LatinKeyboardView.KEYCODE_SHIFT_LEFT -> shiftL
+        LatinKeyboardView.KEYCODE_SHIFT_RIGHT -> shiftR
+        LatinKeyboardView.KEYCODE_CTRL_LEFT -> ctrlL
+        LatinKeyboardView.KEYCODE_CTRL_RIGHT -> ctrlR
+        LatinKeyboardView.KEYCODE_ALT_LEFT -> altL
+        LatinKeyboardView.KEYCODE_ALT_RIGHT -> altR
+        LatinKeyboardView.KEYCODE_META_LEFT -> metaL
+        LatinKeyboardView.KEYCODE_META_RIGHT -> metaR
         else -> null
     }
 
@@ -98,34 +114,45 @@ class ThorKeyboardHost(
     }
 
     // --- meta / modifier helpers ----------------------------------------------
-    private fun metaWith(shiftBit: Boolean): Int {
+    /**
+     * Meta state from the currently active modifiers, for the nav pad: latched
+     * Shift -> arrows select, latched Ctrl -> word/line jumps, etc. Read-only -- it
+     * does not consume the latch, so a modifier stays on across a whole nav drag.
+     */
+    fun navMetaState(): Int {
         var m = 0
-        if (shiftBit) m = m or KeyEvent.META_SHIFT_ON
-        if (ctrl.active()) m = m or KeyEvent.META_CTRL_ON
-        if (alt.active()) m = m or KeyEvent.META_ALT_ON
-        if (meta.active()) m = m or KeyEvent.META_META_ON
+        if (anyShift()) m = m or KeyEvent.META_SHIFT_ON
+        if (ctrlL.active() || ctrlR.active()) m = m or KeyEvent.META_CTRL_ON
+        if (altL.active() || altR.active()) m = m or KeyEvent.META_ALT_ON
+        if (metaL.active() || metaR.active()) m = m or KeyEvent.META_META_ON
         return m
     }
 
     /**
-     * Meta state from the currently active (held or latched) modifiers, for the
-     * nav pad: latched Shift -> arrows select, latched Ctrl -> word/line jumps, etc.
-     * Read-only -- it does not consume the latch, so a modifier stays on across a
-     * whole nav drag (e.g. extend a selection over many arrows).
+     * The exact modifier evdev codes to hold around a key press. Ctrl/Alt/Meta use
+     * their pressed side (left vs right kept distinct). Shift is special: it's
+     * injected only when the resulting glyph needs it ([shiftBit], which already
+     * folds in caps), using the active shift key's side, or left shift when a
+     * shifted glyph is needed with no shift key held (e.g. '!' or a caps letter).
      */
-    fun navMetaState(): Int = metaWith(shift.active())
+    private fun activeModEvdevs(shiftBit: Boolean): IntArray {
+        val list = ArrayList<Int>(4)
+        for (m in arrayOf(ctrlL, ctrlR, altL, altR, metaL, metaR)) if (m.active()) list.add(m.evdev)
+        if (shiftBit) list.add(if (shiftR.active()) shiftR.evdev else shiftL.evdev)
+        return list.toIntArray()
+    }
 
     private fun updateIndicators() {
-        val s = shift.active() || caps
+        val s = anyShift() || caps
         inputView.setShiftIndicator(s, s)
-        inputView.setCtrlIndicator(ctrl.active(), ctrl.active())
-        inputView.setAltIndicator(alt.active(), alt.active())
-        inputView.setMetaIndicator(meta.active(), meta.active())
+        val c = ctrlL.active() || ctrlR.active(); inputView.setCtrlIndicator(c, c)
+        val a = altL.active() || altR.active(); inputView.setAltIndicator(a, a)
+        val mt = metaL.active() || metaR.active(); inputView.setMetaIndicator(mt, mt)
     }
 
     /** After a non-modifier key: mark held modifiers as chorded, clear latched ones. */
     private fun consumeMods() {
-        for (m in arrayOf(shift, ctrl, alt, meta)) {
+        for (m in allMods) {
             if (m.held) m.used = true
             if (m.latched) m.latched = false
         }
@@ -158,17 +185,17 @@ class ThorKeyboardHost(
     /** Resolve a key to (evdev, shiftBit) given the current modifier/caps state. */
     private fun resolveKey(primaryCode: Int): Pair<Int, Boolean>? {
         when (primaryCode) {
-            Keyboard.KEYCODE_DELETE -> return KeyMap.androidToEvdev(KeyEvent.KEYCODE_DEL)?.let { it to shift.active() }
-            9 -> return KeyMap.androidToEvdev(KeyEvent.KEYCODE_TAB)?.let { it to shift.active() }
+            Keyboard.KEYCODE_DELETE -> return KeyMap.androidToEvdev(KeyEvent.KEYCODE_DEL)?.let { it to anyShift() }
+            9 -> return KeyMap.androidToEvdev(KeyEvent.KEYCODE_TAB)?.let { it to anyShift() }
         }
         if (primaryCode < 0) {
             // Special key: -primaryCode is the Android keycode (see LatinIME).
-            return KeyMap.androidToEvdev(-primaryCode)?.let { it to shift.active() }
+            return KeyMap.androidToEvdev(-primaryCode)?.let { it to anyShift() }
         }
         val ch = primaryCode.toChar()
-        if (ch == '\n') return KeyMap.androidToEvdev(KeyEvent.KEYCODE_ENTER)?.let { it to shift.active() }
+        if (ch == '\n') return KeyMap.androidToEvdev(KeyEvent.KEYCODE_ENTER)?.let { it to anyShift() }
         val ck = KeyMap.charToEvdev(ch) ?: return null
-        var shiftBit = ck.shift || shift.active()
+        var shiftBit = ck.shift || anyShift()
         if (ch.isLetter() && caps) shiftBit = !shiftBit
         return ck.evdev to shiftBit
     }
@@ -176,7 +203,7 @@ class ThorKeyboardHost(
     private fun startKeyPress(primaryCode: Int) {
         if (downEvdev != null) endKeyPress()   // guard against overlapping presses
         val (evdev, shiftBit) = resolveKey(primaryCode) ?: return
-        downMods = InputInjector.pressWithMeta(evdev, metaWith(shiftBit))
+        downMods = InputInjector.pressWithMods(evdev, activeModEvdevs(shiftBit))
         downEvdev = evdev
     }
 

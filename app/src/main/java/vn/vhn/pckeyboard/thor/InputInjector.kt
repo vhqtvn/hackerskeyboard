@@ -131,8 +131,11 @@ object InputInjector {
      * down (so Android auto-repeats it while a finger holds it) until the matching
      * [releaseWithMeta]. Returns the modifier evdev codes that were pressed.
      */
-    fun pressWithMeta(evdev: Int, metaState: Int): IntArray {
-        val mods = modKeysFor(metaState)
+    fun pressWithMeta(evdev: Int, metaState: Int): IntArray =
+        pressWithMods(evdev, modKeysFor(metaState))
+
+    /** As [pressWithMeta] but with explicit modifier evdev codes (left/right exact). */
+    fun pressWithMods(evdev: Int, mods: IntArray): IntArray {
         for (m in mods) down(m)
         down(evdev)
         return mods

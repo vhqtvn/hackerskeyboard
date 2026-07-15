@@ -13,6 +13,10 @@ object KeyMap {
     const val KEY_LEFTSHIFT = 42
     const val KEY_LEFTALT = 56
     const val KEY_LEFTMETA = 125
+    const val KEY_RIGHTCTRL = 97
+    const val KEY_RIGHTSHIFT = 54
+    const val KEY_RIGHTALT = 100   // AltGr on many layouts
+    const val KEY_RIGHTMETA = 126
 
     private val map: Map<Int, Int> = HashMap<Int, Int>().apply {
         // Letters A..Z -> evdev
