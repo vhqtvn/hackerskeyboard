@@ -110,7 +110,8 @@ class ThorKeyboardHost(
         kb.setLanguageSwitcher(lang, false)
         inputView.setKeyboard(kb)
         inputView.setPreviewEnabled(false)
-        inputView.colorCodeKeys = true   // tint keys per function group for visual separation
+        inputView.colorCodeKeys = true   // OLED-black keys with group-coloured borders
+        inputView.setBackgroundColor(android.graphics.Color.BLACK)   // true black (power saving)
         inputView.setOnKeyboardActionListener(this)
     }
 

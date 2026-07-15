@@ -151,21 +151,19 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
      * distinct blocks (used by the Thor deck). Modifiers = blue, edit/nav = gold,
      * digits/symbols = cool grey, letters = untinted.
      */
+    // Thor deck: keys are custom-drawn as a true-black (OLED-off) body with a
+    // group-coloured rounded border, so they read as separate blocks without any
+    // lit background. The active-modifier indicator is a faint body + brighter
+    // border (subtle, not a full-button flood).
     var colorCodeKeys = false
-    private val mTintMod = android.graphics.PorterDuffColorFilter(
-        0x44_5C9DFF, android.graphics.PorterDuff.Mode.SRC_ATOP)
-    // Active (latched/held) modifier: bright blue -- this IS the on/off indicator.
-    private val mTintModActive = android.graphics.PorterDuffColorFilter(
-        0xCC_7FD4FF.toInt(), android.graphics.PorterDuff.Mode.SRC_ATOP)
-    private val mTintFunc = android.graphics.PorterDuffColorFilter(
-        0x4C_F3CB63, android.graphics.PorterDuff.Mode.SRC_ATOP)
-    private val mTintNumSym = android.graphics.PorterDuffColorFilter(
-        0x2C_9DB4D0, android.graphics.PorterDuff.Mode.SRC_ATOP)
+    private val mKeyFillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+    }
     private val mKeyBorderPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         style = android.graphics.Paint.Style.STROKE
-        color = 0x40FFFFFF
+        strokeWidth = 2f
     }
-    private val mKeyBorderRect = android.graphics.RectF()
+    private val mKeyRect = android.graphics.RectF()
 
     private fun isModifierCode(code: Int) = when (code) {
         LatinKeyboardView.KEYCODE_SHIFT_LEFT, LatinKeyboardView.KEYCODE_SHIFT_RIGHT,
@@ -176,13 +174,33 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
         else -> false
     }
 
-    private fun keyTintFilter(key: Keyboard.Key): android.graphics.ColorFilter? {
-        if (!colorCodeKeys) return null
-        val code = key.codes?.firstOrNull() ?: return null
-        if (isModifierCode(code)) return if (key.on || key.pressed) mTintModActive else mTintMod
-        if (code in 'a'.code..'z'.code || code in 'A'.code..'Z'.code) return null   // letters: base
-        if (code in 33..126) return mTintNumSym   // printable digits/symbols (not space)
-        return mTintFunc   // space, enter, tab, esc, backspace, del, home, end, arrows...
+    /** 3 = modifier, 2 = edit/nav, 1 = digit/symbol, 0 = letter. */
+    private fun keyCategory(key: Keyboard.Key): Int {
+        val code = key.codes?.firstOrNull() ?: return 2
+        if (isModifierCode(code)) return 3
+        if (code in 'a'.code..'z'.code || code in 'A'.code..'Z'.code) return 0
+        if (code in 33..126) return 1
+        return 2
+    }
+
+    private fun drawDeckKey(canvas: android.graphics.Canvas, key: Keyboard.Key) {
+        val bi = 2f
+        mKeyRect.set(bi, bi, key.width - bi, key.height - bi)
+        val r = key.height * 0.16f
+        val cat = keyCategory(key)
+        mKeyFillPaint.color = when {
+            cat == 3 && key.on -> 0x335C9DFF          // active modifier: faint blue body
+            key.pressed -> 0x22FFFFFF                 // touch feedback
+            else -> 0xFF000000.toInt()                // true black (OLED off)
+        }
+        canvas.drawRoundRect(mKeyRect, r, r, mKeyFillPaint)
+        mKeyBorderPaint.color = when (cat) {
+            3 -> if (key.on) 0xFF7FD4FF.toInt() else 0x885C9DFF.toInt()  // modifiers (bright when active)
+            2 -> 0x88F3CB63.toInt()                                       // edit/nav gold
+            1 -> 0x44AAC4E0                                               // digits/symbols faint cool
+            else -> 0x33FFFFFF                                            // letters faint grey
+        }
+        canvas.drawRoundRect(mKeyRect, r, r, mKeyBorderPaint)
     }
     private var mBackgroundAlpha = 0
     private var mBackgroundDimAmount = 0f
@@ -905,23 +923,18 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                 }
             }
             canvas.translate((key.x + kbdPaddingLeft).toFloat(), (key.y + kbdPaddingTop).toFloat())
-            if (yscale != 1.0f) {
-                canvas.save()
-                canvas.scale(1.0f, yscale)
-            }
-            if (mBackgroundAlpha != 255) {
-                keyBackground.alpha = mBackgroundAlpha
-            }
-            keyBackground.colorFilter = keyTintFilter(key)   // per-group tint (Thor deck)
-            keyBackground.draw(canvas)
-            if (yscale != 1.0f) canvas.restore()
             if (colorCodeKeys) {
-                // Visible border so keys read as separate blocks.
-                val bi = 2f
-                mKeyBorderRect.set(bi, bi, key.width - bi, key.height - bi)
-                mKeyBorderPaint.strokeWidth = 2f
-                val br = key.height * 0.16f
-                canvas.drawRoundRect(mKeyBorderRect, br, br, mKeyBorderPaint)
+                drawDeckKey(canvas, key)   // OLED-black body + group-coloured border
+            } else {
+                if (yscale != 1.0f) {
+                    canvas.save()
+                    canvas.scale(1.0f, yscale)
+                }
+                if (mBackgroundAlpha != 255) {
+                    keyBackground.alpha = mBackgroundAlpha
+                }
+                keyBackground.draw(canvas)
+                if (yscale != 1.0f) canvas.restore()
             }
             var shouldDrawIcon = true
             if (label != null) {
