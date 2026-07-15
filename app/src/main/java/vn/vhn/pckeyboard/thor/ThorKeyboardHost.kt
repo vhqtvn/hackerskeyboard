@@ -272,6 +272,32 @@ class ThorKeyboardHost(
     private var gpDownEvdev: Int? = null
     private var gpDownMods: IntArray = IntArray(0)
 
+    /**
+     * Move the caret to the start/end of the current line by editing the focused
+     * field's selection through the IME connection -- no keycode, so it can't be
+     * turned into device-HOME by the keylayout/policy. A held Shift extends selection.
+     */
+    fun cursorToLineEdge(toStart: Boolean): Boolean {
+        val ic = if (ThorController.editorFocused) ThorController.ime?.currentInputConnection else null
+        ic ?: return false
+        val et = ic.getExtractedText(android.view.inputmethod.ExtractedTextRequest(), 0) ?: return false
+        val text = et.text ?: return false
+        val select = anyShift()
+        if (toStart) {
+            val cursor = et.selectionEnd.coerceIn(0, text.length)
+            var i = cursor - 1
+            while (i >= 0 && text[i] != '\n') i--
+            val lineStart = i + 1
+            ic.setSelection(lineStart, if (select) cursor else lineStart)
+        } else {
+            val cursor = et.selectionStart.coerceIn(0, text.length)
+            var i = cursor
+            while (i < text.length && text[i] != '\n') i++
+            ic.setSelection(if (select) cursor else i, i)
+        }
+        return true
+    }
+
     fun gamepadKey(evdev: Int, down: Boolean) {
         if (down) {
             gpDownEvdev?.let { InputInjector.releaseWithMeta(it, gpDownMods) }

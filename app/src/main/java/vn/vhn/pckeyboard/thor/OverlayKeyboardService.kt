@@ -246,12 +246,8 @@ class OverlayKeyboardService : Service() {
         // Home/End are key-styled buttons at the same height as the keyboard rows;
         // they inject with the deck's active modifiers (so Shift+Home selects).
         val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
-        val homeBtn = navKey(ctx, "⇱") {
-            ImInjector.injectKey(android.view.KeyEvent.KEYCODE_MOVE_HOME, host?.navMetaState() ?: 0)
-        }
-        val endBtn = navKey(ctx, "⇲") {
-            ImInjector.injectKey(android.view.KeyEvent.KEYCODE_MOVE_END, host?.navMetaState() ?: 0)
-        }
+        val homeBtn = navKey(ctx, "⇱") { host?.cursorToLineEdge(true) }
+        val endBtn = navKey(ctx, "⇲") { host?.cursorToLineEdge(false) }
         val navRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
         val m = dp(4f)
         navRow.addView(homeBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
