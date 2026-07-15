@@ -162,6 +162,10 @@ static int create_touchscreen(void) {
     ioctl(fd, UI_SET_ABSBIT, ABS_MT_POSITION_Y);
     ioctl(fd, UI_SET_ABSBIT, ABS_X);
     ioctl(fd, UI_SET_ABSBIT, ABS_Y);
+    /* Mark as a direct (absolute) touchscreen, not a touchpad -- otherwise
+     * Android treats it as an indirect pointer (moves the cursor) and swipes
+     * don't scroll. */
+    ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_DIRECT);
     struct uinput_abs_setup ax;
     memset(&ax, 0, sizeof(ax));
     ax.absinfo.minimum = 0; ax.absinfo.maximum = TOUCH_MAX;
