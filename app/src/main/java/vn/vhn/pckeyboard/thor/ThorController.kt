@@ -32,6 +32,24 @@ object ThorController {
     @Volatile
     var ime: LatinIME? = null
 
+    /** Package of the currently focused editor (from EditorInfo). */
+    @Volatile
+    var currentEditorPackage: String? = null
+
+    /**
+     * Packages that set HIDE_NON_SYSTEM_OVERLAY_WINDOWS (anti-tapjacking), which
+     * force-hides our second-screen deck even on the other display. For these we
+     * fall back to a normal on-screen IME on the main screen instead of the deck.
+     */
+    private val overlayHidingPackages = setOf(
+        "com.android.settings",
+        "com.android.settings.intelligence",
+        "com.odin.settings"
+    )
+
+    /** True if the focused editor's app hides overlays (so the deck can't show). */
+    fun editorHidesOverlays(): Boolean = currentEditorPackage in overlayHidingPackages
+
     /** Set by the service: request the deck be shown (auto-show on focus). */
     @Volatile
     var expandRequest: (() -> Unit)? = null
