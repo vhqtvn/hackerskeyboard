@@ -44,6 +44,7 @@ object KeyMap {
         put(KeyEvent.KEYCODE_SPACE, 57); put(KeyEvent.KEYCODE_ENTER, 28)
         put(KeyEvent.KEYCODE_TAB, 15); put(KeyEvent.KEYCODE_DEL, 14)          // Backspace
         put(KeyEvent.KEYCODE_FORWARD_DEL, 111); put(KeyEvent.KEYCODE_ESCAPE, 1)
+        put(KeyEvent.KEYCODE_MENU, 139)   // KEY_MENU
 
         // Modifiers
         put(KeyEvent.KEYCODE_SHIFT_LEFT, 42); put(KeyEvent.KEYCODE_SHIFT_RIGHT, 54)

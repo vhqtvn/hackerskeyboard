@@ -131,38 +131,32 @@
              android:keyWidth="7.09090909%p" android:keyEdgeFlags="right" />
     </Row>
 
-    <!-- Modifiers + space + arrows. Ctrl on both bottom corners (sticky: tap to
-         latch, then tap a key -> chord, e.g. Ctrl+Z), so no awkward hold. -->
+    <!-- Modifiers + wide space. Ctrl on both bottom corners (sticky: tap to latch,
+         then tap a key -> chord, e.g. Ctrl+Z), so no awkward hold. Arrows moved to
+         the vim Fn layer (Fn+hjkl); the reclaimed space widens the space bar and
+         adds a right-hand Esc + Menu for reach. -->
     <Row android:rowEdgeFlags="bottom">
         <Key android:codes="@integer/key_ctrl_left" android:keyLabel="Ctrl"
              android:isModifier="true" android:isSticky="true"
-             android:keyWidth="9.5%p" android:keyEdgeFlags="left" />
+             android:keyWidth="10%p" android:keyEdgeFlags="left" />
         <Key android:codes="@integer/key_fn_2" android:keyLabel="Fn"
-             android:isModifier="true" android:isSticky="true" android:keyWidth="9.5%p" />
+             android:isModifier="true" android:isSticky="true" android:keyWidth="10%p" />
         <Key android:codes="@integer/key_alt_left" android:keyLabel="Alt"
-             android:isModifier="true" android:isSticky="true" android:keyWidth="9.5%p" />
+             android:isModifier="true" android:isSticky="true" android:keyWidth="10%p" />
         <Key android:codes="@integer/key_tab"
              android:keyIcon="@drawable/sym_keyboard_tab"
              android:iconPreview="@drawable/sym_keyboard_feedback_tab"
-             android:isModifier="true" android:keyWidth="9.5%p" />
+             android:isModifier="true" android:keyWidth="10%p" />
         <Key android:codes="@integer/key_space"
              android:keyIcon="@drawable/sym_keyboard_space"
              android:iconPreview="@drawable/sym_keyboard_feedback_space"
-             android:isModifier="true" android:keyWidth="23.5%p" />
-        <Key android:codes="@integer/key_dpad_left" android:keyLabel="&#x25c1;"
-             android:isModifier="true" android:isRepeatable="true" android:isCursor="true"
-             android:keyWidth="7.25%p" />
-        <Key android:codes="@integer/key_dpad_down" android:keyLabel="&#x25bd;"
-             android:isModifier="true" android:isRepeatable="true" android:isCursor="true"
-             android:keyWidth="7.25%p" />
-        <Key android:codes="@integer/key_dpad_up" android:keyLabel="&#x25b3;"
-             android:isModifier="true" android:isRepeatable="true" android:isCursor="true"
-             android:keyWidth="7.25%p" />
-        <Key android:codes="@integer/key_dpad_right" android:keyLabel="&#x25b7;"
-             android:isModifier="true" android:isRepeatable="true" android:isCursor="true"
-             android:keyWidth="7.25%p" />
+             android:isModifier="true" android:keyWidth="30%p" />
+        <Key android:codes="@integer/key_escape" android:keyLabel="Esc"
+             android:isModifier="true" android:keyWidth="10%p" />
+        <Key android:codes="@integer/key_menu" android:keyLabel="&#x2630;"
+             android:isModifier="true" android:keyWidth="10%p" />
         <Key android:codes="@integer/key_ctrl_right" android:keyLabel="Ctrl"
              android:isModifier="true" android:isSticky="true"
-             android:keyWidth="9.5%p" android:keyEdgeFlags="right" />
+             android:keyWidth="10%p" android:keyEdgeFlags="right" />
     </Row>
 </Keyboard>

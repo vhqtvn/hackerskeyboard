@@ -45,6 +45,7 @@
     <integer name="key_page_up">-92</integer>
     <integer name="key_page_down">-93</integer>
     <integer name="key_escape">-111</integer>
+    <integer name="key_menu">-82</integer>
     <integer name="key_forward_del">-112</integer>
     <integer name="key_shift_left">-59</integer>
     <integer name="key_shift_right">-60</integer>
