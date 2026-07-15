@@ -110,6 +110,25 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
   `TrackpadView` in the deck's top area does drag-move / tap-click / two-finger-scroll. Verified
   via getevent (REL_X/REL_Y + BTN_LEFT).
 
+## Folded joyscroll + smooth scroll (code-complete, on-device verification pending)
+
+- `kbdinject` now folds the joyscroll gamepad->mouse/scroll loop as a background
+  thread toggled by `J 0|1` (own virtual mouse "VHKeyboard Gamepad Mouse", proxy
+  gamepad for passthrough; right stick=cursor, left stick=scroll, L1/R1=clicks).
+  Faithful port of `~/devices/ayn-thor/joyscroll/joyscroll.c`.
+- High-res scroll: the mouse advertises `REL_WHEEL_HI_RES`; `H <dy>` emits
+  1/120-notch units (accumulating full notches to a discrete `REL_WHEEL` fallback).
+  Trackpad two-finger scroll uses this for smoothness. Whether Android 13 renders
+  it pixel-smooth depends on the consumer app (browsers usually do); if not smooth
+  enough, the heavier fallback is injecting touch-drag/fling gestures via a virtual
+  touchscreen (true kinetic scroll, but needs absolute-position tracking).
+- 🎮 toggle button on the deck (persisted pref `thor_gamepad_mouse`) enables/disables
+  the gamepad thread; applied on service start.
+- **NOT yet verified on device** — the Thor dropped off adb after this change.
+  To verify: `getevent` on "VHKeyboard Virtual Mouse" while two-finger scrolling
+  should show `REL_WHEEL_HI_RES`; tapping 🎮 with a controller connected should make
+  "VHKeyboard Gamepad Mouse" appear and the right stick move the cursor.
+
 ## Known considerations
 - **Software-render flakiness**: the app is `hardwareAccelerated=false` and `LatinKeyboardView`
   paints an offscreen buffer that can draw black if it renders before it has a valid size, or
