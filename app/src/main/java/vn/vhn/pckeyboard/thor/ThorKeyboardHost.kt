@@ -107,6 +107,14 @@ class ThorKeyboardHost(
         return m
     }
 
+    /**
+     * Meta state from the currently active (held or latched) modifiers, for the
+     * nav pad: latched Shift -> arrows select, latched Ctrl -> word/line jumps, etc.
+     * Read-only -- it does not consume the latch, so a modifier stays on across a
+     * whole nav drag (e.g. extend a selection over many arrows).
+     */
+    fun navMetaState(): Int = metaWith(shift.active())
+
     private fun updateIndicators() {
         val s = shift.active() || caps
         inputView.setShiftIndicator(s, s)

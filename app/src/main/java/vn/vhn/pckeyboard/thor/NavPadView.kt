@@ -38,6 +38,9 @@ class NavPadView(context: Context) : View(context) {
     private var pinY = 0
     private var active = false
 
+    /** Supplies the keyboard's active modifier meta state (Shift/Ctrl/...) per emit. */
+    var metaProvider: () -> Int = { 0 }
+
     private val handler = Handler(Looper.getMainLooper())
     private val repeatTick = object : Runnable {
         override fun run() {
@@ -117,7 +120,7 @@ class NavPadView(context: Context) : View(context) {
     }
 
     private fun emit(keyCode: Int) {
-        InputInjector.injectAndroidKey(keyCode, 0)
+        InputInjector.injectAndroidKey(keyCode, metaProvider())
     }
 
     override fun onDraw(canvas: Canvas) {

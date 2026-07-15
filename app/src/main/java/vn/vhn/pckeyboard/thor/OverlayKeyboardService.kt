@@ -208,14 +208,6 @@ class OverlayKeyboardService : Service() {
             topMargin = dp(12f)
         })
 
-        // Cursor-navigation pad (top-left of the strip): drag = quantized arrow keys,
-        // symmetric return, edge = auto-repeat. Sits on top of the trackpad so touches
-        // that start inside it steer the cursor instead of moving the mouse.
-        val navPad = NavPadView(ctx)
-        root.addView(navPad, FrameLayout.LayoutParams(dp(230f), dp(70f)).apply {
-            gravity = Gravity.TOP or Gravity.START
-            topMargin = dp(8f); leftMargin = dp(8f)
-        })
 
         val minimize = TextView(ctx).apply {
             text = "▾"
@@ -256,6 +248,25 @@ class OverlayKeyboardService : Service() {
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
             gravity = Gravity.BOTTOM
         })
+
+        // Cursor-navigation pad: drag = quantized arrow keys (symmetric return),
+        // edge = auto-repeat. A symmetric-displacement control wants equal room
+        // around the origin, so it's centred horizontally and dropped to the top
+        // edge of the keyboard -- as close to the deck's vertical middle as the
+        // strip allows, reachable by both thumbs. Added last so it sits on top of
+        // the trackpad/keyboard and captures gestures that start inside it.
+        val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
+        val navLp = FrameLayout.LayoutParams(dp(240f), dp(68f)).apply {
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            bottomMargin = dp(8f)
+        }
+        root.addView(navPad, navLp)
+        val placeNav = Runnable {
+            val kbh = kb.height
+            if (kbh > 0) { navLp.bottomMargin = kbh + dp(2f); navPad.layoutParams = navLp }
+        }
+        root.post(placeNav)
+        root.postDelayed(placeNav, 320)
         return root
     }
 
