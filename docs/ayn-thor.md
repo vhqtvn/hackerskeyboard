@@ -136,6 +136,20 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
   Controller" and creates "VHKeyboard Gamepad Mouse" + the passthrough proxy, and
   tapping again releases it. Off by default (games unaffected until enabled).
 
+## Overlay-hiding apps (Settings) fallback
+
+Settings (and similar security-sensitive screens) set `HIDE_NON_SYSTEM_OVERLAY_WINDOWS`
+(anti-tapjacking), which makes WindowManager force-hide our deck (`mForceHideNonSystem
+OverlayWindow=true`, `mPolicyVisibility=false`) — even though it's on the other display.
+The client gets no visibility callback for this policy hide. The only exemption is the
+`INTERNAL_SYSTEM_WINDOW` signature permission (platform-signed only; root can't grant it).
+
+Fallback: when the focused editor's app is a known overlay-hider (`ThorController.
+overlayHidingPackages` — currently `com.android.settings*`, `com.odin.settings`), LatinIME
+shows a normal on-screen keyboard on the **main screen** instead of relying on the deck,
+typing via InputConnection. The editor package comes from `EditorInfo` (onStartInput),
+cleared on onFinishInput. Add packages to that set if other apps hide overlays.
+
 ## Known considerations
 - **Rendering**: the app is now `hardwareAccelerated=true` (was false). With software rendering
   the overlay surface went blank/black/stale — black on (re)attach if drawn before it had a
