@@ -131,10 +131,10 @@
              android:keyWidth="7.09090909%p" android:keyEdgeFlags="right" />
     </Row>
 
-    <!-- Modifiers + wide space. Ctrl on both bottom corners (sticky: tap to latch,
-         then tap a key -> chord, e.g. Ctrl+Z), so no awkward hold. Arrows moved to
-         the vim Fn layer (Fn+hjkl); the reclaimed space widens the space bar and
-         adds a right-hand Esc + Menu for reach. -->
+    <!-- Modifiers + wide space. Ctrl/Alt/Shift reachable on both sides (sticky: tap
+         to latch, then tap a key -> chord, e.g. Ctrl+Z), so no awkward hold. Arrows
+         moved to the vim Fn layer (Fn+hjkl); the reclaimed room widens the space bar
+         and puts right-hand Alt + Shift for two-thumb modifier access. -->
     <Row android:rowEdgeFlags="bottom">
         <Key android:codes="@integer/key_ctrl_left" android:keyLabel="Ctrl"
              android:isModifier="true" android:isSticky="true"
@@ -151,10 +151,10 @@
              android:keyIcon="@drawable/sym_keyboard_space"
              android:iconPreview="@drawable/sym_keyboard_feedback_space"
              android:isModifier="true" android:keyWidth="30%p" />
-        <Key android:codes="@integer/key_escape" android:keyLabel="Esc"
-             android:isModifier="true" android:keyWidth="10%p" />
-        <Key android:codes="@integer/key_menu" android:keyLabel="&#x2630;"
-             android:isModifier="true" android:keyWidth="10%p" />
+        <Key android:codes="@integer/key_alt_right" android:keyLabel="Alt"
+             android:isModifier="true" android:isSticky="true" android:keyWidth="10%p" />
+        <Key android:codes="@integer/key_shift_right" android:keyLabel="Shift"
+             android:isModifier="true" android:isSticky="true" android:keyWidth="10%p" />
         <Key android:codes="@integer/key_ctrl_right" android:keyLabel="Ctrl"
              android:isModifier="true" android:isSticky="true"
              android:keyWidth="10%p" android:keyEdgeFlags="right" />
