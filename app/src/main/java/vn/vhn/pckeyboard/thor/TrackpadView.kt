@@ -46,7 +46,7 @@ class TrackpadView(context: Context) : View(context) {
             }
             MotionEvent.ACTION_MOVE -> {
                 if (event.pointerCount >= 2) {
-                    scrollAccum += (lastY - event.y)
+                    scrollAccum += (event.y - lastY)
                     while (abs(scrollAccum) >= scrollStep) {
                         val dir = if (scrollAccum > 0) 1 else -1
                         InputInjector.scroll(dir)
