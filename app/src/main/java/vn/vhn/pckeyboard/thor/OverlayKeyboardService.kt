@@ -314,34 +314,47 @@ class OverlayKeyboardService : Service() {
         return root
     }
 
+    // When minimized, the only footprint on the second screen is a thin transparent
+    // strip along the top edge: swipe down from it to bring the deck back. This keeps
+    // the screen almost fully usable for other apps (no floating button in the way).
     private fun addFloatingButton() {
         val wm = windowManager ?: return
         val ctx = displayContext ?: return
-        val size = dp(48f)
-        val btn = TextView(ctx).apply {
-            text = "⌨"
-            gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+        val strip = FrameLayout(ctx)
+        // Faint handle hint at top-centre so the gesture is discoverable.
+        val handle = View(ctx).apply {
             background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL; setColor(0xCC222222.toInt())
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(3f).toFloat()
+                setColor(0x66FFFFFF)
             }
-            setOnClickListener { expand() }
+        }
+        strip.addView(handle, FrameLayout.LayoutParams(dp(90f), dp(5f)).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            topMargin = dp(3f)
+        })
+        var downY = 0f
+        var triggered = false
+        strip.setOnTouchListener { _, ev ->
+            when (ev.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> { downY = ev.rawY; triggered = false }
+                android.view.MotionEvent.ACTION_MOVE ->
+                    if (!triggered && ev.rawY - downY > dp(20f)) { triggered = true; expand() }
+            }
+            true
         }
         val lp = WindowManager.LayoutParams(
-            size, size,
+            WindowManager.LayoutParams.MATCH_PARENT, dp(18f),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
-        lp.gravity = Gravity.TOP or Gravity.END
-        lp.x = dp(8f); lp.y = dp(8f)
+        lp.gravity = Gravity.TOP
         try {
-            wm.addView(btn, lp)
-            floatingButton = btn
+            wm.addView(strip, lp)
+            floatingButton = strip
         } catch (e: Exception) {
-            Log.e(TAG, "addView(floating) failed", e)
+            Log.e(TAG, "addView(show-handle) failed", e)
         }
     }
 
