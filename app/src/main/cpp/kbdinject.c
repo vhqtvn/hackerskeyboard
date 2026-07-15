@@ -141,6 +141,73 @@ static void mouse_scroll_hires(int fd, int *accum, int hival) {
     sync_report(fd);
 }
 
+/* --- virtual touchscreen (for smooth touch-drag scrolling) ----------------- *
+ * Android 13 ignores REL_WHEEL_HI_RES, so smooth scrolling is done by injecting a
+ * real finger drag. Coordinates are normalised 0..TOUCH_MAX; Android maps the ABS
+ * range onto the associated display's pixels (and handles rotation). MT protocol A.
+ */
+#define TOUCH_MAX 32767
+
+static int touch_x = TOUCH_MAX / 2;
+static int touch_y = TOUCH_MAX / 2;
+
+static int create_touchscreen(void) {
+    int fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+    if (fd < 0) return -1;
+    ioctl(fd, UI_SET_EVBIT, EV_SYN);
+    ioctl(fd, UI_SET_EVBIT, EV_KEY);
+    ioctl(fd, UI_SET_KEYBIT, BTN_TOUCH);
+    ioctl(fd, UI_SET_EVBIT, EV_ABS);
+    ioctl(fd, UI_SET_ABSBIT, ABS_MT_POSITION_X);
+    ioctl(fd, UI_SET_ABSBIT, ABS_MT_POSITION_Y);
+    ioctl(fd, UI_SET_ABSBIT, ABS_X);
+    ioctl(fd, UI_SET_ABSBIT, ABS_Y);
+    struct uinput_abs_setup ax;
+    memset(&ax, 0, sizeof(ax));
+    ax.absinfo.minimum = 0; ax.absinfo.maximum = TOUCH_MAX;
+    ax.code = ABS_MT_POSITION_X; ioctl(fd, UI_ABS_SETUP, &ax);
+    ax.code = ABS_MT_POSITION_Y; ioctl(fd, UI_ABS_SETUP, &ax);
+    ax.code = ABS_X; ioctl(fd, UI_ABS_SETUP, &ax);
+    ax.code = ABS_Y; ioctl(fd, UI_ABS_SETUP, &ax);
+    struct uinput_setup setup;
+    memset(&setup, 0, sizeof(setup));
+    strncpy(setup.name, "VHKeyboard Virtual Touch", sizeof(setup.name) - 1);
+    setup.id.bustype = BUS_VIRTUAL;
+    setup.id.vendor = 0x1209; setup.id.product = 0x7657; setup.id.version = 1;
+    if (ioctl(fd, UI_DEV_SETUP, &setup) < 0 || ioctl(fd, UI_DEV_CREATE) < 0) {
+        close(fd); return -1;
+    }
+    return fd;
+}
+
+static void touch_frame(int fd, int down, int x, int y) {
+    if (down) {
+        emit(fd, EV_ABS, ABS_MT_POSITION_X, x);
+        emit(fd, EV_ABS, ABS_MT_POSITION_Y, y);
+        emit(fd, EV_SYN, SYN_MT_REPORT, 0);
+    } else {
+        emit(fd, EV_SYN, SYN_MT_REPORT, 0);  /* empty frame = all up */
+    }
+    emit(fd, EV_SYN, SYN_REPORT, 0);
+}
+
+static void touch_down(int fd, int x, int y) {
+    if (fd < 0) return;
+    touch_x = x; touch_y = y;
+    emit(fd, EV_KEY, BTN_TOUCH, 1);
+    touch_frame(fd, 1, x, y);
+}
+static void touch_move(int fd, int x, int y) {
+    if (fd < 0) return;
+    touch_x = x; touch_y = y;
+    touch_frame(fd, 1, x, y);
+}
+static void touch_up(int fd) {
+    if (fd < 0) return;
+    emit(fd, EV_KEY, BTN_TOUCH, 0);
+    touch_frame(fd, 0, 0, 0);
+}
+
 /* --- keyboard helpers ------------------------------------------------------ */
 static void key(int fd, int code, int down) {
     if (code <= 0 || code > KEY_MAX) return;
@@ -336,6 +403,7 @@ int main(void) {
     int fd = create_keyboard();
     if (fd < 0) return 1;
     int mfd = create_mouse("VHKeyboard Virtual Mouse", 0x7655);
+    int tsfd = create_touchscreen();
     int wheel_accum = 0;
 
     pthread_create(&g_gp_thread, NULL, gamepad_thread, NULL);
@@ -356,6 +424,21 @@ int main(void) {
             case 'W': mouse_scroll(mfd, atoi(line + 1)); break;
             case 'H': mouse_scroll_hires(mfd, &wheel_accum, atoi(line + 1)); break;
             case 'J': g_gamepad_enabled = atoi(line + 1) ? 1 : 0; break;
+            case 'G':
+                switch (line[1]) {
+                    case 'D': if (sscanf(line + 2, "%d %d", &a, &b) == 2) touch_down(tsfd, a, b); break;
+                    case 'M': if (sscanf(line + 2, "%d %d", &a, &b) == 2) touch_move(tsfd, a, b); break;
+                    case 'U': touch_up(tsfd); break;
+                    case 'T': /* self-test: swipe up from center */
+                        touch_down(tsfd, TOUCH_MAX / 2, TOUCH_MAX * 3 / 4);
+                        for (int yy = TOUCH_MAX * 3 / 4; yy > TOUCH_MAX / 4; yy -= 600) {
+                            touch_move(tsfd, TOUCH_MAX / 2, yy); usleep(8000);
+                        }
+                        touch_up(tsfd);
+                        break;
+                    default: break;
+                }
+                break;
             case 'S': sync_report(fd); break;
             case 'P': printf("OK\n"); break;
             case 'Q': goto done;
@@ -370,5 +453,6 @@ done:
     usleep(50000);
     ioctl(fd, UI_DEV_DESTROY); close(fd);
     if (mfd >= 0) { ioctl(mfd, UI_DEV_DESTROY); close(mfd); }
+    if (tsfd >= 0) { ioctl(tsfd, UI_DEV_DESTROY); close(tsfd); }
     return 0;
 }
