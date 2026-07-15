@@ -3,12 +3,16 @@ package vn.vhn.pckeyboard.thor
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Display
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import java.io.BufferedReader
@@ -17,52 +21,99 @@ import java.io.InputStreamReader
 /**
  * Horizontal strip of up to [MAX_APPS] recent apps, read from `dumpsys activity
  * recents` via su (normal apps can't query the recents list). Tap an icon to bring
- * that app to the main screen; swipe an icon down to force-stop it.
+ * that app to the main screen; swipe an icon down to force-stop it. A green dot marks
+ * apps that still have a live process (running in the background). Auto-refreshes
+ * while visible.
  */
 class RecentAppsView(context: Context) : LinearLayout(context) {
     private val appCtx = context.applicationContext
     private val iconSize = dp(44)
+
+    private val handler = Handler(Looper.getMainLooper())
+    @Volatile private var busy = false
+    private val poll = object : Runnable {
+        override fun run() { refresh(); handler.postDelayed(this, POLL_MS) }
+    }
 
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER
     }
 
-    /** Re-query recents off the UI thread and repopulate. */
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        handler.post(poll)   // refresh now + every POLL_MS while shown
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        handler.removeCallbacks(poll)
+    }
+
+    /** Re-query recents + running state off the UI thread and repopulate. */
     fun refresh() {
+        if (busy) return
+        busy = true
         Thread {
-            val pkgs = try { fetchRecents() } catch (e: Exception) { emptyList() }
-            post { render(pkgs) }
+            val (pkgs, running) = try { fetchState() } catch (e: Exception) { emptyList<String>() to emptySet() }
+            post { render(pkgs, running); busy = false }
         }.start()
     }
 
-    private fun fetchRecents(): List<String> {
+    private fun fetchState(): Pair<List<String>, Set<String>> {
         val out = runSu("dumpsys activity recents | grep realActivity")
         val pm = appCtx.packageManager
-        val pkgs = LinkedHashSet<String>()   // preserve recents order, dedupe
-        val re = Regex("realActivity=\\{?([^/\\s{}]+)/")   // realActivity={pkg/act}
+        val pkgs = LinkedHashSet<String>()   // recents order, deduped
+        val re = Regex("realActivity=\\{?([^/\\s{}]+)/")
         for (line in out.lineSequence()) {
             val pkg = re.find(line)?.groupValues?.get(1) ?: continue
             if (pkg == appCtx.packageName) continue
-            if (pm.getLaunchIntentForPackage(pkg) == null) continue   // must be launchable
+            if (pm.getLaunchIntentForPackage(pkg) == null) continue
             pkgs.add(pkg)
             if (pkgs.size >= MAX_APPS) break
         }
-        return pkgs.toList()
+        // Which of them still have a live process (running in background)?
+        val running = HashSet<String>()
+        if (pkgs.isNotEmpty()) {
+            val cmd = pkgs.joinToString("\n") { "pidof '$it' >/dev/null 2>&1 && echo '$it'" }
+            for (l in runSu(cmd).lineSequence()) {
+                val t = l.trim()
+                if (t.isNotEmpty()) running.add(t)
+            }
+        }
+        return pkgs.toList() to running
     }
 
-    private fun render(pkgs: List<String>) {
+    private fun render(pkgs: List<String>, running: Set<String>) {
         removeAllViews()
         val pm = appCtx.packageManager
         for (pkg in pkgs) {
             val icon = try { pm.getApplicationIcon(pkg) } catch (e: Exception) { continue }
+            val cell = FrameLayout(context)
+            val lp = LayoutParams(iconSize, iconSize + dp(6))
+            lp.marginStart = dp(7); lp.marginEnd = dp(7)
+            cell.layoutParams = lp
+
             val iv = ImageView(context)
             iv.setImageDrawable(icon)
-            val lp = LayoutParams(iconSize, iconSize)
-            lp.marginStart = dp(7); lp.marginEnd = dp(7)
-            iv.layoutParams = lp
-            attachTouch(iv, pkg)
-            addView(iv)
+            cell.addView(iv, FrameLayout.LayoutParams(iconSize, iconSize).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            })
+
+            if (running.contains(pkg)) {
+                val dot = View(context)
+                dot.background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(0xFF3DDC84.toInt())            // green = running
+                    setStroke(dp(1), 0xFF000000.toInt())    // outline for contrast
+                }
+                cell.addView(dot, FrameLayout.LayoutParams(dp(9), dp(9)).apply {
+                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                })
+            }
+
+            attachTouch(cell, pkg)
+            addView(cell)
         }
     }
 
@@ -102,10 +153,12 @@ class RecentAppsView(context: Context) : LinearLayout(context) {
     }
 
     private fun killApp(pkg: String) {
-        // force-stop kills the app's processes. The icon is already removed from the
-        // strip for instant feedback. (Android 13 has no CLI to drop the recents
-        // task, so a killed app may reappear here on a later refresh -- but stopped.)
-        Thread { runSu("am force-stop $pkg") }.start()
+        // force-stop kills the app's processes; the icon is already removed for
+        // instant feedback. (Android 13 has no CLI to drop the recents task.)
+        Thread {
+            runSu("am force-stop $pkg")
+            post { refresh() }   // reflect new running state
+        }.start()
     }
 
     private fun runSu(cmd: String): String {
@@ -120,5 +173,6 @@ class RecentAppsView(context: Context) : LinearLayout(context) {
     companion object {
         private const val TAG = "ThorRecents"
         private const val MAX_APPS = 8
+        private const val POLL_MS = 3000L
     }
 }

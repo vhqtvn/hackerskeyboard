@@ -220,7 +220,7 @@ class OverlayKeyboardService : Service() {
             FrameLayout.LayoutParams.MATCH_PARENT, dp(56f)).apply {
             gravity = Gravity.TOP; topMargin = dp(4f)
         })
-        recents.refresh()
+        // RecentAppsView self-refreshes (polls) while attached/visible.
 
         // Trackpad fills the whole deck but is only exposed in the top area not
         // covered by the (bottom-anchored) keyboard; relative moves work anywhere.
