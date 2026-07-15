@@ -212,6 +212,16 @@ class OverlayKeyboardService : Service() {
     private fun buildDeck(ctx: Context): View {
         val root = FrameLayout(ctx).apply { setBackgroundColor(Color.BLACK) }
 
+        // Recent-apps strip along the top (tap = switch to app on main screen, swipe
+        // an icon down = kill it). Inset horizontally to clear the corner buttons.
+        val recents = RecentAppsView(ctx)
+        recents.setPadding(dp(52f), 0, dp(100f), 0)
+        root.addView(recents, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, dp(56f)).apply {
+            gravity = Gravity.TOP; topMargin = dp(4f)
+        })
+        recents.refresh()
+
         // Trackpad fills the whole deck but is only exposed in the top area not
         // covered by the (bottom-anchored) keyboard; relative moves work anywhere.
         // Disabled for now (the strip is mostly taken by the keyboard + nav pad);
@@ -300,7 +310,7 @@ class OverlayKeyboardService : Service() {
         // strip allows, reachable by both thumbs. Added last so it sits on top of
         // the trackpad/keyboard and captures gestures that start inside it.
         val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
-        val navLp = FrameLayout.LayoutParams(dp(240f), dp(68f)).apply {
+        val navLp = FrameLayout.LayoutParams(dp(240f), dp(56f)).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             bottomMargin = dp(8f)
         }
@@ -386,7 +396,7 @@ class OverlayKeyboardService : Service() {
         private const val TAG = "ThorOverlay"
         private const val CHANNEL_ID = "thor_keyboard"
         private const val NOTIF_ID = 0x54484f52 // "THOR"
-        private const val KEYBOARD_HEIGHT_PERCENT = 84f
+        private const val KEYBOARD_HEIGHT_PERCENT = 74f
         // Trackpad is kept in the codebase but not shown (little strip space left).
         private const val TRACKPAD_ENABLED = false
         private const val PREF_GAMEPAD = "thor_gamepad_mouse"
