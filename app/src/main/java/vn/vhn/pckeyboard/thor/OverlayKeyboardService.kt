@@ -309,7 +309,7 @@ class OverlayKeyboardService : Service() {
         private const val TAG = "ThorOverlay"
         private const val CHANNEL_ID = "thor_keyboard"
         private const val NOTIF_ID = 0x54484f52 // "THOR"
-        private const val KEYBOARD_HEIGHT_PERCENT = 68f
+        private const val KEYBOARD_HEIGHT_PERCENT = 84f
         private const val PREF_GAMEPAD = "thor_gamepad_mouse"
         const val ACTION_TOGGLE = "vn.vhn.pckeyboard.thor.TOGGLE"
         const val ACTION_TEST_SCROLL = "vn.vhn.pckeyboard.thor.TEST_SCROLL"
