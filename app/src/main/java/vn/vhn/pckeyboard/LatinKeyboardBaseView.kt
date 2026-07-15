@@ -537,7 +537,9 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
     }
 
     private fun showHints7Bit(): Boolean {
-        return LatinIME.Companion.sKeyboardSettings.hintMode >= 1
+        // The Thor deck always shows the shift sub-char (ASCII), independent of the
+        // shared hintMode (which LatinIME owns and may leave at 0).
+        return colorCodeKeys || LatinIME.Companion.sKeyboardSettings.hintMode >= 1
     }
 
     private fun showHintsAll(): Boolean {

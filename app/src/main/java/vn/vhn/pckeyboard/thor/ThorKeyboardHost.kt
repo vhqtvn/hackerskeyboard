@@ -102,6 +102,9 @@ class ThorKeyboardHost(
         val inflater = LayoutInflater.from(displayContext)
         rootView = inflater.inflate(R.layout.input_material_dark, null) as ViewGroup
         inputView = rootView.findViewById(R.id.LatinkeyboardBaseView)
+        // Set before the keyboard so the first draw uses deck styling + hints.
+        inputView.colorCodeKeys = true   // OLED-black keys with group-coloured borders
+        inputView.setBackgroundColor(android.graphics.Color.BLACK)   // true black (power saving)
 
         val lang = LanguageSwitcher(displayContext)
         lang.loadLocales(prefs)
@@ -110,8 +113,6 @@ class ThorKeyboardHost(
         kb.setLanguageSwitcher(lang, false)
         inputView.setKeyboard(kb)
         inputView.setPreviewEnabled(false)
-        inputView.colorCodeKeys = true   // OLED-black keys with group-coloured borders
-        inputView.setBackgroundColor(android.graphics.Color.BLACK)   // true black (power saving)
         inputView.setOnKeyboardActionListener(this)
     }
 
