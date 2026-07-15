@@ -137,12 +137,13 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
   tapping again releases it. Off by default (games unaffected until enabled).
 
 ## Known considerations
-- **Software-render flakiness**: the app is `hardwareAccelerated=false` and `LatinKeyboardView`
-  paints an offscreen buffer that can draw black if it renders before it has a valid size, or
-  when the compositor is stressed. Mitigations in place: build a **fresh** keyboard host per
-  expand (never re-parent the view), and `forceRedraw()` (requestLayout + invalidateAllKeys,
-  immediate + 300ms) after attach. Clean boots render reliably; heavy rapid restart/inject
-  cycles during dev could still degrade compositor state (a reboot fixes it).
+- **Rendering**: the app is now `hardwareAccelerated=true` (was false). With software rendering
+  the overlay surface went blank/black/stale — black on (re)attach if drawn before it had a
+  valid size, and vanishing (launcher showing through a blank surface) when the app was
+  backgrounded on an app switch. HW accel (GPU-backed surface) fixed the app-switch vanishing
+  and the black renders. Also in place: a **fresh** keyboard host per expand (never re-parent
+  the view) + `forceRedraw()` (requestLayout + invalidateAllKeys, immediate + 300ms) after
+  attach. `LatinKeyboardView`'s software Bitmap buffer composites fine under HW accel.
 - **Focus routing**: injected keys/mouse go to the *top-focused display*'s focused window, so
   screen 1 must be top-focused to type into it (normal when you're using screen 1).
 - Testing readback via Chrome on this device is unreliable: `io.github.muntashirakon.AppManager`
