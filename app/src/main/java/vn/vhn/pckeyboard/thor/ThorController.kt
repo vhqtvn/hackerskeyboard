@@ -36,6 +36,15 @@ object ThorController {
     @Volatile
     var expandRequest: (() -> Unit)? = null
 
+    /**
+     * True after the user explicitly minimizes the deck (▾) -- suppresses auto-show
+     * on focus so switching activities won't pop the keyboard back up. Cleared when
+     * the deck is manually reopened (floating button). Lets the second screen be
+     * used freely while minimized.
+     */
+    @Volatile
+    var suppressAutoShow = false
+
     fun setDeckShown(shown: Boolean) {
         deckShown = shown
         reevalIme()
@@ -54,8 +63,8 @@ object ThorController {
     fun onEditorFocus(focused: Boolean) {
         editorFocused = focused
         // Auto-show the deck on the second screen when a field is focused and the
-        // deck is currently minimized.
-        if (focused && serviceRunning && !deckShown) expandRequest?.invoke()
+        // deck is currently minimized -- unless the user chose to keep it minimized.
+        if (focused && serviceRunning && !deckShown && !suppressAutoShow) expandRequest?.invoke()
     }
 
     private fun reevalIme() {

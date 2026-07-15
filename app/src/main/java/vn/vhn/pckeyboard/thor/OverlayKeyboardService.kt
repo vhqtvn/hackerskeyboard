@@ -136,6 +136,7 @@ class OverlayKeyboardService : Service() {
     private fun expand() {
         val wm = windowManager ?: return
         val ctx = displayContext ?: return
+        ThorController.suppressAutoShow = false   // reopened -> re-enable auto-show
         if (expanded) return
         floatingButton?.let { safeRemove(it); floatingButton = null }
         if (host == null) {
@@ -168,6 +169,7 @@ class OverlayKeyboardService : Service() {
 
     private fun minimize() {
         if (!expanded) return
+        ThorController.suppressAutoShow = true   // stay hidden until manually reopened
         deckView?.let { safeRemove(it) }
         deckView = null
         // Destroy the keyboard host; a fresh one is built on the next expand.
