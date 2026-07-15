@@ -144,11 +144,11 @@ class ThorKeyboardHost(
     }
 
     private fun updateIndicators() {
-        val s = anyShift() || caps
-        inputView.setShiftIndicator(s, s)
-        val c = ctrlL.active() || ctrlR.active(); inputView.setCtrlIndicator(c, c)
-        val a = altL.active() || altR.active(); inputView.setAltIndicator(a, a)
-        val mt = metaL.active() || metaR.active(); inputView.setMetaIndicator(mt, mt)
+        // Per-side, since left/right modifiers are independent (caps lights both shifts).
+        inputView.setShiftIndicator(shiftL.active() || caps, shiftR.active() || caps)
+        inputView.setCtrlIndicator(ctrlL.active(), ctrlR.active())
+        inputView.setAltIndicator(altL.active(), altR.active())
+        inputView.setMetaIndicator(metaL.active(), metaR.active())
     }
 
     /** After a non-modifier key: mark held modifiers as chorded, clear latched ones. */

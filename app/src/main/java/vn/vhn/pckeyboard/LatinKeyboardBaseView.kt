@@ -153,22 +153,33 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
      */
     var colorCodeKeys = false
     private val mTintMod = android.graphics.PorterDuffColorFilter(
-        0x505C9DFF, android.graphics.PorterDuff.Mode.SRC_ATOP)
+        0x44_5C9DFF, android.graphics.PorterDuff.Mode.SRC_ATOP)
+    // Active (latched/held) modifier: bright blue -- this IS the on/off indicator.
+    private val mTintModActive = android.graphics.PorterDuffColorFilter(
+        0xCC_7FD4FF.toInt(), android.graphics.PorterDuff.Mode.SRC_ATOP)
     private val mTintFunc = android.graphics.PorterDuffColorFilter(
-        0x4CF3CB63, android.graphics.PorterDuff.Mode.SRC_ATOP)
+        0x4C_F3CB63, android.graphics.PorterDuff.Mode.SRC_ATOP)
     private val mTintNumSym = android.graphics.PorterDuffColorFilter(
-        0x2C9DB4D0, android.graphics.PorterDuff.Mode.SRC_ATOP)
+        0x2C_9DB4D0, android.graphics.PorterDuff.Mode.SRC_ATOP)
+    private val mKeyBorderPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.STROKE
+        color = 0x40FFFFFF
+    }
+    private val mKeyBorderRect = android.graphics.RectF()
+
+    private fun isModifierCode(code: Int) = when (code) {
+        LatinKeyboardView.KEYCODE_SHIFT_LEFT, LatinKeyboardView.KEYCODE_SHIFT_RIGHT,
+        LatinKeyboardView.KEYCODE_CTRL_LEFT, LatinKeyboardView.KEYCODE_CTRL_RIGHT,
+        LatinKeyboardView.KEYCODE_ALT_LEFT, LatinKeyboardView.KEYCODE_ALT_RIGHT,
+        LatinKeyboardView.KEYCODE_META_LEFT, LatinKeyboardView.KEYCODE_META_RIGHT,
+        LatinKeyboardView.KEYCODE_FN_1, LatinKeyboardView.KEYCODE_FN_2 -> true
+        else -> false
+    }
 
     private fun keyTintFilter(key: Keyboard.Key): android.graphics.ColorFilter? {
         if (!colorCodeKeys) return null
         val code = key.codes?.firstOrNull() ?: return null
-        when (code) {
-            LatinKeyboardView.KEYCODE_SHIFT_LEFT, LatinKeyboardView.KEYCODE_SHIFT_RIGHT,
-            LatinKeyboardView.KEYCODE_CTRL_LEFT, LatinKeyboardView.KEYCODE_CTRL_RIGHT,
-            LatinKeyboardView.KEYCODE_ALT_LEFT, LatinKeyboardView.KEYCODE_ALT_RIGHT,
-            LatinKeyboardView.KEYCODE_META_LEFT, LatinKeyboardView.KEYCODE_META_RIGHT,
-            LatinKeyboardView.KEYCODE_FN_1, LatinKeyboardView.KEYCODE_FN_2 -> return mTintMod
-        }
+        if (isModifierCode(code)) return if (key.on || key.pressed) mTintModActive else mTintMod
         if (code in 'a'.code..'z'.code || code in 'A'.code..'Z'.code) return null   // letters: base
         if (code in 33..126) return mTintNumSym   // printable digits/symbols (not space)
         return mTintFunc   // space, enter, tab, esc, backspace, del, home, end, arrows...
@@ -904,6 +915,14 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
             keyBackground.colorFilter = keyTintFilter(key)   // per-group tint (Thor deck)
             keyBackground.draw(canvas)
             if (yscale != 1.0f) canvas.restore()
+            if (colorCodeKeys) {
+                // Visible border so keys read as separate blocks.
+                val bi = 2f
+                mKeyBorderRect.set(bi, bi, key.width - bi, key.height - bi)
+                mKeyBorderPaint.strokeWidth = 2f
+                val br = key.height * 0.16f
+                canvas.drawRoundRect(mKeyBorderRect, br, br, mKeyBorderPaint)
+            }
             var shouldDrawIcon = true
             if (label != null) {
                 // For characters, use large font. For labels like "Done", use small font.
