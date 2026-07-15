@@ -246,17 +246,17 @@ class OverlayKeyboardService : Service() {
         // Home/End are key-styled buttons at the same height as the keyboard rows;
         // they inject with the deck's active modifiers (so Shift+Home selects).
         val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
-        // Text fields: move the caret via InputConnection. If that can't (e.g. a
-        // terminal like VHEditor/Termux, which exposes no editable text), fall back to
-        // injecting the real MOVE_HOME/END key so the terminal turns it into its
-        // Home/End escape sequence.
+        // Text fields: move the caret via InputConnection. If that can't (a terminal
+        // like VHEditor/Termux exposes no editable text), fall back to Ctrl+A / Ctrl+E
+        // (readline beginning/end-of-line). NOT the MOVE_HOME key -- on this ROM that
+        // pops the device home.
         val homeBtn = navKey(ctx, "⇱") {
             if (host?.cursorToLineEdge(true) != true)
-                InputInjector.injectAndroidKey(android.view.KeyEvent.KEYCODE_MOVE_HOME, host?.navMetaState() ?: 0)
+                InputInjector.tapWithMeta(KEY_A_EVDEV, android.view.KeyEvent.META_CTRL_ON)
         }
         val endBtn = navKey(ctx, "⇲") {
             if (host?.cursorToLineEdge(false) != true)
-                InputInjector.injectAndroidKey(android.view.KeyEvent.KEYCODE_MOVE_END, host?.navMetaState() ?: 0)
+                InputInjector.tapWithMeta(KEY_E_EVDEV, android.view.KeyEvent.META_CTRL_ON)
         }
         val navRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
         val m = dp(4f)
@@ -408,6 +408,8 @@ class OverlayKeyboardService : Service() {
         private const val KEYBOARD_HEIGHT_PERCENT = 75f
         // Trackpad is kept in the codebase but not shown (little strip space left).
         private const val TRACKPAD_ENABLED = false
+        private const val KEY_A_EVDEV = 30   // Ctrl+A = line start (terminal)
+        private const val KEY_E_EVDEV = 18   // Ctrl+E = line end (terminal)
         private const val PREF_GAMEPAD = "thor_gamepad_mouse"
         private const val PREF_VN = "thor_vn_input"
         const val ACTION_TOGGLE = "vn.vhn.pckeyboard.thor.TOGGLE"
