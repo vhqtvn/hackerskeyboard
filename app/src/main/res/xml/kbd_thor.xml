@@ -18,27 +18,20 @@
          Shift labels expose the upper glyphs, PC-keyboard style. -->
     <Row>
         <Key android:codes="@integer/key_escape" android:keyLabel="Esc" android:isModifier="true"
-             android:keyWidth="10%p" android:keyEdgeFlags="left" />
-        <Key android:keyLabel="`" android:shiftLabel="~"
-             android:keyWidth="8%p" />
+             android:keyEdgeFlags="left" />
+        <Key android:keyLabel="`" android:shiftLabel="~" />
         <Key android:keyLabel="-" android:shiftLabel="_"
-             android:fn2Codes="@integer/key_fkey_f11" android:fn2Label="F11" android:keyWidth="8%p" />
-        <Key android:keyLabel="\\" android:shiftLabel="|"
-             android:keyWidth="8%p" />
-        <Key android:keyLabel=";" android:shiftLabel=":"
-             android:keyWidth="8%p" />
+             android:fn2Codes="@integer/key_fkey_f11" android:fn2Label="F11" />
+        <Key android:keyLabel="\\" android:shiftLabel="|" />
+        <Key android:keyLabel=";" android:shiftLabel=":" />
         <Key android:keyLabel="=" android:shiftLabel="+"
-             android:fn2Codes="@integer/key_fkey_f12" android:fn2Label="F12" android:keyWidth="8%p" />
-        <Key android:keyLabel="[" android:shiftLabel="{"
-             android:keyWidth="8%p" />
-        <Key android:keyLabel="]" android:shiftLabel="}"
-             android:keyWidth="8%p" />
-        <Key android:codes="@integer/key_home" android:isModifier="true" android:keyLabel="Home"
-             android:keyWidth="12%p" />
-        <Key android:codes="@integer/key_end" android:isModifier="true" android:keyLabel="End"
-             android:keyWidth="12%p" />
+             android:fn2Codes="@integer/key_fkey_f12" android:fn2Label="F12" />
+        <Key android:keyLabel="[" android:shiftLabel="{" />
+        <Key android:keyLabel="]" android:shiftLabel="}" />
+        <Key android:codes="@integer/key_home" android:isModifier="true" android:keyLabel="&#x21f1;" />
+        <Key android:codes="@integer/key_end" android:isModifier="true" android:keyLabel="&#x21f2;" />
         <Key android:codes="@integer/key_forward_del" android:isModifier="true"
-             android:keyLabel="Del" android:keyWidth="10%p" android:keyEdgeFlags="right" />
+             android:keyLabel="Del" android:keyEdgeFlags="right" />
     </Row>
 
     <!-- Numbers. Shift = ! @ # ... ; blue Fn = F1..F10. -->
@@ -153,7 +146,9 @@
              android:isModifier="true" android:keyWidth="30%p" />
         <Key android:codes="@integer/key_alt_right" android:keyLabel="Alt"
              android:isModifier="true" android:isSticky="true" android:keyWidth="10%p" />
-        <Key android:codes="@integer/key_shift_right" android:keyLabel="Shift"
+        <Key android:codes="@integer/key_shift_right"
+             android:keyIcon="@drawable/sym_keyboard_shift"
+             android:iconPreview="@drawable/sym_keyboard_feedback_shift"
              android:isModifier="true" android:isSticky="true" android:keyWidth="10%p" />
         <Key android:codes="@integer/key_ctrl_right" android:keyLabel="Ctrl"
              android:isModifier="true" android:isSticky="true"
