@@ -95,6 +95,11 @@ object InputInjector {
     fun moveMouse(dx: Int, dy: Int) = send("M $dx $dy")
     fun click(button: Int = 0) = send("C$button")
     fun scroll(dy: Int) = send("W$dy")
+    /** High-resolution scroll (1/120 notch units) for smooth scrolling. */
+    fun scrollHiRes(dy: Int) = send("H$dy")
+
+    // --- Gamepad -> mouse/scroll (folded joyscroll) ----------------------------
+    fun setGamepad(enabled: Boolean) = send(if (enabled) "J1" else "J0")
 
     // --- Android-keycode-level API --------------------------------------------
     /**
