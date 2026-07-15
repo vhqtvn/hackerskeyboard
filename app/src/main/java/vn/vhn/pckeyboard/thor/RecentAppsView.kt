@@ -110,9 +110,9 @@ class RecentAppsView(context: Context) : LinearLayout(context) {
                     setColor(0xFF3DDC84.toInt())            // green = running
                     setStroke(dp(1), 0xFF000000.toInt())    // outline for contrast
                 }
-                cell.addView(dot, FrameLayout.LayoutParams(dp(9), dp(9)).apply {
-                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                    bottomMargin = dp(4)
+                cell.addView(dot, FrameLayout.LayoutParams(dp(10), dp(10)).apply {
+                    gravity = Gravity.BOTTOM or Gravity.END   // bottom-right badge, on the circle's edge
+                    bottomMargin = dp(3); marginEnd = dp(3)
                 })
             }
 
