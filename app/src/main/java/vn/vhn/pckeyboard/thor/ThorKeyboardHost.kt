@@ -273,29 +273,19 @@ class ThorKeyboardHost(
     private var gpDownMods: IntArray = IntArray(0)
 
     /**
-     * Move the caret to the start/end of the current line by editing the focused
-     * field's selection through the IME connection -- no keycode, so it can't be
-     * turned into device-HOME by the keylayout/policy. A held Shift extends selection.
+     * Send an edit key (e.g. MOVE_HOME/END) straight to the focused app via the IME
+     * connection -- the way Hacker's Keyboard delivers keys. It reaches the app's own
+     * key handling (so text fields, terminals and editors all honour it) and does NOT
+     * pass through the global input dispatcher/policy (which turns an unhandled Home
+     * into device-home). metaState carries the deck modifiers (Shift -> selection).
      */
-    fun cursorToLineEdge(toStart: Boolean): Boolean {
+    fun sendEditKey(keyCode: Int) {
         val ic = if (ThorController.editorFocused) ThorController.ime?.currentInputConnection else null
-        ic ?: return false
-        val et = ic.getExtractedText(android.view.inputmethod.ExtractedTextRequest(), 0) ?: return false
-        val text = et.text ?: return false
-        val select = anyShift()
-        if (toStart) {
-            val cursor = et.selectionEnd.coerceIn(0, text.length)
-            var i = cursor - 1
-            while (i >= 0 && text[i] != '\n') i--
-            val lineStart = i + 1
-            ic.setSelection(lineStart, if (select) cursor else lineStart)
-        } else {
-            val cursor = et.selectionStart.coerceIn(0, text.length)
-            var i = cursor
-            while (i < text.length && text[i] != '\n') i++
-            ic.setSelection(if (select) cursor else i, i)
-        }
-        return true
+        ic ?: return
+        val meta = navMetaState()
+        val now = android.os.SystemClock.uptimeMillis()
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, meta))
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, meta))
     }
 
     fun gamepadKey(evdev: Int, down: Boolean) {
