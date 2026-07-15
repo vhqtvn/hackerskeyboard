@@ -116,12 +116,19 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
   thread toggled by `J 0|1` (own virtual mouse "VHKeyboard Gamepad Mouse", proxy
   gamepad for passthrough; right stick=cursor, left stick=scroll, L1/R1=clicks).
   Faithful port of `~/devices/ayn-thor/joyscroll/joyscroll.c`.
-- High-res scroll: the mouse advertises `REL_WHEEL_HI_RES`; `H <dy>` emits
-  1/120-notch units (accumulating full notches to a discrete `REL_WHEEL` fallback).
-  Trackpad two-finger scroll uses this for smoothness. Whether Android 13 renders
-  it pixel-smooth depends on the consumer app (browsers usually do); if not smooth
-  enough, the heavier fallback is injecting touch-drag/fling gestures via a virtual
-  touchscreen (true kinetic scroll, but needs absolute-position tracking).
+- Smooth scroll: Android 13's InputReader **ignores `REL_WHEEL_HI_RES`** (confirmed on
+  device — events emit, framework doesn't consume), so wheel scrolling is always notchy.
+  Instead we scroll by injecting a **real finger drag** on the main screen via a virtual
+  touchscreen. Critical: the uinput device must set **`INPUT_PROP_DIRECT`**, else Android
+  classifies an ABS_MT device as a *touchpad* (indirect pointer, moves the cursor, swipes
+  don't scroll); with it, it's `Classes: TOUCH | TOUCH_MT` targeting display 0. Commands:
+  `GD/GM/GU` (down/move/up, normalised 0..32767). `H`/hi-res kept but unused.
+  - Trackpad two-finger drag → touch drag. Two safety mitigations: the touch-down is
+    **deferred until the gesture moves** (a stationary two-finger touch would otherwise
+    land as a tap/click), and the drag is **anchored at the cursor's X column** (tracked
+    from mouse deltas) so it scrolls the pane you're pointing at, re-anchoring at centre
+    near a screen edge. Cursor-X tracking is approximate (pointer accel drift; self-corrects
+    at edges) and only X is used.
 - 🎮 toggle button on the deck (persisted pref `thor_gamepad_mouse`) enables/disables
   the gamepad thread; applied on service start.
 - **Verified on device**: `H` emits `REL_WHEEL_HI_RES` (60/60/40) with the discrete
