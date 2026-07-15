@@ -25,8 +25,9 @@ class TrackpadView(context: Context) : View(context) {
 
     private val sensitivity = 1.6f
     private val tapSlop = 14f * resources.displayMetrics.density
-    private val scrollStep = 26f * resources.displayMetrics.density
     private val tapMaxMs = 250L
+    // Hi-res scroll units (1/120 notch) per pixel of two-finger movement.
+    private val scrollHiResPerPx = 4f / resources.displayMetrics.density
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
@@ -46,12 +47,9 @@ class TrackpadView(context: Context) : View(context) {
             }
             MotionEvent.ACTION_MOVE -> {
                 if (event.pointerCount >= 2) {
-                    scrollAccum += (event.y - lastY)
-                    while (abs(scrollAccum) >= scrollStep) {
-                        val dir = if (scrollAccum > 0) 1 else -1
-                        InputInjector.scroll(dir)
-                        scrollAccum -= dir * scrollStep
-                    }
+                    scrollAccum += (event.y - lastY) * scrollHiResPerPx
+                    val hi = scrollAccum.toInt()
+                    if (hi != 0) { InputInjector.scrollHiRes(hi); scrollAccum -= hi }
                     lastY = event.y; lastX = event.x
                 } else {
                     val dx = ((event.x - lastX) * sensitivity).toInt()
