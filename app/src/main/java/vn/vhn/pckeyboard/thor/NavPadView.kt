@@ -62,13 +62,13 @@ class NavPadView(context: Context) : View(context) {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                originX = event.x; originY = event.y
+                originX = event.rawX; originY = event.rawY   // screen coords: whole display is the drag surface
                 emittedX = 0; emittedY = 0; pinX = 0; pinY = 0
                 active = true
                 parent?.requestDisallowInterceptTouchEvent(true)
                 return true
             }
-            MotionEvent.ACTION_MOVE -> if (active) { handleMove(event.x, event.y); return true }
+            MotionEvent.ACTION_MOVE -> if (active) { handleMove(event.rawX, event.rawY); return true }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 active = false; pinX = 0; pinY = 0
                 handler.removeCallbacks(repeatTick)
@@ -80,7 +80,10 @@ class NavPadView(context: Context) : View(context) {
     }
 
     private fun handleMove(rawX: Float, rawY: Float) {
-        val w = width.toFloat(); val h = height.toFloat()
+        // Bounds = the second screen, so the finger can drag across the whole display
+        // (symmetric zone), and edge auto-repeat only kicks in at the real screen edge.
+        val w = resources.displayMetrics.widthPixels.toFloat()
+        val h = resources.displayMetrics.heightPixels.toFloat()
         val cx = rawX.coerceIn(0f, w); val cy = rawY.coerceIn(0f, h)
         // Border pinning: finger at / past an edge -> repeat outward from that edge.
         pinX = when { rawX <= EDGE -> -1; rawX >= w - EDGE -> 1; else -> 0 }
