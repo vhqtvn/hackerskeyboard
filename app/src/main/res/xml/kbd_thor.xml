@@ -19,19 +19,19 @@
     <Row>
         <Key android:codes="@integer/key_escape" android:keyLabel="Esc" android:isModifier="true"
              android:keyWidth="10%p" android:keyEdgeFlags="left" />
-        <Key android:keyLabel="`" android:shiftLabel="~" android:isRepeatable="true"
+        <Key android:keyLabel="`" android:shiftLabel="~"
              android:keyWidth="8%p" />
-        <Key android:keyLabel="-" android:shiftLabel="_" android:isRepeatable="true"
+        <Key android:keyLabel="-" android:shiftLabel="_"
              android:fn2Codes="@integer/key_fkey_f11" android:fn2Label="F11" android:keyWidth="8%p" />
-        <Key android:keyLabel="\\" android:shiftLabel="|" android:isRepeatable="true"
+        <Key android:keyLabel="\\" android:shiftLabel="|"
              android:keyWidth="8%p" />
-        <Key android:keyLabel=";" android:shiftLabel=":" android:isRepeatable="true"
+        <Key android:keyLabel=";" android:shiftLabel=":"
              android:keyWidth="8%p" />
-        <Key android:keyLabel="=" android:shiftLabel="+" android:isRepeatable="true"
+        <Key android:keyLabel="=" android:shiftLabel="+"
              android:fn2Codes="@integer/key_fkey_f12" android:fn2Label="F12" android:keyWidth="8%p" />
-        <Key android:keyLabel="[" android:shiftLabel="{" android:isRepeatable="true"
+        <Key android:keyLabel="[" android:shiftLabel="{"
              android:keyWidth="8%p" />
-        <Key android:keyLabel="]" android:shiftLabel="}" android:isRepeatable="true"
+        <Key android:keyLabel="]" android:shiftLabel="}"
              android:keyWidth="8%p" />
         <Key android:codes="@integer/key_home" android:isModifier="true" android:keyLabel="Home"
              android:keyWidth="12%p" />
@@ -44,32 +44,32 @@
     <!-- Numbers. Shift = ! @ # ... ; blue Fn = F1..F10. -->
     <Row>
         <Key android:keyLabel="1" android:shiftLabel="!" android:keyEdgeFlags="left"
-             android:isRepeatable="true"
+            
              android:fn2Codes="@integer/key_fkey_f1" android:fn2Label="F1"
              android:keyWidth="7.09090909%p" />
-        <Key android:keyLabel="2" android:shiftLabel="\@" android:isRepeatable="true"
+        <Key android:keyLabel="2" android:shiftLabel="\@"
              android:fn2Codes="@integer/key_fkey_f2" android:fn2Label="F2" />
-        <Key android:keyLabel="3" android:shiftLabel="#" android:isRepeatable="true"
+        <Key android:keyLabel="3" android:shiftLabel="#"
              android:fn2Codes="@integer/key_fkey_f3" android:fn2Label="F3" />
-        <Key android:keyLabel="4" android:shiftLabel="$" android:isRepeatable="true"
+        <Key android:keyLabel="4" android:shiftLabel="$"
              android:fn2Codes="@integer/key_fkey_f4" android:fn2Label="F4" />
-        <Key android:keyLabel="5" android:shiftLabel="%" android:isRepeatable="true"
+        <Key android:keyLabel="5" android:shiftLabel="%"
              android:fn2Codes="@integer/key_fkey_f5" android:fn2Label="F5" />
-        <Key android:keyLabel="6" android:shiftLabel="^" android:isRepeatable="true"
+        <Key android:keyLabel="6" android:shiftLabel="^"
              android:fn2Codes="@integer/key_fkey_f6" android:fn2Label="F6" />
-        <Key android:keyLabel="7" android:shiftLabel="&amp;" android:isRepeatable="true"
+        <Key android:keyLabel="7" android:shiftLabel="&amp;"
              android:fn2Codes="@integer/key_fkey_f7" android:fn2Label="F7" />
-        <Key android:keyLabel="8" android:shiftLabel="*" android:isRepeatable="true"
+        <Key android:keyLabel="8" android:shiftLabel="*"
              android:fn2Codes="@integer/key_fkey_f8" android:fn2Label="F8" />
-        <Key android:keyLabel="9" android:shiftLabel="(" android:isRepeatable="true"
+        <Key android:keyLabel="9" android:shiftLabel="("
              android:fn2Codes="@integer/key_fkey_f9" android:fn2Label="F9" />
-        <Key android:keyLabel="0" android:shiftLabel=")" android:isRepeatable="true"
+        <Key android:keyLabel="0" android:shiftLabel=")"
              android:fn2Codes="@integer/key_fkey_f10" android:fn2Label="F10" />
         <Key android:codes="@integer/key_delete"
              android:keyWidth="11.09090909%p"
              android:keyIcon="@drawable/sym_keyboard_delete"
              android:iconPreview="@drawable/sym_keyboard_feedback_delete"
-             android:isModifier="true" android:isRepeatable="true"
+             android:isModifier="true"
              android:keyEdgeFlags="right" />
     </Row>
 

@@ -193,8 +193,10 @@ class OverlayKeyboardService : Service() {
     private fun toggleVn() {
         vnOn = !vnOn
         host?.setVnMode(vnOn)
+        // commit (not apply): the deck service can be killed right after a toggle
+        // (phantom-process killer), which would lose an async apply().
         PreferenceManager.getDefaultSharedPreferences(this)
-            .edit().putBoolean(PREF_VN, vnOn).apply()
+            .edit().putBoolean(PREF_VN, vnOn).commit()
         langButton?.apply {
             text = if (vnOn) "Vi" else "En"
             setTextColor(if (vnOn) 0xFFF3CB63.toInt() else Color.WHITE)
