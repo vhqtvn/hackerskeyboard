@@ -21,6 +21,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.view.ContextThemeWrapper
 
@@ -212,115 +213,72 @@ class OverlayKeyboardService : Service() {
     private fun buildDeck(ctx: Context): View {
         val root = FrameLayout(ctx).apply { setBackgroundColor(Color.BLACK) }
 
-        // Recent-apps strip along the top (tap = switch to app on main screen, swipe
-        // an icon down = kill it). Inset horizontally to clear the corner buttons.
+        // Vertical column so the top area distributes cleanly (no dead band / no
+        // fragile measured-height offsets): recents on top, nav pad fills the middle,
+        // keyboard takes its natural height at the bottom.
+        val col = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+
+        // Recent-apps strip (tap = switch to app on main screen, swipe an icon down =
+        // kill it). Inset horizontally to clear the corner buttons. Self-refreshes.
         val recents = RecentAppsView(ctx)
         recents.setPadding(dp(52f), 0, dp(100f), 0)
-        root.addView(recents, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT, dp(56f)).apply {
-            gravity = Gravity.TOP; topMargin = dp(4f)
+        col.addView(recents, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(56f)).apply { topMargin = dp(6f) })
+
+        // Cursor-navigation pad, centred and filling the gap between recents/keyboard.
+        val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
+        val navBox = FrameLayout(ctx)
+        navBox.addView(navPad, FrameLayout.LayoutParams(
+            dp(280f), FrameLayout.LayoutParams.MATCH_PARENT).apply {
+            gravity = Gravity.CENTER; topMargin = dp(6f); bottomMargin = dp(6f)
         })
-        // RecentAppsView self-refreshes (polls) while attached/visible.
+        col.addView(navBox, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))   // weight: fills remaining space
 
-        // Trackpad fills the whole deck but is only exposed in the top area not
-        // covered by the (bottom-anchored) keyboard; relative moves work anywhere.
-        // Disabled for now (the strip is mostly taken by the keyboard + nav pad);
-        // flip TRACKPAD_ENABLED to bring it back.
-        if (TRACKPAD_ENABLED) {
-            val trackpad = TrackpadView(ctx, mainDisplayWidth, mainDisplayHeight)
-            root.addView(trackpad, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        // Keyboard (natural height ~KEYBOARD_HEIGHT_PERCENT) at the bottom.
+        val kb = host!!.rootView
+        (kb.parent as? ViewGroup)?.removeView(kb)
+        col.addView(kb, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
 
-            val hint = TextView(ctx).apply {
-                text = "trackpad — drag to move, tap = click, 2-finger = scroll"
-                setTextColor(0xFF555555.toInt())
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                gravity = Gravity.CENTER
-                isClickable = false
-            }
-            root.addView(hint, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
-                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                topMargin = dp(12f)
-            })
-        }
+        root.addView(col, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
-
+        // --- corner buttons overlaid on top of the column ---
+        val s = dp(40f)
         val minimize = TextView(ctx).apply {
-            text = "▾"
-            gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
+            text = "▾"; gravity = Gravity.CENTER; setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt())
-            }
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt()) }
             setOnClickListener { minimize() }
         }
-        val s = dp(40f)
         root.addView(minimize, FrameLayout.LayoutParams(s, s).apply {
-            gravity = Gravity.TOP or Gravity.END
-            topMargin = dp(8f); rightMargin = dp(8f)
+            gravity = Gravity.TOP or Gravity.END; topMargin = dp(8f); rightMargin = dp(8f)
         })
 
-        // Gamepad-mouse toggle (folded joyscroll).
         val gp = TextView(ctx).apply {
-            text = "🎮"  // gamepad emoji
-            gravity = Gravity.CENTER
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt())
-            }
+            text = "🎮"; gravity = Gravity.CENTER; setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt()) }
             alpha = if (gamepadOn) 1f else 0.4f
             setOnClickListener { toggleGamepad() }
         }
         gamepadButton = gp
         root.addView(gp, FrameLayout.LayoutParams(s, s).apply {
-            gravity = Gravity.TOP or Gravity.END
-            topMargin = dp(8f); rightMargin = dp(8f) + s + dp(8f)
+            gravity = Gravity.TOP or Gravity.END; topMargin = dp(8f); rightMargin = dp(8f) + s + dp(8f)
         })
 
-        // Language toggle (top-left): En <-> Vi (Vietnamese via Unikey).
         val lang = TextView(ctx).apply {
-            text = if (vnOn) "Vi" else "En"
-            gravity = Gravity.CENTER
+            text = if (vnOn) "Vi" else "En"; gravity = Gravity.CENTER
             setTextColor(if (vnOn) 0xFFF3CB63.toInt() else Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt())
-            }
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt()) }
             setOnClickListener { toggleVn() }
         }
         langButton = lang
         root.addView(lang, FrameLayout.LayoutParams(s, s).apply {
-            gravity = Gravity.TOP or Gravity.START
-            topMargin = dp(8f); leftMargin = dp(8f)
+            gravity = Gravity.TOP or Gravity.START; topMargin = dp(8f); leftMargin = dp(8f)
         })
 
-        val kb = host!!.rootView
-        (kb.parent as? ViewGroup)?.removeView(kb)
-        root.addView(kb, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
-            gravity = Gravity.BOTTOM
-        })
-
-        // Cursor-navigation pad: drag = quantized arrow keys (symmetric return),
-        // edge = auto-repeat. A symmetric-displacement control wants equal room
-        // around the origin, so it's centred horizontally and dropped to the top
-        // edge of the keyboard -- as close to the deck's vertical middle as the
-        // strip allows, reachable by both thumbs. Added last so it sits on top of
-        // the trackpad/keyboard and captures gestures that start inside it.
-        val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
-        val navLp = FrameLayout.LayoutParams(dp(240f), dp(56f)).apply {
-            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            bottomMargin = dp(8f)
-        }
-        root.addView(navPad, navLp)
-        val placeNav = Runnable {
-            val kbh = kb.height
-            if (kbh > 0) { navLp.bottomMargin = kbh + dp(2f); navPad.layoutParams = navLp }
-        }
-        root.post(placeNav)
-        root.postDelayed(placeNav, 320)
         return root
     }
 
