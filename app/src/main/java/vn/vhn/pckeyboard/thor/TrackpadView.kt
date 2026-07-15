@@ -2,7 +2,10 @@ package vn.vhn.pckeyboard.thor
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.View
 import kotlin.math.abs
 
@@ -10,18 +13,19 @@ import kotlin.math.abs
  * A relative trackpad surface for the deck's utility area.
  *
  * - Single-finger drag moves the mouse cursor (virtual mouse -> focused display),
- *   tracked here so scrolling can anchor under the cursor.
+ *   tracked here so scrolling targets what the cursor is over.
  * - Quick single-finger tap = left click.
- * - Two-finger drag scrolls by injecting a real finger drag on the main screen
- *   (Android 13 ignores mouse-wheel hi-res, so a touch drag is the only smooth,
- *   kinetic option). To avoid a stationary two-finger touch being read as a *tap*
- *   (which would click whatever is under it), the touch-down is deferred until the
- *   gesture has actually moved. The drag is anchored at the cursor's X column (so it
- *   scrolls the pane/list you're pointing at) and re-anchors at centre near a screen
- *   edge so scrolling is unbounded.
+ * - Two-finger drag scrolls by injecting generic ACTION_SCROLL (mouse-wheel) events
+ *   at the cursor (via [ImInjector], in-process). ACTION_SCROLL has no built-in fling,
+ *   so on release we synthesize momentum: keep injecting a velocity-decayed scroll,
+ *   giving kinetic scrolling even on native lists (which otherwise "stick").
  */
 @SuppressLint("ClickableViewAccessibility")
-class TrackpadView(context: Context, private val mainDisplayWidth: Int) : View(context) {
+class TrackpadView(
+    context: Context,
+    private val mainDisplayWidth: Int,
+    private val mainDisplayHeight: Int,
+) : View(context) {
 
     private var lastX = 0f
     private var lastY = 0f
@@ -30,29 +34,43 @@ class TrackpadView(context: Context, private val mainDisplayWidth: Int) : View(c
     private var downTime = 0L
     private var moved = false
 
-    // Estimated cursor X on the main display (px), for anchoring the scroll column.
+    // Estimated cursor position on the main display (px), for scroll targeting.
     private var cursorX = mainDisplayWidth / 2f
+    private var cursorY = mainDisplayHeight / 2f
 
-    // Two-finger touch-scroll state.
+    // Two-finger scroll state.
     private var scrolling = false
-    private var scrollStarted = false      // touch-down actually injected yet?
-    private var scrollAnchorX = TOUCH_CENTER
-    private var scrollTouchY = TOUCH_CENTER
-    private var scrollLastFingerY = 0f
-    private var scrollPending = 0f          // movement accumulated before start threshold
+    private var scrollLastY = 0f
+    private var velocityTracker: VelocityTracker? = null
+
+    // Fling.
+    private val flingHandler = Handler(Looper.getMainLooper())
+    private var flingVel = 0f  // px/s (finger-equivalent)
 
     private val sensitivity = 1.6f
     private val tapSlop = 14f * resources.displayMetrics.density
     private val tapMaxMs = 250L
-    private val density = resources.displayMetrics.density
-    // Normalised touch units per pixel of two-finger movement (scroll speed).
-    private val scrollNormPerPx = 70f / density
-    // Movement (px) required before a two-finger gesture becomes a scroll (vs tap).
-    private val scrollStartSlop = 10f * density
+    // AXIS_VSCROLL units per pixel of two-finger movement (scroll speed; tunable).
+    private val vscrollPerPx = 0.06f
+    private val minFlingVel = 300f      // px/s to start a fling
+    private val flingDecay = 0.9f       // per 16ms frame
+    private val flingStopVel = 60f      // px/s to end the fling
+
+    private val flingRunnable = object : Runnable {
+        override fun run() {
+            val dyFrame = flingVel * 0.016f  // px this frame
+            ImInjector.injectVScroll(0, cursorX, cursorY, dyFrame * vscrollPerPx)
+            flingVel *= flingDecay
+            if (abs(flingVel) > flingStopVel) flingHandler.postDelayed(this, 16)
+        }
+    }
+
+    private fun stopFling() = flingHandler.removeCallbacks(flingRunnable)
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                stopFling()
                 lastX = event.x; lastY = event.y
                 downX = event.x; downY = event.y
                 downTime = event.eventTime
@@ -60,19 +78,29 @@ class TrackpadView(context: Context, private val mainDisplayWidth: Int) : View(c
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
                 moved = true // multi-touch is not a tap
-                if (event.pointerCount == 2 && !scrolling) beginScroll(event)
+                if (event.pointerCount == 2) {
+                    scrolling = true
+                    scrollLastY = event.getY(0)
+                    velocityTracker?.recycle()
+                    velocityTracker = VelocityTracker.obtain()
+                }
             }
             MotionEvent.ACTION_MOVE -> {
                 if (scrolling && event.pointerCount >= 2) {
-                    doScroll(event)
+                    velocityTracker?.addMovement(event)
+                    val fy = event.getY(0)
+                    val dy = fy - scrollLastY
+                    scrollLastY = fy
+                    if (dy != 0f) {
+                        ImInjector.injectVScroll(0, cursorX, cursorY, dy * vscrollPerPx)
+                    }
                 } else if (!scrolling && event.pointerCount == 1) {
-                    val dxPx = event.x - lastX
-                    val dyPx = event.y - lastY
-                    val dx = (dxPx * sensitivity).toInt()
-                    val dy = (dyPx * sensitivity).toInt()
+                    val dx = ((event.x - lastX) * sensitivity).toInt()
+                    val dy = ((event.y - lastY) * sensitivity).toInt()
                     if (dx != 0 || dy != 0) {
                         InputInjector.moveMouse(dx, dy)
                         cursorX = (cursorX + dx).coerceIn(0f, mainDisplayWidth.toFloat())
+                        cursorY = (cursorY + dy).coerceIn(0f, mainDisplayHeight.toFloat())
                         lastX = event.x; lastY = event.y
                     }
                     if (abs(event.x - downX) > tapSlop || abs(event.y - downY) > tapSlop) moved = true
@@ -90,55 +118,18 @@ class TrackpadView(context: Context, private val mainDisplayWidth: Int) : View(c
         return true
     }
 
-    private fun beginScroll(event: MotionEvent) {
-        scrolling = true
-        scrollStarted = false
-        scrollPending = 0f
-        scrollLastFingerY = event.getY(0)
-        // Anchor the scroll column under the cursor.
-        scrollAnchorX = (cursorX / mainDisplayWidth * TOUCH_MAX).toInt()
-            .coerceIn(TOUCH_MARGIN, TOUCH_MAX - TOUCH_MARGIN)
-    }
-
-    private fun doScroll(event: MotionEvent) {
-        val fy = event.getY(0)
-        val dPx = fy - scrollLastFingerY
-        scrollLastFingerY = fy
-        if (!scrollStarted) {
-            // Defer the touch-down until real movement, so a stationary two-finger
-            // touch never lands as a tap/click on the main screen.
-            scrollPending += dPx
-            if (abs(scrollPending) < scrollStartSlop) return
-            scrollStarted = true
-            scrollTouchY = TOUCH_CENTER
-            InputInjector.touchDown(scrollAnchorX, scrollTouchY)
-            applyScroll(scrollPending)
-        } else {
-            applyScroll(dPx)
-        }
-    }
-
-    private fun applyScroll(dPx: Float) {
-        scrollTouchY += (dPx * scrollNormPerPx).toInt()
-        if (scrollTouchY <= TOUCH_MARGIN || scrollTouchY >= TOUCH_MAX - TOUCH_MARGIN) {
-            // Re-anchor at centre so the drag can continue past a screen edge.
-            InputInjector.touchUp()
-            scrollTouchY = TOUCH_CENTER
-            InputInjector.touchDown(scrollAnchorX, scrollTouchY)
-        } else {
-            InputInjector.touchMove(scrollAnchorX, scrollTouchY)
-        }
-    }
-
     private fun endScroll() {
-        if (scrollStarted) InputInjector.touchUp()
         scrolling = false
-        scrollStarted = false
-    }
-
-    companion object {
-        private const val TOUCH_MAX = 32767
-        private const val TOUCH_CENTER = TOUCH_MAX / 2
-        private const val TOUCH_MARGIN = 3000
+        val vt = velocityTracker
+        if (vt != null) {
+            vt.computeCurrentVelocity(1000)
+            flingVel = vt.getYVelocity(0)
+            vt.recycle()
+            velocityTracker = null
+            if (abs(flingVel) > minFlingVel) {
+                stopFling()
+                flingHandler.post(flingRunnable)
+            }
+        }
     }
 }

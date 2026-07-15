@@ -46,6 +46,7 @@ class OverlayKeyboardService : Service() {
     private var expanded = false
     private var gamepadOn = false
     private var mainDisplayWidth = 1920
+    private var mainDisplayHeight = 1080
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -56,6 +57,7 @@ class OverlayKeyboardService : Service() {
         // works standalone, however it was started (button or boot).
         ThorSetup.ensure(this)
         InputInjector.start(this)
+        ImInjector.init(this)
         gamepadOn = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(PREF_GAMEPAD, false)
         InputInjector.setGamepad(gamepadOn)
         if (!setupDisplay()) {
@@ -69,7 +71,22 @@ class OverlayKeyboardService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_TOGGLE) toggle()
+        when (intent?.action) {
+            ACTION_TOGGLE -> toggle()
+            ACTION_TEST_SCROLL -> {
+                // Experiment: fire a burst of fine ACTION_SCROLL events at a point on
+                // the main display to see if apps scroll (and how smoothly).
+                val x = mainDisplayWidth * intent.getFloatExtra("xf", 0.5f)
+                val y = mainDisplayHeight * intent.getFloatExtra("yf", 0.5f)
+                val amount = intent.getFloatExtra("v", -0.3f)
+                Thread {
+                    repeat(40) {
+                        ImInjector.injectVScroll(Display.DEFAULT_DISPLAY, x, y, amount)
+                        try { Thread.sleep(16) } catch (_: InterruptedException) {}
+                    }
+                }.start()
+            }
+        }
         return START_STICKY
     }
 
@@ -103,6 +120,7 @@ class OverlayKeyboardService : Service() {
             val p = android.graphics.Point()
             @Suppress("DEPRECATION") it.getRealSize(p)
             if (p.x > 0) mainDisplayWidth = p.x
+            if (p.y > 0) mainDisplayHeight = p.y
         }
         dm.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION).firstOrNull()?.let { return it }
         return dm.displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY }
@@ -173,7 +191,7 @@ class OverlayKeyboardService : Service() {
 
         // Trackpad fills the whole deck but is only exposed in the top area not
         // covered by the (bottom-anchored) keyboard; relative moves work anywhere.
-        val trackpad = TrackpadView(ctx, mainDisplayWidth)
+        val trackpad = TrackpadView(ctx, mainDisplayWidth, mainDisplayHeight)
         root.addView(trackpad, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
@@ -294,6 +312,7 @@ class OverlayKeyboardService : Service() {
         private const val KEYBOARD_HEIGHT_PERCENT = 68f
         private const val PREF_GAMEPAD = "thor_gamepad_mouse"
         const val ACTION_TOGGLE = "vn.vhn.pckeyboard.thor.TOGGLE"
+        const val ACTION_TEST_SCROLL = "vn.vhn.pckeyboard.thor.TEST_SCROLL"
 
         fun start(context: Context) {
             val i = Intent(context, OverlayKeyboardService::class.java)
