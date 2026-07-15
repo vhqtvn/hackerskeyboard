@@ -940,6 +940,11 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
             }
             var shouldDrawIcon = true
             if (label != null) {
+                // On the deck, a single glyph that carries a shift hint is laid out
+                // dual-legend: smaller and pushed to the lower-left, so the (larger)
+                // hint sits clear in the top-right corner.
+                val hasHint = colorCodeKeys && label.length <= 1 &&
+                    key.getHintLabel(showHints7Bit(), showHintsAll()) != ""
                 // For characters, use large font. For labels like "Done", use small font.
                 val labelSize: Int
                 if (label.length > 1 && key.codes!!.size < 2) {
@@ -947,11 +952,7 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                     labelSize = (mLabelTextSize * mLabelScale).toInt()
                     paint.typeface = Typeface.DEFAULT
                 } else {
-                    // On the deck, shrink a single glyph that carries a shift hint so
-                    // the (larger) hint has room and doesn't collide with the label.
-                    val hasHint = colorCodeKeys &&
-                        key.getHintLabel(showHints7Bit(), showHintsAll()) != ""
-                    val scale = if (hasHint) 0.82 else 1.0
+                    val scale = if (hasHint) 0.8 else 1.0
                     labelSize = (mKeyTextSize * mLabelScale * scale).toInt()
                     paint.typeface = mKeyTextStyle
                 }
@@ -1036,12 +1037,17 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                 // Draw main key label
                 val centerX = (key.width + padding.left - padding.right) / 2
                 val centerY = (key.height + padding.top - padding.bottom) / 2
-                val baseline = (centerY
+                var baseline = (centerY
                         + labelHeight * KEY_LABEL_VERTICAL_ADJUSTMENT_FACTOR)
+                var labelX = centerX.toFloat()
+                if (hasHint) {   // dual-legend: main glyph to the lower-left
+                    labelX -= key.width * 0.15f
+                    baseline += key.height * 0.12f
+                }
                 if (key.isDeadKey) {
-                    drawDeadKeyLabel(canvas, label, centerX, baseline, paint)
+                    drawDeadKeyLabel(canvas, label, labelX.toInt(), baseline, paint)
                 } else {
-                    canvas.drawText(label, centerX.toFloat(), baseline, paint)
+                    canvas.drawText(label, labelX, baseline, paint)
                 }
                 if (key.isCursor) {
                     // poor man's bold - FIXME
