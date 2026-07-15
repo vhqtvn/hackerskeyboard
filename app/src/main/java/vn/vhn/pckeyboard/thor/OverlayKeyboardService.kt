@@ -48,6 +48,7 @@ class OverlayKeyboardService : Service() {
     private var expanded = false
     private var gamepadOn = false
     private var vnOn = false
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var mainDisplayWidth = 1920
     private var mainDisplayHeight = 1080
 
@@ -60,6 +61,11 @@ class OverlayKeyboardService : Service() {
         // works standalone, however it was started (button or boot).
         ThorSetup.ensure(this)
         InputInjector.start(this)
+        // Gamepad buttons (from the daemon) routed through the keyboard path on the
+        // main thread, so the deck's active modifiers apply (Shift + D-pad = select).
+        InputInjector.gamepadKeyListener = { code, down ->
+            mainHandler.post { host?.gamepadKey(code, down) }
+        }
         ImInjector.init(this)
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         gamepadOn = prefs.getBoolean(PREF_GAMEPAD, false)
@@ -100,6 +106,7 @@ class OverlayKeyboardService : Service() {
     }
 
     override fun onDestroy() {
+        InputInjector.gamepadKeyListener = null
         TaskWatcher.unregister()
         ThorController.setServiceRunning(false)
         ThorController.expandRequest = null
@@ -239,8 +246,12 @@ class OverlayKeyboardService : Service() {
         // Home/End are key-styled buttons at the same height as the keyboard rows;
         // they inject with the deck's active modifiers (so Shift+Home selects).
         val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
-        val homeBtn = navKey(ctx, "⇱", android.view.KeyEvent.KEYCODE_MOVE_HOME)
-        val endBtn = navKey(ctx, "⇲", android.view.KeyEvent.KEYCODE_MOVE_END)
+        val homeBtn = navKey(ctx, "⇱") {
+            ImInjector.injectKey(android.view.KeyEvent.KEYCODE_MOVE_HOME, host?.navMetaState() ?: 0)
+        }
+        val endBtn = navKey(ctx, "⇲") {
+            ImInjector.injectKey(android.view.KeyEvent.KEYCODE_MOVE_END, host?.navMetaState() ?: 0)
+        }
         val navRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
         val m = dp(4f)
         navRow.addView(homeBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
@@ -351,7 +362,7 @@ class OverlayKeyboardService : Service() {
     private fun dp(value: Float): Int = (value * resources.displayMetrics.density).toInt()
 
     /** A key-styled button (black body, gold edit/nav border) for the nav line. */
-    private fun navKey(ctx: Context, label: String, keyCode: Int): TextView {
+    private fun navKey(ctx: Context, label: String, onClick: () -> Unit): TextView {
         return TextView(ctx).apply {
             text = label
             gravity = Gravity.CENTER
@@ -363,7 +374,7 @@ class OverlayKeyboardService : Service() {
                 setColor(Color.BLACK)
                 setStroke(dp(2f), 0x88F3CB63.toInt())
             }
-            setOnClickListener { InputInjector.injectAndroidKey(keyCode, host?.navMetaState() ?: 0) }
+            setOnClickListener { onClick() }
         }
     }
 

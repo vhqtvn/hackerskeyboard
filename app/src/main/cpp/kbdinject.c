@@ -329,6 +329,13 @@ static float axis_to_scroll(int value) {
 }
 
 /* One connect/grab/map session; returns when disabled or the pad disconnects. */
+/* Forward a gamepad button to the app (stdout) so it can be injected as a keyboard
+ * key through the modifier-aware path (e.g. deck-Shift + D-pad = select). */
+static void gp_key(int evdev, int down) {
+    printf("GP %d %d\n", evdev, down);
+    fflush(stdout);
+}
+
 static void gamepad_session(void) {
     int gp = find_gamepad();
     if (gp < 0) { usleep(1500000); return; }
@@ -359,6 +366,7 @@ static void gamepad_session(void) {
     int left_x = 0, left_y = 0, right_x = 0, right_y = 0;
     float accum_wheel = 0, accum_hwheel = 0;
     int wheel_accum = 0;
+    int prev_hatx = 0, prev_haty = 0;   /* D-pad -> keyboard arrows (via app) */
     int disc = 0;
     while (!g_quit && g_gamepad_enabled && !disc) {
         struct epoll_event evs[4];
@@ -373,12 +381,31 @@ static void gamepad_session(void) {
                         case ABS_Y:  left_y = ie.value;  emit(proxy, EV_ABS, ABS_Y, 0);  break;
                         case ABS_Z:  right_x = ie.value; emit(proxy, EV_ABS, ABS_Z, 0);  break;
                         case ABS_RZ: right_y = ie.value; emit(proxy, EV_ABS, ABS_RZ, 0); break;
+                        /* D-pad -> arrow keys routed through the app (so deck modifiers
+                         * apply, e.g. Shift + D-pad = select). Not forwarded to proxy. */
+                        case ABS_HAT0X:
+                            if (prev_hatx < 0) gp_key(KEY_LEFT, 0);
+                            else if (prev_hatx > 0) gp_key(KEY_RIGHT, 0);
+                            if (ie.value < 0) gp_key(KEY_LEFT, 1);
+                            else if (ie.value > 0) gp_key(KEY_RIGHT, 1);
+                            prev_hatx = ie.value; break;
+                        case ABS_HAT0Y:
+                            if (prev_haty < 0) gp_key(KEY_UP, 0);
+                            else if (prev_haty > 0) gp_key(KEY_DOWN, 0);
+                            if (ie.value < 0) gp_key(KEY_UP, 1);
+                            else if (ie.value > 0) gp_key(KEY_DOWN, 1);
+                            prev_haty = ie.value; break;
                         default: write(proxy, &ie, sizeof(ie)); break;
                     }
                 } else if (ie.type == EV_KEY) {
                     if (ie.code == BTN_TL) { emit(mouse, EV_KEY, BTN_LEFT, ie.value); sync_report(mouse); }
                     else if (ie.code == BTN_TR) { emit(mouse, EV_KEY, BTN_RIGHT, ie.value); sync_report(mouse); }
                     else if (ie.code == BTN_SELECT) { if (ie.value == 1) trigger_app_switch(); /* consume */ }
+                    /* D-pad reported as buttons (some pads) -> arrow keys via the app. */
+                    else if (ie.code == BTN_DPAD_UP)    gp_key(KEY_UP, ie.value);
+                    else if (ie.code == BTN_DPAD_DOWN)  gp_key(KEY_DOWN, ie.value);
+                    else if (ie.code == BTN_DPAD_LEFT)  gp_key(KEY_LEFT, ie.value);
+                    else if (ie.code == BTN_DPAD_RIGHT) gp_key(KEY_RIGHT, ie.value);
                     else write(proxy, &ie, sizeof(ie));
                 } else {
                     write(proxy, &ie, sizeof(ie));

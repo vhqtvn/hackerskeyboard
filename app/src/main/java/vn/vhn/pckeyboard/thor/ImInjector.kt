@@ -43,6 +43,26 @@ object ImInjector {
         }
     }
 
+    /**
+     * Inject a KeyEvent by *keycode* (down then up) to the focused window. This goes
+     * in as a keycode -- not a scancode -- so it bypasses the device keylayout (e.g.
+     * KEYCODE_MOVE_HOME stays MOVE_HOME instead of being remapped to device HOME).
+     * metaState carries modifiers (META_SHIFT_ON -> selection).
+     */
+    fun injectKey(keyCode: Int, metaState: Int) {
+        val imgr = im ?: return
+        val inj = injectMethod ?: return
+        val now = SystemClock.uptimeMillis()
+        fun ev(action: Int) = android.view.KeyEvent(
+            now, now, action, keyCode, 0, metaState,
+            android.view.KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0, InputDevice.SOURCE_KEYBOARD
+        )
+        try {
+            inj.invoke(imgr, ev(android.view.KeyEvent.ACTION_DOWN), 0)
+            inj.invoke(imgr, ev(android.view.KeyEvent.ACTION_UP), 0)
+        } catch (t: Throwable) { Log.e(TAG, "inject key $keyCode failed", t) }
+    }
+
     /** Inject a generic ACTION_SCROLL at (x,y) on [displayId]; +vscroll = up, -vscroll = down. */
     fun injectVScroll(displayId: Int, x: Float, y: Float, vscroll: Float) {
         val imgr = im ?: return

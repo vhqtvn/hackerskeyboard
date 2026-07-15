@@ -26,6 +26,10 @@ object InputInjector {
     private var writer: BufferedWriter? = null
     private val lock = Any()
 
+    /** Called on a background thread when the daemon reports a gamepad button
+     *  (evdev code, pressed). Set by the service to route it through the keyboard. */
+    @Volatile var gamepadKeyListener: ((Int, Boolean) -> Unit)? = null
+
     val isRunning: Boolean
         get() = synchronized(lock) { process?.isAlive == true }
 
@@ -55,7 +59,23 @@ object InputInjector {
             val reply = r.readLine()
             val ok = p.isAlive && reply != null && reply.contains("OK")
             Log.d(TAG, "daemon start ok=$ok reply=$reply bin=$bin")
-            if (!ok) stopLocked()
+            if (!ok) { stopLocked(); return false }
+            // Keep reading the daemon's stdout for pushed gamepad events ("GP <evdev> <down>").
+            Thread {
+                try {
+                    var line = r.readLine()
+                    while (line != null) {
+                        if (line.startsWith("GP ")) {
+                            val parts = line.split(" ")
+                            if (parts.size >= 3) {
+                                val code = parts[1].toIntOrNull()
+                                if (code != null) gamepadKeyListener?.invoke(code, parts[2].trim() != "0")
+                            }
+                        }
+                        line = r.readLine()
+                    }
+                } catch (_: Exception) {}
+            }.apply { isDaemon = true }.start()
             ok
         } catch (e: Exception) {
             Log.e(TAG, "failed to start daemon", e)

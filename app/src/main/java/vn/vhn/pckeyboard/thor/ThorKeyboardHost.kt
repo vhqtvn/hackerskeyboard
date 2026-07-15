@@ -266,6 +266,25 @@ class ThorKeyboardHost(
         downMods = IntArray(0)
     }
 
+    // Gamepad button routed as a keyboard key (raw evdev), held down/up with the
+    // deck's active modifiers -- so latched/held Shift/Ctrl/... combine with it
+    // (e.g. Shift + D-pad = select). Modifiers are not consumed (persist across it).
+    private var gpDownEvdev: Int? = null
+    private var gpDownMods: IntArray = IntArray(0)
+
+    fun gamepadKey(evdev: Int, down: Boolean) {
+        if (down) {
+            gpDownEvdev?.let { InputInjector.releaseWithMeta(it, gpDownMods) }
+            gpDownMods = InputInjector.pressWithMods(evdev, activeModEvdevs(anyShift()))
+            gpDownEvdev = evdev
+        } else {
+            val e = gpDownEvdev ?: return
+            InputInjector.releaseWithMeta(e, gpDownMods)
+            gpDownEvdev = null
+            gpDownMods = IntArray(0)
+        }
+    }
+
     // --- OnKeyboardActionListener ----------------------------------------------
     override fun onPress(primaryCode: Int) {
         modFor(primaryCode)?.let { it.held = true; it.used = false; updateIndicators(); return }
