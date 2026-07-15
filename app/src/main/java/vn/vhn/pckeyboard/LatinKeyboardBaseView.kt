@@ -145,6 +145,34 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
     private var mShadowColor = 0
     private var mShadowRadius = 0f
     private var mKeyBackground: Drawable? = null
+
+    /**
+     * When true, the key background is tinted per function group so keys read as
+     * distinct blocks (used by the Thor deck). Modifiers = blue, edit/nav = gold,
+     * digits/symbols = cool grey, letters = untinted.
+     */
+    var colorCodeKeys = false
+    private val mTintMod = android.graphics.PorterDuffColorFilter(
+        0x505C9DFF, android.graphics.PorterDuff.Mode.SRC_ATOP)
+    private val mTintFunc = android.graphics.PorterDuffColorFilter(
+        0x4CF3CB63, android.graphics.PorterDuff.Mode.SRC_ATOP)
+    private val mTintNumSym = android.graphics.PorterDuffColorFilter(
+        0x2C9DB4D0, android.graphics.PorterDuff.Mode.SRC_ATOP)
+
+    private fun keyTintFilter(key: Keyboard.Key): android.graphics.ColorFilter? {
+        if (!colorCodeKeys) return null
+        val code = key.codes?.firstOrNull() ?: return null
+        when (code) {
+            LatinKeyboardView.KEYCODE_SHIFT_LEFT, LatinKeyboardView.KEYCODE_SHIFT_RIGHT,
+            LatinKeyboardView.KEYCODE_CTRL_LEFT, LatinKeyboardView.KEYCODE_CTRL_RIGHT,
+            LatinKeyboardView.KEYCODE_ALT_LEFT, LatinKeyboardView.KEYCODE_ALT_RIGHT,
+            LatinKeyboardView.KEYCODE_META_LEFT, LatinKeyboardView.KEYCODE_META_RIGHT,
+            LatinKeyboardView.KEYCODE_FN_1, LatinKeyboardView.KEYCODE_FN_2 -> return mTintMod
+        }
+        if (code in 'a'.code..'z'.code || code in 'A'.code..'Z'.code) return null   // letters: base
+        if (code in 33..126) return mTintNumSym   // printable digits/symbols (not space)
+        return mTintFunc   // space, enter, tab, esc, backspace, del, home, end, arrows...
+    }
     private var mBackgroundAlpha = 0
     private var mBackgroundDimAmount = 0f
     private var mKeyHysteresisDistance = 0f
@@ -873,6 +901,7 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
             if (mBackgroundAlpha != 255) {
                 keyBackground.alpha = mBackgroundAlpha
             }
+            keyBackground.colorFilter = keyTintFilter(key)   // per-group tint (Thor deck)
             keyBackground.draw(canvas)
             if (yscale != 1.0f) canvas.restore()
             var shouldDrawIcon = true

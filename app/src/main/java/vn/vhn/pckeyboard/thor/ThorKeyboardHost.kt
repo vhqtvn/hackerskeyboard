@@ -110,6 +110,7 @@ class ThorKeyboardHost(
         kb.setLanguageSwitcher(lang, false)
         inputView.setKeyboard(kb)
         inputView.setPreviewEnabled(false)
+        inputView.colorCodeKeys = true   // tint keys per function group for visual separation
         inputView.setOnKeyboardActionListener(this)
     }
 
