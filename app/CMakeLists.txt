@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.4.1)
-project(vhkeyboard C)
+project(vhkeyboard C CXX)
 
 # AYN Thor: uinput keyboard injector daemon.
 # Built as an executable but named libkbdinject.so so the Android Gradle Plugin
@@ -11,3 +11,8 @@ set_target_properties( kbdinject PROPERTIES
                        PREFIX "lib"
                        OUTPUT_NAME "kbdinject"
                        SUFFIX ".so" )
+
+# Vietnamese input: bundled Unikey engine + JNI bridge -> libunikey.so
+file(GLOB UKENGINE_SRC src/main/cpp/ukengine/*.cpp)
+add_library( unikey SHARED src/main/cpp/unikey_jni.cpp ${UKENGINE_SRC} )
+target_include_directories( unikey PRIVATE src/main/cpp/ukengine )
