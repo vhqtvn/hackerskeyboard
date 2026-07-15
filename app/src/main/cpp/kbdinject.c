@@ -33,6 +33,7 @@
 #include <math.h>
 #include <dirent.h>
 #include <pthread.h>
+#include <signal.h>
 #include <linux/input.h>
 #include <linux/uinput.h>
 #include <sys/ioctl.h>
@@ -302,6 +303,17 @@ static int create_proxy_gamepad(int real_fd) {
     return fd;
 }
 
+/* Fire KEYCODE_APP_SWITCH (recent apps) via the `input` command, non-blocking.
+ * Used for the gamepad Select button in joy mode. Reliable regardless of the
+ * controller's key layout. SIGCHLD is ignored in main() so children auto-reap. */
+static void trigger_app_switch(void) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        execl("/system/bin/sh", "sh", "-c", "input keyevent 187", (char *)NULL);
+        _exit(127);
+    }
+}
+
 static float axis_to_cursor(int value) {
     int av = abs(value);
     if (av < MOUSE_DEAD_ZONE) return 0.0f;
@@ -366,6 +378,7 @@ static void gamepad_session(void) {
                 } else if (ie.type == EV_KEY) {
                     if (ie.code == BTN_TL) { emit(mouse, EV_KEY, BTN_LEFT, ie.value); sync_report(mouse); }
                     else if (ie.code == BTN_TR) { emit(mouse, EV_KEY, BTN_RIGHT, ie.value); sync_report(mouse); }
+                    else if (ie.code == BTN_SELECT) { if (ie.value == 1) trigger_app_switch(); /* consume */ }
                     else write(proxy, &ie, sizeof(ie));
                 } else {
                     write(proxy, &ie, sizeof(ie));
@@ -403,6 +416,7 @@ static void *gamepad_thread(void *arg) {
 
 int main(void) {
     setvbuf(stdout, NULL, _IONBF, 0);
+    signal(SIGCHLD, SIG_IGN);  // auto-reap trigger_app_switch children
 
     int fd = create_keyboard();
     if (fd < 0) return 1;
