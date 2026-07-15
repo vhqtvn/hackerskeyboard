@@ -208,6 +208,15 @@ class OverlayKeyboardService : Service() {
             topMargin = dp(12f)
         })
 
+        // Cursor-navigation pad (top-left of the strip): drag = quantized arrow keys,
+        // symmetric return, edge = auto-repeat. Sits on top of the trackpad so touches
+        // that start inside it steer the cursor instead of moving the mouse.
+        val navPad = NavPadView(ctx)
+        root.addView(navPad, FrameLayout.LayoutParams(dp(230f), dp(70f)).apply {
+            gravity = Gravity.TOP or Gravity.START
+            topMargin = dp(8f); leftMargin = dp(8f)
+        })
+
         val minimize = TextView(ctx).apply {
             text = "▾"
             gravity = Gravity.CENTER
