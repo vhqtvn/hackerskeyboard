@@ -29,8 +29,22 @@ object TaskWatcher {
         if (listener != null) return true
         return try {
             val l = object : android.app.ITaskStackListener.Stub() {
-                override fun onTaskStackChanged() {
-                    try { onChanged?.invoke() } catch (_: Throwable) {}
+                override fun onTaskStackChanged() {}   // handled in onTransact; satisfies the compiler
+                override fun onTransact(
+                    code: Int, data: android.os.Parcel, reply: android.os.Parcel?, flags: Int
+                ): Boolean {
+                    val first = android.os.IBinder.FIRST_CALL_TRANSACTION
+                    return when {
+                        // onTaskStackChanged is the interface's first method (code = base+0).
+                        code == first -> {
+                            try { onChanged?.invoke() } catch (_: Throwable) {}
+                            true
+                        }
+                        // Every other (oneway) callback: consume without dispatching, so we
+                        // never hit an unimplemented method (which would AbstractMethodError -> crash).
+                        code in (first + 1)..(first + 200) -> true
+                        else -> super.onTransact(code, data, reply, flags)   // dump/interface codes
+                    }
                 }
             }
             val atm = Class.forName("android.app.ActivityTaskManager")
