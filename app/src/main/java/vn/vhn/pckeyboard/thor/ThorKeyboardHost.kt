@@ -130,9 +130,11 @@ class ThorKeyboardHost(
             if (m.latched) m.latched = false
         }
         updateIndicators()
+        // Fn layers act as a *lock*: a latched Fn stays on across many keys so the
+        // vim-style nav layer (Fn+hjkl, Fn+u/d) and repeated arrows work; tap Fn
+        // again to release. A held (finger-down) Fn is momentary as usual.
         for (m in arrayOf(fn1, fn2)) {
             if (m.held) m.used = true
-            if (m.latched) m.latched = false
         }
         syncFn()
     }

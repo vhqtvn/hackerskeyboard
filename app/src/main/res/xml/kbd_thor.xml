@@ -18,20 +18,27 @@
          Shift labels expose the upper glyphs, PC-keyboard style. -->
     <Row>
         <Key android:codes="@integer/key_escape" android:keyLabel="Esc" android:isModifier="true"
-             android:keyEdgeFlags="left" />
-        <Key android:keyLabel="`" android:shiftLabel="~" android:isRepeatable="true" />
+             android:keyWidth="10%p" android:keyEdgeFlags="left" />
+        <Key android:keyLabel="`" android:shiftLabel="~" android:isRepeatable="true"
+             android:keyWidth="8%p" />
         <Key android:keyLabel="-" android:shiftLabel="_" android:isRepeatable="true"
-             android:fn2Codes="@integer/key_fkey_f11" android:fn2Label="F11" />
-        <Key android:keyLabel="\\" android:shiftLabel="|" android:isRepeatable="true" />
-        <Key android:keyLabel=";" android:shiftLabel=":" android:isRepeatable="true" />
+             android:fn2Codes="@integer/key_fkey_f11" android:fn2Label="F11" android:keyWidth="8%p" />
+        <Key android:keyLabel="\\" android:shiftLabel="|" android:isRepeatable="true"
+             android:keyWidth="8%p" />
+        <Key android:keyLabel=";" android:shiftLabel=":" android:isRepeatable="true"
+             android:keyWidth="8%p" />
         <Key android:keyLabel="=" android:shiftLabel="+" android:isRepeatable="true"
-             android:fn2Codes="@integer/key_fkey_f12" android:fn2Label="F12" />
-        <Key android:keyLabel="[" android:shiftLabel="{" android:isRepeatable="true" />
-        <Key android:keyLabel="]" android:shiftLabel="}" android:isRepeatable="true" />
-        <Key android:codes="@integer/key_home" android:isModifier="true" android:keyLabel="Home" />
-        <Key android:codes="@integer/key_end" android:isModifier="true" android:keyLabel="End" />
+             android:fn2Codes="@integer/key_fkey_f12" android:fn2Label="F12" android:keyWidth="8%p" />
+        <Key android:keyLabel="[" android:shiftLabel="{" android:isRepeatable="true"
+             android:keyWidth="8%p" />
+        <Key android:keyLabel="]" android:shiftLabel="}" android:isRepeatable="true"
+             android:keyWidth="8%p" />
+        <Key android:codes="@integer/key_home" android:isModifier="true" android:keyLabel="Home"
+             android:keyWidth="12%p" />
+        <Key android:codes="@integer/key_end" android:isModifier="true" android:keyLabel="End"
+             android:keyWidth="12%p" />
         <Key android:codes="@integer/key_forward_del" android:isModifier="true"
-             android:keyLabel="Del" android:keyEdgeFlags="right" />
+             android:keyLabel="Del" android:keyWidth="10%p" android:keyEdgeFlags="right" />
     </Row>
 
     <!-- Numbers. Shift = ! @ # ... ; blue Fn = F1..F10. -->
@@ -73,7 +80,8 @@
         <Key android:keyLabel="r" />
         <Key android:keyLabel="t" />
         <Key android:keyLabel="y" />
-        <Key android:keyLabel="u" />
+        <Key android:keyLabel="u"
+             android:fn2Codes="@integer/key_page_up" android:fn2Label="PgUp" />
         <Key android:keyLabel="i" />
         <Key android:keyLabel="o" />
         <Key android:keyLabel="p" />
@@ -83,13 +91,18 @@
     <Row>
         <Key android:keyLabel="a" android:horizontalGap="4.54545454%p" android:keyEdgeFlags="left" />
         <Key android:keyLabel="s" />
-        <Key android:keyLabel="d" />
+        <Key android:keyLabel="d"
+             android:fn2Codes="@integer/key_page_down" android:fn2Label="PgDn" />
         <Key android:keyLabel="f" />
         <Key android:keyLabel="g" />
-        <Key android:keyLabel="h" />
-        <Key android:keyLabel="j" />
-        <Key android:keyLabel="k" />
-        <Key android:keyLabel="l" />
+        <Key android:keyLabel="h"
+             android:fn2Codes="@integer/key_dpad_left" android:fn2Label="&#x2190;" />
+        <Key android:keyLabel="j"
+             android:fn2Codes="@integer/key_dpad_down" android:fn2Label="&#x2193;" />
+        <Key android:keyLabel="k"
+             android:fn2Codes="@integer/key_dpad_up" android:fn2Label="&#x2191;" />
+        <Key android:keyLabel="l"
+             android:fn2Codes="@integer/key_dpad_right" android:fn2Label="&#x2192;" />
         <Key android:codes="@integer/key_return"
              android:keyIcon="@drawable/sym_keyboard_return"
              android:iconPreview="@drawable/sym_keyboard_feedback_return"
@@ -137,19 +150,15 @@
              android:iconPreview="@drawable/sym_keyboard_feedback_space"
              android:isModifier="true" android:keyWidth="23.5%p" />
         <Key android:codes="@integer/key_dpad_left" android:keyLabel="&#x25c1;"
-             android:fn2Codes="@integer/key_home" android:fn2Label="Home"
              android:isModifier="true" android:isRepeatable="true" android:isCursor="true"
              android:keyWidth="7.25%p" />
         <Key android:codes="@integer/key_dpad_down" android:keyLabel="&#x25bd;"
-             android:fn2Codes="@integer/key_page_down" android:fn2Label="PgDn"
              android:isModifier="true" android:isRepeatable="true" android:isCursor="true"
              android:keyWidth="7.25%p" />
         <Key android:codes="@integer/key_dpad_up" android:keyLabel="&#x25b3;"
-             android:fn2Codes="@integer/key_page_up" android:fn2Label="PgUp"
              android:isModifier="true" android:isRepeatable="true" android:isCursor="true"
              android:keyWidth="7.25%p" />
         <Key android:codes="@integer/key_dpad_right" android:keyLabel="&#x25b7;"
-             android:fn2Codes="@integer/key_end" android:fn2Label="End"
              android:isModifier="true" android:isRepeatable="true" android:isCursor="true"
              android:keyWidth="7.25%p" />
         <Key android:codes="@integer/key_ctrl_right" android:keyLabel="Ctrl"
