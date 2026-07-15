@@ -191,22 +191,26 @@ class OverlayKeyboardService : Service() {
 
         // Trackpad fills the whole deck but is only exposed in the top area not
         // covered by the (bottom-anchored) keyboard; relative moves work anywhere.
-        val trackpad = TrackpadView(ctx, mainDisplayWidth, mainDisplayHeight)
-        root.addView(trackpad, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        // Disabled for now (the strip is mostly taken by the keyboard + nav pad);
+        // flip TRACKPAD_ENABLED to bring it back.
+        if (TRACKPAD_ENABLED) {
+            val trackpad = TrackpadView(ctx, mainDisplayWidth, mainDisplayHeight)
+            root.addView(trackpad, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
-        val hint = TextView(ctx).apply {
-            text = "trackpad — drag to move, tap = click, 2-finger = scroll"
-            setTextColor(0xFF555555.toInt())
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            gravity = Gravity.CENTER
-            isClickable = false
+            val hint = TextView(ctx).apply {
+                text = "trackpad — drag to move, tap = click, 2-finger = scroll"
+                setTextColor(0xFF555555.toInt())
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                gravity = Gravity.CENTER
+                isClickable = false
+            }
+            root.addView(hint, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                topMargin = dp(12f)
+            })
         }
-        root.addView(hint, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            topMargin = dp(12f)
-        })
 
 
         val minimize = TextView(ctx).apply {
@@ -330,6 +334,8 @@ class OverlayKeyboardService : Service() {
         private const val CHANNEL_ID = "thor_keyboard"
         private const val NOTIF_ID = 0x54484f52 // "THOR"
         private const val KEYBOARD_HEIGHT_PERCENT = 84f
+        // Trackpad is kept in the codebase but not shown (little strip space left).
+        private const val TRACKPAD_ENABLED = false
         private const val PREF_GAMEPAD = "thor_gamepad_mouse"
         const val ACTION_TOGGLE = "vn.vhn.pckeyboard.thor.TOGGLE"
         const val ACTION_TEST_SCROLL = "vn.vhn.pckeyboard.thor.TEST_SCROLL"
