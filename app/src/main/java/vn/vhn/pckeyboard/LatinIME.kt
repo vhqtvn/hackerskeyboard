@@ -764,7 +764,6 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     override fun onFinishInput() {
         super.onFinishInput()
-        vn.vhn.pckeyboard.thor.ThorController.currentEditorPackage = null
         vn.vhn.pckeyboard.thor.ThorController.onEditorFocus(false)
         mKeyboardSwitcher.inputView?.closing()
     }
@@ -786,18 +785,16 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     override fun onEvaluateInputViewShown(): Boolean {
         // While Thor mode is active (the second-screen deck service is running),
-        // normally never show a keyboard on the main screen -- the deck injects
-        // instead. Exception: apps that hide non-system overlays (e.g. Settings)
-        // force-hide the deck, so fall back to a normal on-screen IME here.
-        val thor = vn.vhn.pckeyboard.thor.ThorController
-        if (thor.serviceRunning && !thor.editorHidesOverlays()) return false
+        // never show a keyboard on the main screen -- the deck handles input on the
+        // second screen. With INTERNAL_SYSTEM_WINDOW held, the deck is a system
+        // overlay and shows even over Settings, so no main-screen fallback is needed.
+        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) return false
         val parent = super.onEvaluateInputViewShown()
         return mForceKeyboardOn || mStick || parent
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
-        vn.vhn.pckeyboard.thor.ThorController.currentEditorPackage = attribute?.packageName
         vn.vhn.pckeyboard.thor.ThorController.onEditorFocus(true)
     }
 
