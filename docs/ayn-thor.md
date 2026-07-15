@@ -110,7 +110,7 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
   `TrackpadView` in the deck's top area does drag-move / tap-click / two-finger-scroll. Verified
   via getevent (REL_X/REL_Y + BTN_LEFT).
 
-## Folded joyscroll + smooth scroll (code-complete, on-device verification pending)
+## Folded joyscroll + smooth scroll (verified on device)
 
 - `kbdinject` now folds the joyscroll gamepad->mouse/scroll loop as a background
   thread toggled by `J 0|1` (own virtual mouse "VHKeyboard Gamepad Mouse", proxy
@@ -124,10 +124,10 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
   touchscreen (true kinetic scroll, but needs absolute-position tracking).
 - 🎮 toggle button on the deck (persisted pref `thor_gamepad_mouse`) enables/disables
   the gamepad thread; applied on service start.
-- **NOT yet verified on device** — the Thor dropped off adb after this change.
-  To verify: `getevent` on "VHKeyboard Virtual Mouse" while two-finger scrolling
-  should show `REL_WHEEL_HI_RES`; tapping 🎮 with a controller connected should make
-  "VHKeyboard Gamepad Mouse" appear and the right stick move the cursor.
+- **Verified on device**: `H` emits `REL_WHEEL_HI_RES` (60/60/40) with the discrete
+  `REL_WHEEL` fallback firing once 120 accumulates; tapping 🎮 grabs the "Odin
+  Controller" and creates "VHKeyboard Gamepad Mouse" + the passthrough proxy, and
+  tapping again releases it. Off by default (games unaffected until enabled).
 
 ## Known considerations
 - **Software-render flakiness**: the app is `hardwareAccelerated=false` and `LatinKeyboardView`
