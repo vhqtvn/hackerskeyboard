@@ -45,6 +45,7 @@ class OverlayKeyboardService : Service() {
     private var gamepadButton: TextView? = null
     private var expanded = false
     private var gamepadOn = false
+    private var mainDisplayWidth = 1920
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -97,6 +98,12 @@ class OverlayKeyboardService : Service() {
     }
 
     private fun pickSecondaryDisplay(dm: DisplayManager): Display? {
+        // Record the main display's width (for mapping the cursor to touch-scroll X).
+        dm.getDisplay(Display.DEFAULT_DISPLAY)?.let {
+            val p = android.graphics.Point()
+            @Suppress("DEPRECATION") it.getRealSize(p)
+            if (p.x > 0) mainDisplayWidth = p.x
+        }
         dm.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION).firstOrNull()?.let { return it }
         return dm.displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY }
     }
@@ -166,7 +173,7 @@ class OverlayKeyboardService : Service() {
 
         // Trackpad fills the whole deck but is only exposed in the top area not
         // covered by the (bottom-anchored) keyboard; relative moves work anywhere.
-        val trackpad = TrackpadView(ctx)
+        val trackpad = TrackpadView(ctx, mainDisplayWidth)
         root.addView(trackpad, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
