@@ -89,19 +89,19 @@ class RecentAppsView(context: Context) : LinearLayout(context) {
         val pm = appCtx.packageManager
         for (pkg in pkgs) {
             val icon = try { pm.getApplicationIcon(pkg) } catch (e: Exception) { continue }
-            // Cell fills the strip height so the icon can be vertically centred (no
-            // clipping against the top edge); the running dot is a badge overlaid on
-            // the icon's bottom.
+            // Fixed square cell (the strip wraps to this height); icon fills it,
+            // centred vertically. The running dot is a badge on the icon's bottom.
             val cell = FrameLayout(context)
-            val lp = LayoutParams(iconSize + dp(6), LayoutParams.MATCH_PARENT)
+            val lp = LayoutParams(iconSize, iconSize)
             lp.marginStart = dp(6); lp.marginEnd = dp(6)
+            lp.gravity = Gravity.CENTER_VERTICAL
             cell.layoutParams = lp
 
             val iv = ImageView(context)
+            iv.scaleType = ImageView.ScaleType.FIT_CENTER
             iv.setImageDrawable(icon)
-            cell.addView(iv, FrameLayout.LayoutParams(iconSize, iconSize).apply {
-                gravity = Gravity.CENTER
-            })
+            cell.addView(iv, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
             if (running.contains(pkg)) {
                 val dot = View(context)

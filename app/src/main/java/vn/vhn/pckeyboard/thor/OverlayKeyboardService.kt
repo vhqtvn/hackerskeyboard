@@ -221,9 +221,16 @@ class OverlayKeyboardService : Service() {
         // Recent-apps strip (tap = switch to app on main screen, swipe an icon down =
         // kill it). Inset horizontally to clear the corner buttons. Self-refreshes.
         val recents = RecentAppsView(ctx)
-        recents.setPadding(dp(52f), 0, dp(100f), 0)
+        // The deck renders on the second screen, whose density differs from the main
+        // display (which the service's dp() uses). Pad vertically in the *display*
+        // density so the strip wraps taller than the icons -- otherwise they clip.
+        val ddens = ctx.resources.displayMetrics.density
+        val vpad = (8f * ddens).toInt()
+        recents.setPadding(dp(52f), vpad, dp(100f), vpad)
         col.addView(recents, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, dp(58f)).apply { topMargin = dp(10f) })
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(6f)
+        })
 
         // Cursor-navigation pad, centred and filling the gap between recents/keyboard.
         val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
