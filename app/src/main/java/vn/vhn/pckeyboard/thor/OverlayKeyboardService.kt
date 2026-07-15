@@ -223,7 +223,7 @@ class OverlayKeyboardService : Service() {
         val recents = RecentAppsView(ctx)
         recents.setPadding(dp(52f), 0, dp(100f), 0)
         col.addView(recents, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, dp(56f)).apply { topMargin = dp(6f) })
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(58f)).apply { topMargin = dp(10f) })
 
         // Cursor-navigation pad, centred and filling the gap between recents/keyboard.
         val navPad = NavPadView(ctx).apply { metaProvider = { host?.navMetaState() ?: 0 } }
