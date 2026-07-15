@@ -51,12 +51,30 @@ class ThorKeyboardHost(
     private val meta = Mod()
     private var caps = false   // caps lock: persistent letter-case flip
 
+    // Fn layers: unlike Ctrl/Shift, these change which *code* the keyboard emits
+    // (fn1codes/fn2codes), so we flip the keyboard's Fn state (setFn1/2Indicator)
+    // whenever active. Fn1 (green) = IME/device functions (no-op on the deck);
+    // Fn2 (blue) = PgUp/PgDn/Home/End (useful, injected).
+    private val fn1 = Mod()
+    private val fn2 = Mod()
+
     private fun modFor(code: Int): Mod? = when (code) {
         LatinKeyboardView.KEYCODE_SHIFT_LEFT, LatinKeyboardView.KEYCODE_SHIFT_RIGHT -> shift
         LatinKeyboardView.KEYCODE_CTRL_LEFT, LatinKeyboardView.KEYCODE_CTRL_RIGHT -> ctrl
         LatinKeyboardView.KEYCODE_ALT_LEFT, LatinKeyboardView.KEYCODE_ALT_RIGHT -> alt
         LatinKeyboardView.KEYCODE_META_LEFT, LatinKeyboardView.KEYCODE_META_RIGHT -> meta
         else -> null
+    }
+
+    private fun fnModFor(code: Int): Mod? = when (code) {
+        LatinKeyboardView.KEYCODE_FN_1 -> fn1
+        LatinKeyboardView.KEYCODE_FN_2 -> fn2
+        else -> null
+    }
+
+    private fun syncFn() {
+        inputView.setFn1Indicator(fn1.active())
+        inputView.setFn2Indicator(fn2.active())
     }
 
     init {
@@ -104,36 +122,46 @@ class ThorKeyboardHost(
             if (m.latched) m.latched = false
         }
         updateIndicators()
+        for (m in arrayOf(fn1, fn2)) {
+            if (m.held) m.used = true
+            if (m.latched) m.latched = false
+        }
+        syncFn()
     }
 
     // --- OnKeyboardActionListener ----------------------------------------------
     override fun onPress(primaryCode: Int) {
-        val m = modFor(primaryCode) ?: return
-        m.held = true
-        m.used = false
-        updateIndicators()
+        modFor(primaryCode)?.let { it.held = true; it.used = false; updateIndicators(); return }
+        fnModFor(primaryCode)?.let { it.held = true; it.used = false; syncFn(); return }
     }
 
     override fun onRelease(primaryCode: Int) {
-        val m = modFor(primaryCode) ?: return
-        if (m.held) {
-            // A pure tap (not used in a chord) toggles the sticky latch.
-            if (!m.used) m.latched = !m.latched
-            m.held = false
-            m.used = false
-            updateIndicators()
+        modFor(primaryCode)?.let { m ->
+            if (m.held) {
+                if (!m.used) m.latched = !m.latched   // pure tap toggles the sticky latch
+                m.held = false; m.used = false; updateIndicators()
+            }
+            return
+        }
+        fnModFor(primaryCode)?.let { m ->
+            if (m.held) {
+                if (!m.used) m.latched = !m.latched
+                m.held = false; m.used = false; syncFn()
+            }
         }
     }
 
     override fun onKey(primaryCode: Int, keyCodes: IntArray?, x: Int, y: Int) {
-        // Modifier keys are handled entirely by onPress/onRelease.
-        if (modFor(primaryCode) != null) return
+        // Modifier / Fn keys are handled entirely by onPress/onRelease.
+        if (modFor(primaryCode) != null || fnModFor(primaryCode) != null) return
 
         when (primaryCode) {
             LatinKeyboardView.KEYCODE_CAPS_LOCK -> { caps = !caps; updateIndicators() }
             Keyboard.KEYCODE_CANCEL -> onHideRequested?.invoke()
-            Keyboard.KEYCODE_MODE_CHANGE, Keyboard.KEYCODE_STICK, Keyboard.KEYCODE_NOIME -> {
-                // Not applicable to the overlay (full layout has all keys); ignore.
+            // IME/device-only functions (mostly the green Fn1 layer) -- no-op on the deck.
+            Keyboard.KEYCODE_MODE_CHANGE, Keyboard.KEYCODE_STICK, Keyboard.KEYCODE_NOIME,
+            LatinKeyboardView.KEYCODE_ORIENTATION_LOCK, LatinKeyboardView.KEYCODE_OPTIONS,
+            LatinKeyboardView.KEYCODE_OPTIONS_LONGPRESS, LatinKeyboardView.KEYCODE_FULLSCREEN_DUAL -> {
             }
             Keyboard.KEYCODE_DELETE -> {
                 InputInjector.injectAndroidKey(KeyEvent.KEYCODE_DEL, metaWith(shift.active())); consumeMods()
