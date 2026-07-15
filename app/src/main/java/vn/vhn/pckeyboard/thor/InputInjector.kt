@@ -113,13 +113,34 @@ object InputInjector {
      * Android meta state (Shift/Ctrl/Alt/Meta).
      */
     fun tapWithMeta(evdev: Int, metaState: Int) {
+        val mods = pressWithMeta(evdev, metaState)
+        releaseWithMeta(evdev, mods)
+    }
+
+    private fun modKeysFor(metaState: Int): IntArray {
         val mods = ArrayList<Int>(4)
         if (metaState and KeyEvent.META_SHIFT_ON != 0) mods.add(KeyMap.KEY_LEFTSHIFT)
         if (metaState and KeyEvent.META_CTRL_ON != 0) mods.add(KeyMap.KEY_LEFTCTRL)
         if (metaState and KeyEvent.META_ALT_ON != 0) mods.add(KeyMap.KEY_LEFTALT)
         if (metaState and KeyEvent.META_META_ON != 0) mods.add(KeyMap.KEY_LEFTMETA)
+        return mods.toIntArray()
+    }
+
+    /**
+     * Press the modifiers, then the key, and leave them all held. The key stays
+     * down (so Android auto-repeats it while a finger holds it) until the matching
+     * [releaseWithMeta]. Returns the modifier evdev codes that were pressed.
+     */
+    fun pressWithMeta(evdev: Int, metaState: Int): IntArray {
+        val mods = modKeysFor(metaState)
         for (m in mods) down(m)
-        tap(evdev)
+        down(evdev)
+        return mods
+    }
+
+    /** Release the key, then its modifiers (reverse order). */
+    fun releaseWithMeta(evdev: Int, mods: IntArray) {
+        up(evdev)
         for (i in mods.indices.reversed()) up(mods[i])
     }
 

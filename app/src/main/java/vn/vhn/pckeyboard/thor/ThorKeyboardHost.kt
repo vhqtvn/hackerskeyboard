@@ -139,10 +139,60 @@ class ThorKeyboardHost(
         syncFn()
     }
 
+    // --- key press/release ------------------------------------------------------
+    // A pressed injectable key is held down (evdev down on finger-down, up on
+    // finger-up) so the target sees a real key-hold and Android auto-repeats it
+    // while held -- matching a physical keyboard, instead of a tap on release.
+    private var downEvdev: Int? = null
+    private var downMods: IntArray = IntArray(0)
+
+    /** Action keys perform a one-shot side effect (no evdev key to hold). */
+    private fun isActionCode(c: Int): Boolean = when (c) {
+        LatinKeyboardView.KEYCODE_CAPS_LOCK, Keyboard.KEYCODE_CANCEL,
+        Keyboard.KEYCODE_MODE_CHANGE, Keyboard.KEYCODE_STICK, Keyboard.KEYCODE_NOIME,
+        LatinKeyboardView.KEYCODE_ORIENTATION_LOCK, LatinKeyboardView.KEYCODE_OPTIONS,
+        LatinKeyboardView.KEYCODE_OPTIONS_LONGPRESS, LatinKeyboardView.KEYCODE_FULLSCREEN_DUAL -> true
+        else -> false
+    }
+
+    /** Resolve a key to (evdev, shiftBit) given the current modifier/caps state. */
+    private fun resolveKey(primaryCode: Int): Pair<Int, Boolean>? {
+        when (primaryCode) {
+            Keyboard.KEYCODE_DELETE -> return KeyMap.androidToEvdev(KeyEvent.KEYCODE_DEL)?.let { it to shift.active() }
+            9 -> return KeyMap.androidToEvdev(KeyEvent.KEYCODE_TAB)?.let { it to shift.active() }
+        }
+        if (primaryCode < 0) {
+            // Special key: -primaryCode is the Android keycode (see LatinIME).
+            return KeyMap.androidToEvdev(-primaryCode)?.let { it to shift.active() }
+        }
+        val ch = primaryCode.toChar()
+        if (ch == '\n') return KeyMap.androidToEvdev(KeyEvent.KEYCODE_ENTER)?.let { it to shift.active() }
+        val ck = KeyMap.charToEvdev(ch) ?: return null
+        var shiftBit = ck.shift || shift.active()
+        if (ch.isLetter() && caps) shiftBit = !shiftBit
+        return ck.evdev to shiftBit
+    }
+
+    private fun startKeyPress(primaryCode: Int) {
+        if (downEvdev != null) endKeyPress()   // guard against overlapping presses
+        val (evdev, shiftBit) = resolveKey(primaryCode) ?: return
+        downMods = InputInjector.pressWithMeta(evdev, metaWith(shiftBit))
+        downEvdev = evdev
+    }
+
+    private fun endKeyPress() {
+        val e = downEvdev ?: return
+        InputInjector.releaseWithMeta(e, downMods)
+        downEvdev = null
+        downMods = IntArray(0)
+    }
+
     // --- OnKeyboardActionListener ----------------------------------------------
     override fun onPress(primaryCode: Int) {
         modFor(primaryCode)?.let { it.held = true; it.used = false; updateIndicators(); return }
         fnModFor(primaryCode)?.let { it.held = true; it.used = false; syncFn(); return }
+        if (isActionCode(primaryCode)) return
+        startKeyPress(primaryCode)   // inject key DOWN now; held until release
     }
 
     override fun onRelease(primaryCode: Int) {
@@ -158,47 +208,20 @@ class ThorKeyboardHost(
                 if (!m.used) m.latched = !m.latched
                 m.held = false; m.used = false; syncFn()
             }
+            return
         }
+        if (isActionCode(primaryCode)) return
+        endKeyPress()   // inject key UP
+        consumeMods()
     }
 
     override fun onKey(primaryCode: Int, keyCodes: IntArray?, x: Int, y: Int) {
-        // Modifier / Fn keys are handled entirely by onPress/onRelease.
-        if (modFor(primaryCode) != null || fnModFor(primaryCode) != null) return
-
+        // Modifiers / Fn / injectable keys are handled by onPress + onRelease.
+        // Only one-shot action keys act here (they fire once per press).
         when (primaryCode) {
             LatinKeyboardView.KEYCODE_CAPS_LOCK -> { caps = !caps; updateIndicators() }
             Keyboard.KEYCODE_CANCEL -> onHideRequested?.invoke()
-            // IME/device-only functions (mostly the green Fn1 layer) -- no-op on the deck.
-            Keyboard.KEYCODE_MODE_CHANGE, Keyboard.KEYCODE_STICK, Keyboard.KEYCODE_NOIME,
-            LatinKeyboardView.KEYCODE_ORIENTATION_LOCK, LatinKeyboardView.KEYCODE_OPTIONS,
-            LatinKeyboardView.KEYCODE_OPTIONS_LONGPRESS, LatinKeyboardView.KEYCODE_FULLSCREEN_DUAL -> {
-            }
-            Keyboard.KEYCODE_DELETE -> {
-                InputInjector.injectAndroidKey(KeyEvent.KEYCODE_DEL, metaWith(shift.active())); consumeMods()
-            }
-            9 -> {
-                InputInjector.injectAndroidKey(KeyEvent.KEYCODE_TAB, metaWith(shift.active())); consumeMods()
-            }
-            else -> {
-                if (primaryCode < 0) {
-                    // Special key: -primaryCode is the Android keycode (see LatinIME).
-                    InputInjector.injectAndroidKey(-primaryCode, metaWith(shift.active()))
-                } else {
-                    val ch = primaryCode.toChar()
-                    if (ch == '\n') {
-                        InputInjector.injectAndroidKey(KeyEvent.KEYCODE_ENTER, metaWith(shift.active()))
-                    } else {
-                        val ck = KeyMap.charToEvdev(ch)
-                        if (ck != null) {
-                            var shiftBit = ck.shift || shift.active()
-                            if (ch.isLetter() && caps) shiftBit = !shiftBit
-                            InputInjector.tapWithMeta(ck.evdev, metaWith(shiftBit))
-                        }
-                        // Unmappable (non-ASCII) chars can't be injected via uinput; skipped.
-                    }
-                }
-                consumeMods()
-            }
+            else -> {}
         }
     }
 
