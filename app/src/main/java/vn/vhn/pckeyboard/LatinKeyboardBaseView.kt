@@ -947,7 +947,12 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                     labelSize = (mLabelTextSize * mLabelScale).toInt()
                     paint.typeface = Typeface.DEFAULT
                 } else {
-                    labelSize = (mKeyTextSize * mLabelScale).toInt()
+                    // On the deck, shrink a single glyph that carries a shift hint so
+                    // the (larger) hint has room and doesn't collide with the label.
+                    val hasHint = colorCodeKeys &&
+                        key.getHintLabel(showHints7Bit(), showHintsAll()) != ""
+                    val scale = if (hasHint) 0.82 else 1.0
+                    labelSize = (mKeyTextSize * mLabelScale * scale).toInt()
                     paint.typeface = mKeyTextStyle
                 }
                 paint.isFakeBoldText = key.isCursor
@@ -963,8 +968,9 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                 // Draw hint label (if present) behind the main key
                 val hint = key.getHintLabel(showHints7Bit(), showHintsAll())
                 if (hint != "") {
-                    // Larger shift sub-char (!@#…) on the Thor deck for legibility.
-                    val hintScale = if (colorCodeKeys) 0.8 else 0.6
+                    // Larger shift sub-char (!@#…) on the Thor deck for legibility;
+                    // the main glyph is shrunk (above) to make room, so no collision.
+                    val hintScale = if (colorCodeKeys) 0.72 else 0.6
                     val hintTextSize = (mKeyTextSize * hintScale * mLabelScale).toInt()
                     paintHint.textSize = hintTextSize.toFloat()
                     val hintLabelHeight = getLabelHeight(paintHint, hintTextSize)
