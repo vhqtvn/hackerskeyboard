@@ -1,5 +1,6 @@
 package vn.vhn.pckeyboard.thor
 
+import android.app.ActivityManager
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
@@ -42,11 +43,16 @@ class RecentAppsView(context: Context) : LinearLayout(context) {
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        handler.post(poll)   // refresh now + every POLL_MS while shown
+        // Event-driven: refresh when the task stack changes (pushed by TaskWatcher).
+        TaskWatcher.onChanged = { post { refresh() } }
+        refresh()
+        // Only fall back to timer polling if the listener couldn't register.
+        if (!TaskWatcher.active) handler.post(poll)
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        TaskWatcher.onChanged = null
         handler.removeCallbacks(poll)
     }
 
@@ -61,26 +67,30 @@ class RecentAppsView(context: Context) : LinearLayout(context) {
     }
 
     private fun fetchState(): Pair<List<String>, Set<String>> {
-        val out = runSu("dumpsys activity recents | grep realActivity")
+        val am = appCtx.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val pm = appCtx.packageManager
         val pkgs = LinkedHashSet<String>()   // recents order, deduped
-        val re = Regex("realActivity=\\{?([^/\\s{}]+)/")
-        for (line in out.lineSequence()) {
-            val pkg = re.find(line)?.groupValues?.get(1) ?: continue
-            if (pkg == appCtx.packageName) continue
-            if (pm.getLaunchIntentForPackage(pkg) == null) continue
-            pkgs.add(pkg)
-            if (pkgs.size >= MAX_APPS) break
+        try {
+            @Suppress("DEPRECATION")
+            val tasks = am.getRecentTasks(MAX_APPS * 4, ActivityManager.RECENT_IGNORE_UNAVAILABLE)
+            for (t in tasks) {
+                val pkg = t.baseActivity?.packageName
+                    ?: t.topActivity?.packageName
+                    ?: t.baseIntent?.component?.packageName
+                    ?: continue
+                if (pkg == appCtx.packageName) continue
+                if (pm.getLaunchIntentForPackage(pkg) == null) continue
+                pkgs.add(pkg)
+                if (pkgs.size >= MAX_APPS) break
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "getRecentTasks failed (REAL_GET_TASKS granted?)", e)
         }
         // Which of them still have a live process (running in background)?
         val running = HashSet<String>()
-        if (pkgs.isNotEmpty()) {
-            val cmd = pkgs.joinToString("\n") { "pidof '$it' >/dev/null 2>&1 && echo '$it'" }
-            for (l in runSu(cmd).lineSequence()) {
-                val t = l.trim()
-                if (t.isNotEmpty()) running.add(t)
-            }
-        }
+        try {
+            am.runningAppProcesses?.forEach { p -> p.pkgList?.forEach { running.add(it) } }
+        } catch (_: Throwable) {}
         return pkgs.toList() to running
     }
 

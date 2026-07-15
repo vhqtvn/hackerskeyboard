@@ -67,6 +67,8 @@ class OverlayKeyboardService : Service() {
         // Vietnamese (Unikey) input engine + saved on/off state.
         Unikey.init()
         vnOn = prefs.getBoolean(PREF_VN, false)
+        // Event-driven recents (hidden APIs are unsealed by ImInjector.init above).
+        TaskWatcher.register()
         if (!setupDisplay()) {
             Log.e(TAG, "no secondary display found; stopping")
             stopSelf()
@@ -98,6 +100,7 @@ class OverlayKeyboardService : Service() {
     }
 
     override fun onDestroy() {
+        TaskWatcher.unregister()
         ThorController.setServiceRunning(false)
         ThorController.expandRequest = null
         deckView?.let { safeRemove(it) }
