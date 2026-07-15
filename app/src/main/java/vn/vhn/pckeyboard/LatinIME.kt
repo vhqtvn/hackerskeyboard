@@ -806,6 +806,9 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     }
 
     override fun onEvaluateFullscreenMode(): Boolean {
+        // While the Thor deck is active we act like an external hardware keyboard:
+        // never take over the field with the landscape fullscreen extract editor.
+        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) return false
         val dm = resources.displayMetrics
         val displayHeight = dm.heightPixels.toFloat()
         // If the display is more than X inches high, don't go to fullscreen
