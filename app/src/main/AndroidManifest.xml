@@ -29,6 +29,9 @@
     <application
         android:allowBackup="true"
         android:backupAgent="vn.vhn.pckeyboard.LatinIMEBackupAgent"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="VHKeyboard"
         android:hardwareAccelerated="true"
         android:killAfterRestore="false"
         android:restoreAnyVersion="true">
