@@ -81,6 +81,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <!-- Launcher icon: tap to (re)start the second-screen deck if it stopped. -->
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 

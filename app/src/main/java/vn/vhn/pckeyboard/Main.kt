@@ -60,6 +60,9 @@ class Main : Activity() {
             startActivityForResult(Intent(that,
                 LatinIMESettings::class.java), 0)
         }
+        // Launching the app (re)starts the deck -- handy if it ever stops/crashes.
+        vn.vhn.pckeyboard.thor.OverlayKeyboardService.start(this)
+
         val thorStart = findViewById<View>(R.id.main_thor_btn_start) as Button
         thorStart.setOnClickListener {
             // The service self-configures (overlay permission + default IME) via root.
