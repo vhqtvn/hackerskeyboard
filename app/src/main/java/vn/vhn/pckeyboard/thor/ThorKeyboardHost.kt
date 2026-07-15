@@ -172,6 +172,7 @@ class ThorKeyboardHost(
     // while held -- matching a physical keyboard, instead of a tap on release.
     private var downEvdev: Int? = null
     private var downMods: IntArray = IntArray(0)
+    private var vnConsumed = false   // last press was composed by VN, no uinput up needed
 
     /** Action keys perform a one-shot side effect (no evdev key to hold). */
     private fun isActionCode(c: Int): Boolean = when (c) {
@@ -207,6 +208,54 @@ class ThorKeyboardHost(
         downEvdev = evdev
     }
 
+    // --- Vietnamese (Unikey) ---------------------------------------------------
+    // In VN mode, letters/symbols of a word are composed via the IME's
+    // InputConnection (Unicode commit), which the uinput path can't do. Everything
+    // else (chords, arrows, terminal focus with no InputConnection) stays on uinput.
+    private val vnComposer = VnComposer()
+    var vnMode = false
+        private set
+
+    fun setVnMode(on: Boolean) {
+        vnMode = on
+        if (!on) vnComposer.reset(currentIc())
+    }
+
+    fun setVnMethod(method: Int) = vnComposer.setMethod(method)
+
+    private fun currentIc() =
+        if (ThorController.editorFocused) ThorController.ime?.currentInputConnection else null
+
+    /** US-QWERTY shifted glyphs, so VN sees the character the user actually typed. */
+    private val shiftMap = hashMapOf(
+        '`' to '~', '1' to '!', '2' to '@', '3' to '#', '4' to '$', '5' to '%',
+        '6' to '^', '7' to '&', '8' to '*', '9' to '(', '0' to ')', '-' to '_',
+        '=' to '+', '[' to '{', ']' to '}', '\\' to '|', ';' to ':', '\'' to '"',
+        ',' to '<', '.' to '>', '/' to '?')
+
+    private fun effectiveChar(primaryCode: Int): Int {
+        val ch = primaryCode.toChar()
+        if (ch.isLetter()) {
+            val upper = anyShift() != caps
+            return (if (upper) ch.uppercaseChar() else ch.lowercaseChar()).code
+        }
+        return (if (anyShift()) shiftMap[ch] ?: ch else ch).code
+    }
+
+    /** Returns true if Vietnamese input consumed the key (no uinput injection needed). */
+    private fun tryVn(primaryCode: Int): Boolean {
+        if (!vnMode || !Unikey.isReady) return false
+        val ic = currentIc() ?: return false
+        // Modifier chords are shortcuts, not text: end the word, let uinput handle them.
+        if (ctrlL.active() || ctrlR.active() || altL.active() || altR.active() ||
+            metaL.active() || metaR.active()) { vnComposer.reset(ic); return false }
+        if (primaryCode == Keyboard.KEYCODE_DELETE) return vnComposer.onBackspace(ic)
+        if (primaryCode in 32..126) return vnComposer.onChar(effectiveChar(primaryCode), anyShift(), caps, ic)
+        // Special keys (Tab/Enter/arrows/F-keys/Esc...) end the word and pass through.
+        vnComposer.reset(ic)
+        return false
+    }
+
     private fun endKeyPress() {
         val e = downEvdev ?: return
         InputInjector.releaseWithMeta(e, downMods)
@@ -219,6 +268,7 @@ class ThorKeyboardHost(
         modFor(primaryCode)?.let { it.held = true; it.used = false; updateIndicators(); return }
         fnModFor(primaryCode)?.let { it.held = true; it.used = false; syncFn(); return }
         if (isActionCode(primaryCode)) return
+        if (tryVn(primaryCode)) { vnConsumed = true; return }   // composed via InputConnection
         startKeyPress(primaryCode)   // inject key DOWN now; held until release
     }
 
@@ -238,6 +288,7 @@ class ThorKeyboardHost(
             return
         }
         if (isActionCode(primaryCode)) return
+        if (vnConsumed) { vnConsumed = false; consumeMods(); return }   // no uinput key to release
         endKeyPress()   // inject key UP
         consumeMods()
     }

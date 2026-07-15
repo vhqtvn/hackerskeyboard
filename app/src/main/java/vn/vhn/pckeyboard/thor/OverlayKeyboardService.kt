@@ -43,8 +43,10 @@ class OverlayKeyboardService : Service() {
     private var deckView: View? = null
     private var floatingButton: View? = null
     private var gamepadButton: TextView? = null
+    private var langButton: TextView? = null
     private var expanded = false
     private var gamepadOn = false
+    private var vnOn = false
     private var mainDisplayWidth = 1920
     private var mainDisplayHeight = 1080
 
@@ -58,8 +60,12 @@ class OverlayKeyboardService : Service() {
         ThorSetup.ensure(this)
         InputInjector.start(this)
         ImInjector.init(this)
-        gamepadOn = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(PREF_GAMEPAD, false)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        gamepadOn = prefs.getBoolean(PREF_GAMEPAD, false)
         InputInjector.setGamepad(gamepadOn)
+        // Vietnamese (Unikey) input engine + saved on/off state.
+        Unikey.init()
+        vnOn = prefs.getBoolean(PREF_VN, false)
         if (!setupDisplay()) {
             Log.e(TAG, "no secondary display found; stopping")
             stopSelf()
@@ -135,6 +141,8 @@ class OverlayKeyboardService : Service() {
         if (host == null) {
             host = ThorKeyboardHost(ctx, KEYBOARD_HEIGHT_PERCENT).apply {
                 onHideRequested = { minimize() }
+                setVnMethod(Unikey.TELEX)
+                setVnMode(vnOn)
             }
         }
         val deck = buildDeck(ctx)
@@ -180,6 +188,17 @@ class OverlayKeyboardService : Service() {
         PreferenceManager.getDefaultSharedPreferences(this)
             .edit().putBoolean(PREF_GAMEPAD, gamepadOn).apply()
         gamepadButton?.alpha = if (gamepadOn) 1f else 0.4f
+    }
+
+    private fun toggleVn() {
+        vnOn = !vnOn
+        host?.setVnMode(vnOn)
+        PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putBoolean(PREF_VN, vnOn).apply()
+        langButton?.apply {
+            text = if (vnOn) "Vi" else "En"
+            setTextColor(if (vnOn) 0xFFF3CB63.toInt() else Color.WHITE)
+        }
     }
 
     // --- deck view -------------------------------------------------------------
@@ -244,6 +263,23 @@ class OverlayKeyboardService : Service() {
         root.addView(gp, FrameLayout.LayoutParams(s, s).apply {
             gravity = Gravity.TOP or Gravity.END
             topMargin = dp(8f); rightMargin = dp(8f) + s + dp(8f)
+        })
+
+        // Language toggle (top-left): En <-> Vi (Vietnamese via Unikey).
+        val lang = TextView(ctx).apply {
+            text = if (vnOn) "Vi" else "En"
+            gravity = Gravity.CENTER
+            setTextColor(if (vnOn) 0xFFF3CB63.toInt() else Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt())
+            }
+            setOnClickListener { toggleVn() }
+        }
+        langButton = lang
+        root.addView(lang, FrameLayout.LayoutParams(s, s).apply {
+            gravity = Gravity.TOP or Gravity.START
+            topMargin = dp(8f); leftMargin = dp(8f)
         })
 
         val kb = host!!.rootView
@@ -337,6 +373,7 @@ class OverlayKeyboardService : Service() {
         // Trackpad is kept in the codebase but not shown (little strip space left).
         private const val TRACKPAD_ENABLED = false
         private const val PREF_GAMEPAD = "thor_gamepad_mouse"
+        private const val PREF_VN = "thor_vn_input"
         const val ACTION_TOGGLE = "vn.vhn.pckeyboard.thor.TOGGLE"
         const val ACTION_TEST_SCROLL = "vn.vhn.pckeyboard.thor.TEST_SCROLL"
 
