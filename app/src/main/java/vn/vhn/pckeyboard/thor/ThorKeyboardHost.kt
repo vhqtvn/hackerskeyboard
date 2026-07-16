@@ -280,8 +280,17 @@ class ThorKeyboardHost(
      * into device-home). metaState carries the deck modifiers (Shift -> selection).
      */
     fun sendEditKey(keyCode: Int) {
-        val ic = if (ThorController.editorFocused) ThorController.ime?.currentInputConnection else null
-        ic ?: return
+        val ime = ThorController.ime ?: return
+        if (!ThorController.editorFocused) return
+        // Raw-key editors (inputType TYPE_NULL, e.g. the Termux terminal in VHEditor)
+        // ignore the soft-IME connection and read hardware keys directly; there, uinput
+        // KEY_HOME is hijacked by the Odin daemon, so deliver Home/End as the terminal
+        // escape sequence over uinput. Normal editors honour InputConnection.sendKeyEvent.
+        if ((ime.currentInputEditorInfo?.inputType ?: 0) == android.text.InputType.TYPE_NULL) {
+            InputInjector.sendTermHomeEnd(keyCode == KeyEvent.KEYCODE_MOVE_END)
+            return
+        }
+        val ic = ime.currentInputConnection ?: return
         val meta = navMetaState()
         val now = android.os.SystemClock.uptimeMillis()
         ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, meta))
