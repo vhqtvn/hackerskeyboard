@@ -19,8 +19,6 @@
  *   W <dy>         discrete wheel scroll (notches)
  *   H <dy>         high-resolution wheel scroll (1/120 notch units; smooth)
  *   J <0|1>        disable/enable the gamepad->mouse thread
- *   B <w> <h>      main-display size (for cursor-targeted forwarded scroll)
- *   (stdout)       GP <evdev> <down>  = gamepad button; GS <x> <y> <milli_vscroll> = scroll
  *   S              sync/flush
  *   P              ping -> prints "OK\n"
  *   Q              quit
@@ -61,12 +59,6 @@ static void emit(int fd, int type, int code, int val) {
 }
 
 static void sync_report(int fd) { emit(fd, EV_SYN, SYN_REPORT, 0); }
-
-/* Cursor position estimate (px on the main display), tracked from every emitted
- * mouse move so forwarded scroll events target what the pointer is over. Screen
- * bounds come from the app via the 'B' command. */
-static int g_cur_x = 960, g_cur_y = 540;
-static int g_scr_w = 1920, g_scr_h = 1080;
 
 /* --- keyboard -------------------------------------------------------------- */
 static int create_keyboard(void) {
@@ -122,11 +114,6 @@ static void mouse_move(int fd, int dx, int dy) {
     if (dx) emit(fd, EV_REL, REL_X, dx);
     if (dy) emit(fd, EV_REL, REL_Y, dy);
     sync_report(fd);
-    /* Track a cursor-position estimate so forwarded scroll targets the pointer.
-     * (Approximate -- Android applies pointer acceleration -- but fine for
-     * targeting a scrollable view, same basis the trackpad uses.) */
-    g_cur_x += dx; if (g_cur_x < 0) g_cur_x = 0; if (g_cur_x >= g_scr_w) g_cur_x = g_scr_w - 1;
-    g_cur_y += dy; if (g_cur_y < 0) g_cur_y = 0; if (g_cur_y >= g_scr_h) g_cur_y = g_scr_h - 1;
 }
 
 static void mouse_click(int fd, int button) {
@@ -247,14 +234,7 @@ static void tap(int fd, int code) {
 #define MAX_VAL           32767
 #define TICK_MS           16
 #define MOUSE_SENSITIVITY 20.0f
-#define SCROLL_SPEED      40.0f   /* hi-res units per tick at full deflection (legacy wheel path) */
-/* Vertical scroll is delivered by the APP as generic ACTION_SCROLL motion events
- * (smooth, fractional -- bypasses the ROM's notchy/ignored wheel); the daemon just
- * forwards a per-tick vscroll delta + the cursor position (see gp_scroll / "GS").
- * VSCROLL_SPEED = AXIS_VSCROLL units per tick at full deflection; quadratic curve
- * gives an analog feel. Tune these for scroll speed. */
-#define VSCROLL_SPEED     1.6f
-#define SCROLL_CURVE(n)   ((n) * (n))
+#define SCROLL_SPEED      40.0f   /* hi-res units per tick at full deflection */
 
 static volatile int g_gamepad_enabled = 0;
 static volatile int g_quit = 0;
@@ -348,27 +328,11 @@ static float axis_to_scroll(int value) {
     return (value < 0 ? -1 : 1) * norm * norm * norm * SCROLL_SPEED;
 }
 
-/* Analog vscroll delta (AXIS_VSCROLL units) for the generic-motion scroll path.
- * + = scroll up; stick up (value<0) scrolls up. */
-static float axis_to_vscroll(int value) {
-    int av = abs(value);
-    if (av < SCROLL_DEAD_ZONE) return 0.0f;
-    float norm = (float)(av - SCROLL_DEAD_ZONE) / (float)(MAX_VAL - SCROLL_DEAD_ZONE);
-    return (value < 0 ? 1 : -1) * SCROLL_CURVE(norm) * VSCROLL_SPEED;
-}
-
 /* One connect/grab/map session; returns when disabled or the pad disconnects. */
 /* Forward a gamepad button to the app (stdout) so it can be injected as a keyboard
  * key through the modifier-aware path (e.g. deck-Shift + D-pad = select). */
 static void gp_key(int evdev, int down) {
     printf("GP %d %d\n", evdev, down);
-    fflush(stdout);
-}
-
-/* Forward a scroll delta + cursor position to the app, which injects a smooth
- * generic ACTION_SCROLL motion event (millis = vscroll * 1000, fixed-point). */
-static void gp_scroll(int x, int y, int milli_vscroll) {
-    printf("GS %d %d %d\n", x, y, milli_vscroll);
     fflush(stdout);
 }
 
@@ -400,7 +364,8 @@ static void gamepad_session(void) {
     ev.data.fd = tfd; epoll_ctl(ep, EPOLL_CTL_ADD, tfd, &ev);
 
     int left_x = 0, left_y = 0, right_x = 0, right_y = 0;
-    float accum_hwheel = 0;   /* horizontal wheel fraction carry (vertical uses gp_scroll) */
+    float accum_wheel = 0, accum_hwheel = 0;
+    int wheel_accum = 0;
     int prev_hatx = 0, prev_haty = 0;   /* D-pad -> keyboard arrows (via app) */
     int disc = 0;
     while (!g_quit && g_gamepad_enabled && !disc) {
@@ -450,13 +415,12 @@ static void gamepad_session(void) {
                 int dx = (int)axis_to_cursor(right_x);
                 int dy = (int)axis_to_cursor(right_y);
                 if (dx || dy) mouse_move(mouse, dx, dy);
-                /* Vertical scroll: forward a smooth analog vscroll delta + cursor pos
-                 * to the app (generic ACTION_SCROLL), bypassing the notchy wheel. */
-                float vs = axis_to_vscroll(left_y);
-                if (vs != 0.0f) gp_scroll(g_cur_x, g_cur_y, (int)lroundf(vs * 1000.0f));
-                /* Horizontal scroll stays on the wheel (rarely used, no notch-lag issue). */
+                accum_wheel += axis_to_scroll(left_y);
                 accum_hwheel += axis_to_scroll(left_x);
+                int wy = (int)accum_wheel; accum_wheel -= wy;
                 int wx = (int)accum_hwheel; accum_hwheel -= wx;
+                /* left stick down should scroll down: invert wy for wheel */
+                if (wy) mouse_scroll_hires(mouse, &wheel_accum, -wy);
                 if (wx) { emit(mouse, EV_REL, REL_HWHEEL, wx > 0 ? 1 : -1); sync_report(mouse); }
             }
         }
@@ -505,9 +469,6 @@ int main(void) {
             case 'W': mouse_scroll(mfd, atoi(line + 1)); break;
             case 'H': mouse_scroll_hires(mfd, &wheel_accum, atoi(line + 1)); break;
             case 'J': g_gamepad_enabled = atoi(line + 1) ? 1 : 0; break;
-            case 'B': if (sscanf(line + 1, "%d %d", &a, &b) == 2 && a > 0 && b > 0) {
-                          g_scr_w = a; g_scr_h = b; g_cur_x = a / 2; g_cur_y = b / 2;
-                      } break;
             case 'G':
                 switch (line[1]) {
                     case 'D': if (sscanf(line + 2, "%d %d", &a, &b) == 2) touch_down(tsfd, a, b); break;

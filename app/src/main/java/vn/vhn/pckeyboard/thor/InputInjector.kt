@@ -29,11 +29,6 @@ object InputInjector {
     /** Called on a background thread when the daemon reports a gamepad button
      *  (evdev code, pressed). Set by the service to route it through the keyboard. */
     @Volatile var gamepadKeyListener: ((Int, Boolean) -> Unit)? = null
-    /** Gamepad left-stick vertical scroll: (cursorX, cursorY, vscroll units). */
-    @Volatile var gamepadScrollListener: ((Float, Float, Float) -> Unit)? = null
-
-    /** Tell the daemon the main display size so forwarded scroll targets the cursor. */
-    fun setScreenBounds(w: Int, h: Int) = send("B $w $h")
 
     val isRunning: Boolean
         get() = synchronized(lock) { process?.isAlive == true }
@@ -75,15 +70,6 @@ object InputInjector {
                             if (parts.size >= 3) {
                                 val code = parts[1].toIntOrNull()
                                 if (code != null) gamepadKeyListener?.invoke(code, parts[2].trim() != "0")
-                            }
-                        } else if (line.startsWith("GS ")) {
-                            val parts = line.split(" ")
-                            if (parts.size >= 4) {
-                                val x = parts[1].toFloatOrNull()
-                                val y = parts[2].toFloatOrNull()
-                                val milli = parts[3].trim().toIntOrNull()
-                                if (x != null && y != null && milli != null)
-                                    gamepadScrollListener?.invoke(x, y, milli / 1000f)
                             }
                         }
                         line = r.readLine()

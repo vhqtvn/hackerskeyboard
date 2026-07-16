@@ -66,12 +66,6 @@ class OverlayKeyboardService : Service() {
         InputInjector.gamepadKeyListener = { code, down ->
             mainHandler.post { host?.gamepadKey(code, down) }
         }
-        // Gamepad left-stick vertical scroll (from the daemon) delivered as a smooth
-        // generic ACTION_SCROLL motion event at the cursor -- like the trackpad, and
-        // unlike the notchy wheel path this ROM mangles.
-        InputInjector.gamepadScrollListener = { x, y, vs ->
-            mainHandler.post { ImInjector.injectVScroll(Display.DEFAULT_DISPLAY, x, y, vs) }
-        }
         ImInjector.init(this)
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         gamepadOn = prefs.getBoolean(PREF_GAMEPAD, false)
@@ -86,8 +80,6 @@ class OverlayKeyboardService : Service() {
             stopSelf()
             return
         }
-        // Give the daemon the main-display size so forwarded scroll targets the cursor.
-        InputInjector.setScreenBounds(mainDisplayWidth, mainDisplayHeight)
         ThorController.expandRequest = { expand() }
         ThorController.setServiceRunning(true)
         expand()
@@ -115,7 +107,6 @@ class OverlayKeyboardService : Service() {
 
     override fun onDestroy() {
         InputInjector.gamepadKeyListener = null
-        InputInjector.gamepadScrollListener = null
         TaskWatcher.unregister()
         ThorController.setServiceRunning(false)
         ThorController.expandRequest = null
