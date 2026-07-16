@@ -234,15 +234,7 @@ static void tap(int fd, int code) {
 #define MAX_VAL           32767
 #define TICK_MS           16
 #define MOUSE_SENSITIVITY 20.0f
-#define SCROLL_SPEED      40.0f   /* hi-res units per tick at full deflection (horizontal wheel) */
-/* Vertical scroll: emit batched wheel notches at a CAPPED rate, with the notch
- * count per emit scaled by stick deflection. Each REL_WHEEL notch triggers a
- * ~100ms scroll animation, so raising the event RATE past ~10/s queues animations
- * (laggy); instead we keep a low rate and send a BIGGER step at full push -- fast
- * yet smooth. Pure evdev in the daemon: no app round-trip. */
-#define SCROLL_EMIT_TICKS  6      /* emit every 6 ticks (~96ms, ~10.4 Hz) */
-#define SCROLL_NOTCHES_MAX 4.0f   /* notches per emit at full deflection */
-#define SCROLL_CURVE(n)    ((n) * (n))   /* quadratic: fine near center, fast at full */
+#define SCROLL_SPEED      40.0f   /* hi-res units per tick at full deflection */
 
 static volatile int g_gamepad_enabled = 0;
 static volatile int g_quit = 0;
@@ -336,14 +328,6 @@ static float axis_to_scroll(int value) {
     return (value < 0 ? -1 : 1) * norm * norm * norm * SCROLL_SPEED;
 }
 
-/* Notches to scroll per emit-period, scaled by deflection. + = scroll up (stick up). */
-static float axis_to_notches(int value) {
-    int av = abs(value);
-    if (av < SCROLL_DEAD_ZONE) return 0.0f;
-    float norm = (float)(av - SCROLL_DEAD_ZONE) / (float)(MAX_VAL - SCROLL_DEAD_ZONE);
-    return (value < 0 ? 1 : -1) * SCROLL_CURVE(norm) * SCROLL_NOTCHES_MAX;
-}
-
 /* One connect/grab/map session; returns when disabled or the pad disconnects. */
 /* Forward a gamepad button to the app (stdout) so it can be injected as a keyboard
  * key through the modifier-aware path (e.g. deck-Shift + D-pad = select). */
@@ -380,9 +364,8 @@ static void gamepad_session(void) {
     ev.data.fd = tfd; epoll_ctl(ep, EPOLL_CTL_ADD, tfd, &ev);
 
     int left_x = 0, left_y = 0, right_x = 0, right_y = 0;
-    float accum_hwheel = 0;             /* horizontal wheel fraction carry */
-    float scroll_accum = 0;            /* vertical notch fraction carry */
-    int scroll_tick = 0;               /* counts ticks between capped-rate emits */
+    float accum_wheel = 0, accum_hwheel = 0;
+    int wheel_accum = 0;
     int prev_hatx = 0, prev_haty = 0;   /* D-pad -> keyboard arrows (via app) */
     int disc = 0;
     while (!g_quit && g_gamepad_enabled && !disc) {
@@ -432,18 +415,12 @@ static void gamepad_session(void) {
                 int dx = (int)axis_to_cursor(right_x);
                 int dy = (int)axis_to_cursor(right_y);
                 if (dx || dy) mouse_move(mouse, dx, dy);
-                /* Vertical: at a capped ~10Hz, emit a batch of notches sized by the
-                 * stick offset (deflection -> speed) -- big step at full push, no
-                 * animation-queue lag from a high event rate. */
-                if (++scroll_tick >= SCROLL_EMIT_TICKS) {
-                    scroll_tick = 0;
-                    scroll_accum += axis_to_notches(left_y);
-                    int nn = (int)scroll_accum; scroll_accum -= nn;
-                    if (nn) { emit(mouse, EV_REL, REL_WHEEL, nn); sync_report(mouse); }
-                }
-                /* Horizontal stays on the per-tick wheel (rarely used). */
+                accum_wheel += axis_to_scroll(left_y);
                 accum_hwheel += axis_to_scroll(left_x);
+                int wy = (int)accum_wheel; accum_wheel -= wy;
                 int wx = (int)accum_hwheel; accum_hwheel -= wx;
+                /* left stick down should scroll down: invert wy for wheel */
+                if (wy) mouse_scroll_hires(mouse, &wheel_accum, -wy);
                 if (wx) { emit(mouse, EV_REL, REL_HWHEEL, wx > 0 ? 1 : -1); sync_report(mouse); }
             }
         }
