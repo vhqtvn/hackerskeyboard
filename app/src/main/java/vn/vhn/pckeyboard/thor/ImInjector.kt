@@ -75,7 +75,15 @@ object ImInjector {
     }
 
     /** Inject a generic ACTION_SCROLL at (x,y) on [displayId]; +vscroll = up, -vscroll = down. */
-    fun injectVScroll(displayId: Int, x: Float, y: Float, vscroll: Float) {
+    fun injectVScroll(displayId: Int, x: Float, y: Float, vscroll: Float) =
+        injectScroll(displayId, x, y, vscroll, 0f)
+
+    /**
+     * Inject a generic ACTION_SCROLL carrying both wheel axes at (x,y) on [displayId].
+     * +vscroll = up, -vscroll = down; +hscroll = right, -hscroll = left. The (x,y) here is
+     * only a fallback: the sig-grant module rewrites it to the live cursor (see SCROLL_MARKER).
+     */
+    fun injectScroll(displayId: Int, x: Float, y: Float, vscroll: Float, hscroll: Float) {
         val imgr = im ?: return
         val inj = injectMethod ?: return
         val now = SystemClock.uptimeMillis()
@@ -85,6 +93,7 @@ object ImInjector {
         val coords = arrayOf(MotionEvent.PointerCoords().apply {
             this.x = x; this.y = y
             setAxisValue(MotionEvent.AXIS_VSCROLL, vscroll)
+            setAxisValue(MotionEvent.AXIS_HSCROLL, hscroll)
         })
         val ev = MotionEvent.obtain(
             now, now, MotionEvent.ACTION_SCROLL, 1, props, coords,

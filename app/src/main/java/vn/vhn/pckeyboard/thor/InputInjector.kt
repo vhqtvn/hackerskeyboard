@@ -30,6 +30,11 @@ object InputInjector {
      *  (evdev code, pressed). Set by the service to route it through the keyboard. */
     @Volatile var gamepadKeyListener: ((Int, Boolean) -> Unit)? = null
 
+    /** Called on a background thread when the daemon reports the left-stick scroll level
+     *  (signed vLevel, hLevel in [-1000,1000]); sent only when it changes. The app drives
+     *  a frame loop at the current level for smooth injected scrolling. */
+    @Volatile var scrollListener: ((Int, Int) -> Unit)? = null
+
     val isRunning: Boolean
         get() = synchronized(lock) { process?.isAlive == true }
 
@@ -70,6 +75,13 @@ object InputInjector {
                             if (parts.size >= 3) {
                                 val code = parts[1].toIntOrNull()
                                 if (code != null) gamepadKeyListener?.invoke(code, parts[2].trim() != "0")
+                            }
+                        } else if (line.startsWith("GS ")) {
+                            val parts = line.split(" ")
+                            if (parts.size >= 3) {
+                                val v = parts[1].toIntOrNull()
+                                val h = parts[2].trim().toIntOrNull()
+                                if (v != null && h != null) scrollListener?.invoke(v, h)
                             }
                         }
                         line = r.readLine()

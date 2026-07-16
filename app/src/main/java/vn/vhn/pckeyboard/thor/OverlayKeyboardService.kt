@@ -66,6 +66,8 @@ class OverlayKeyboardService : Service() {
         InputInjector.gamepadKeyListener = { code, down ->
             mainHandler.post { host?.gamepadKey(code, down) }
         }
+        // Left-stick analog scroll level -> smooth injected ACTION_SCROLL frame loop.
+        InputInjector.scrollListener = { v, h -> ThorScroller.update(v, h) }
         ImInjector.init(this)
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         gamepadOn = prefs.getBoolean(PREF_GAMEPAD, false)
@@ -80,6 +82,9 @@ class OverlayKeyboardService : Service() {
             stopSelf()
             return
         }
+        // Fallback scroll target (module rewrites to the live cursor); main display centre.
+        ThorScroller.fallbackX = mainDisplayWidth / 2f
+        ThorScroller.fallbackY = mainDisplayHeight / 2f
         ThorController.expandRequest = { expand() }
         ThorController.setServiceRunning(true)
         expand()
@@ -107,6 +112,8 @@ class OverlayKeyboardService : Service() {
 
     override fun onDestroy() {
         InputInjector.gamepadKeyListener = null
+        InputInjector.scrollListener = null
+        ThorScroller.shutdown()
         TaskWatcher.unregister()
         ThorController.setServiceRunning(false)
         ThorController.expandRequest = null

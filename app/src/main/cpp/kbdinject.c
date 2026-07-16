@@ -234,7 +234,6 @@ static void tap(int fd, int code) {
 #define MAX_VAL           32767
 #define TICK_MS           16
 #define MOUSE_SENSITIVITY 20.0f
-#define SCROLL_SPEED      40.0f   /* hi-res units per tick at full deflection */
 
 static volatile int g_gamepad_enabled = 0;
 static volatile int g_quit = 0;
@@ -321,11 +320,18 @@ static float axis_to_cursor(int value) {
     return (value < 0 ? -1 : 1) * norm * norm * MOUSE_SENSITIVITY;
 }
 
-static float axis_to_scroll(int value) {
+/* Map a stick axis to a signed analog scroll "level" in [-SCROLL_LEVELS, SCROLL_LEVELS],
+ * with a cubic response (gentle near center, fast at the edge). The app turns this into fine
+ * fractional ACTION_SCROLL deltas for smooth, dispatcher-quantization-free scrolling; we only
+ * forward it when it changes, so a steady hold is silent. */
+#define SCROLL_LEVELS 1000
+static int axis_to_level(int value) {
     int av = abs(value);
-    if (av < SCROLL_DEAD_ZONE) return 0.0f;
+    if (av < SCROLL_DEAD_ZONE) return 0;
     float norm = (float)(av - SCROLL_DEAD_ZONE) / (float)(MAX_VAL - SCROLL_DEAD_ZONE);
-    return (value < 0 ? -1 : 1) * norm * norm * norm * SCROLL_SPEED;
+    if (norm > 1.0f) norm = 1.0f;
+    int level = (int)(norm * norm * norm * SCROLL_LEVELS + 0.5f);
+    return value < 0 ? -level : level;
 }
 
 /* One connect/grab/map session; returns when disabled or the pad disconnects. */
@@ -364,8 +370,7 @@ static void gamepad_session(void) {
     ev.data.fd = tfd; epoll_ctl(ep, EPOLL_CTL_ADD, tfd, &ev);
 
     int left_x = 0, left_y = 0, right_x = 0, right_y = 0;
-    float accum_wheel = 0, accum_hwheel = 0;
-    int wheel_accum = 0;
+    int last_vlevel = 0, last_hlevel = 0;   /* last scroll level forwarded to the app */
     int prev_hatx = 0, prev_haty = 0;   /* D-pad -> keyboard arrows (via app) */
     int disc = 0;
     while (!g_quit && g_gamepad_enabled && !disc) {
@@ -415,16 +420,20 @@ static void gamepad_session(void) {
                 int dx = (int)axis_to_cursor(right_x);
                 int dy = (int)axis_to_cursor(right_y);
                 if (dx || dy) mouse_move(mouse, dx, dy);
-                accum_wheel += axis_to_scroll(left_y);
-                accum_hwheel += axis_to_scroll(left_x);
-                int wy = (int)accum_wheel; accum_wheel -= wy;
-                int wx = (int)accum_hwheel; accum_hwheel -= wx;
-                /* left stick down should scroll down: invert wy for wheel */
-                if (wy) mouse_scroll_hires(mouse, &wheel_accum, -wy);
-                if (wx) { emit(mouse, EV_REL, REL_HWHEEL, wx > 0 ? 1 : -1); sync_report(mouse); }
+                /* Left stick -> smooth scroll, injected in-app as fractional ACTION_SCROLL.
+                 * Forward the analog level only on change; a steady deflection stays silent
+                 * (the app runs its own frame loop at the current level). */
+                int vlevel = axis_to_level(left_y);
+                int hlevel = axis_to_level(left_x);
+                if (vlevel != last_vlevel || hlevel != last_hlevel) {
+                    last_vlevel = vlevel; last_hlevel = hlevel;
+                    printf("GS %d %d\n", vlevel, hlevel);
+                    fflush(stdout);
+                }
             }
         }
     }
+    if (last_vlevel || last_hlevel) { printf("GS 0 0\n"); fflush(stdout); }  /* stop app scroll loop */
     ioctl(gp, EVIOCGRAB, 0);
     close(ep); close(tfd);
     ioctl(proxy, UI_DEV_DESTROY); close(proxy);
