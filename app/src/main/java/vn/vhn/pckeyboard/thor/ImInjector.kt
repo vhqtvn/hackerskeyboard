@@ -21,6 +21,17 @@ import java.lang.reflect.Method
 object ImInjector {
     private const val TAG = "ThorIm"
 
+    /**
+     * Private edgeFlags marker we stamp on injected ACTION_SCROLL events. The Thor sig-grant
+     * module hooks InputManagerService.injectInputEvent in system_server and, for events
+     * carrying this marker, rewrites their (x,y) to the live mouse-cursor position from
+     * WindowManagerService.getLatestMousePosition() before dispatch -- so a scroll always
+     * lands on whatever the cursor hovers, without the app ever needing the coordinate.
+     * The (x,y) we pass below are only a fallback for when the module isn't present.
+     * Must match SigGrantModule.SCROLL_MARKER.
+     */
+    const val SCROLL_MARKER = 0x7ABE0001
+
     @Volatile private var im: InputManager? = null
     private var injectMethod: Method? = null
     private var setDisplayIdMethod: Method? = null
@@ -77,7 +88,7 @@ object ImInjector {
         })
         val ev = MotionEvent.obtain(
             now, now, MotionEvent.ACTION_SCROLL, 1, props, coords,
-            0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_MOUSE, 0
+            0, 0, 1f, 1f, 0, SCROLL_MARKER, InputDevice.SOURCE_MOUSE, 0
         )
         try { setDisplayIdMethod?.invoke(ev, displayId) } catch (_: Throwable) {}
         try { inj.invoke(imgr, ev, 0) } catch (t: Throwable) { Log.e(TAG, "inject scroll failed", t) }
