@@ -135,11 +135,7 @@ static void mouse_scroll(int fd, int dy) {
  * consumers that ignore hi-res. */
 static void mouse_scroll_hires(int fd, int *accum, int hival) {
     if (fd < 0 || hival == 0) return;
-    emit(fd, EV_REL, REL_WHEEL_HI_RES, hival);   // ignored by this ROM, harmless
-    /* This ROM honours only discrete REL_WHEEL notches, and each notch triggers a
-     * per-notch scroll animation in the target app -- so the NOTCH RATE, not the
-     * hi-res value, is what must stay bounded to feel smooth (too many notches/sec
-     * queue animations = laggy). SCROLL_SPEED caps that rate; see axis_to_scroll. */
+    emit(fd, EV_REL, REL_WHEEL_HI_RES, hival);
     *accum += hival;
     while (*accum >= 120) { emit(fd, EV_REL, REL_WHEEL, 1); *accum -= 120; }
     while (*accum <= -120) { emit(fd, EV_REL, REL_WHEEL, -1); *accum += 120; }
@@ -238,17 +234,7 @@ static void tap(int fd, int code) {
 #define MAX_VAL           32767
 #define TICK_MS           16
 #define MOUSE_SENSITIVITY 20.0f
-/* hi-res units per tick at full deflection. This ROM only honours discrete wheel
- * notches (120 units = 1 notch) and animates each notch, so this caps the notch
- * RATE: 18/tick * 62.5 ticks/s / 120 ~= 9 notches/s at full -- fast enough yet
- * below the rate where per-notch animations queue up and feel laggy. Raise for a
- * faster max (risk: lag), lower for slower-but-smoother. */
-#define SCROLL_SPEED      18.0f
-/* Response curve applied to normalized deflection (0..1) for scroll. Quadratic
- * gives fine control near center and ramps up toward full deflection -- an analog
- * feel across the whole stick range. Tweak: use (n) for linear (most aggressive),
- * (n)*(n) for quadratic, (n)*(n)*(n) for the old near-on/off ("static") feel. */
-#define SCROLL_CURVE(n)   ((n) * (n))
+#define SCROLL_SPEED      40.0f   /* hi-res units per tick at full deflection */
 
 static volatile int g_gamepad_enabled = 0;
 static volatile int g_quit = 0;
@@ -339,7 +325,7 @@ static float axis_to_scroll(int value) {
     int av = abs(value);
     if (av < SCROLL_DEAD_ZONE) return 0.0f;
     float norm = (float)(av - SCROLL_DEAD_ZONE) / (float)(MAX_VAL - SCROLL_DEAD_ZONE);
-    return (value < 0 ? -1 : 1) * SCROLL_CURVE(norm) * SCROLL_SPEED;
+    return (value < 0 ? -1 : 1) * norm * norm * norm * SCROLL_SPEED;
 }
 
 /* One connect/grab/map session; returns when disabled or the pad disconnects. */
