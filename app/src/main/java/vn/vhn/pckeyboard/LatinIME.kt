@@ -511,14 +511,6 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     override fun onCreateInputView(): View {
         setCandidatesViewShown(false) // Workaround for "already has a parent" when reconfiguring
-        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) {
-            // Thor mode: the deck on the second screen is the real keyboard. Return a
-            // near-invisible 1px strip just to keep the IME window (and thus the input
-            // session) alive on the main screen. See onEvaluateInputViewShown.
-            return View(this).apply {
-                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1)
-            }
-        }
         mKeyboardSwitcher.recreateInputView()
         mKeyboardSwitcher.makeKeyboards(true)
         mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_TEXT, 0, false)
@@ -792,16 +784,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     override fun onDisplayCompletions(completions: Array<CompletionInfo?>?) {}
 
     override fun onEvaluateInputViewShown(): Boolean {
-        // While Thor mode is active (the second-screen deck service is running), the
-        // deck handles input on the second screen -- but we must still report the
-        // input view as SHOWN so the IME window is realized and the input session
-        // stays LIVE. Some editors (notably the Termux terminal inside VHEditor,
-        // TYPE_NULL) only honour InputConnection delivery -- sendKeyEvent for
-        // Home/End, commitText for Vietnamese -- while the IME is actually shown; a
-        // hidden IME leaves the connection bound-but-inert and those keys go nowhere.
-        // The main-screen view is a 1px touch-transparent strip (see onCreateInputView
-        // / onComputeInsets), so nothing visible appears on the first screen.
-        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) return true
+        // While Thor mode is active (the second-screen deck service is running),
+        // never show a keyboard on the main screen -- the deck handles input on the
+        // second screen. With INTERNAL_SYSTEM_WINDOW held, the deck is a system
+        // overlay and shows even over Settings, so no main-screen fallback is needed.
+        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) return false
         val parent = super.onEvaluateInputViewShown()
         return mForceKeyboardOn || mStick || parent
     }
@@ -809,30 +796,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
         vn.vhn.pckeyboard.thor.ThorController.onEditorFocus(true)
-        // Thor mode: our uinput device registers as a hardware keyboard, so the system
-        // (and apps like the VHEditor terminal) never request the soft IME to show --
-        // leaving the input session bound-but-inert, so InputConnection delivery
-        // (Home/End via sendKeyEvent, Vietnamese via commitText) reaches nothing. Force
-        // the IME to show ourselves so the session goes LIVE; the on-screen view is a
-        // 1px transparent strip (onCreateInputView), so nothing is visible.
-        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) {
-            mDefaultHandler.post { try { requestShowSelf(0) } catch (_: Throwable) {} }
-        }
     }
 
     override fun onComputeInsets(outInsets: Insets) {
         super.onComputeInsets(outInsets)
-        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) {
-            // The 1px keep-alive strip must neither resize the app nor steal touches:
-            // report content covering the full height (IME occupies nothing) and an
-            // empty touchable region so taps fall through to the main-screen app.
-            val h = resources.displayMetrics.heightPixels
-            outInsets.contentTopInsets = h
-            outInsets.visibleTopInsets = h
-            outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
-            outInsets.touchableRegion.setEmpty()
-            return
-        }
         if (!isFullscreenMode) {
             outInsets.contentTopInsets = outInsets.visibleTopInsets
         }

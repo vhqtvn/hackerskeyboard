@@ -137,19 +137,6 @@ object InputInjector {
         releaseWithMeta(evdev, mods)
     }
 
-    /**
-     * Inject a terminal Home/End as the xterm escape sequence \033OH / \033OF, typed as
-     * ordinary keystrokes over the hardware path. Used for raw-key editors (inputType
-     * TYPE_NULL, e.g. the Termux terminal inside VHEditor): they ignore the soft-IME
-     * connection and read hardware keys, but uinput KEY_HOME is hijacked by the AYN/Odin
-     * daemon -- so we send the sequence the terminal itself would emit for MOVE_HOME/END.
-     */
-    fun sendTermHomeEnd(end: Boolean) {
-        tap(1)                                    // KEY_ESC -> \033
-        tapWithMeta(24, KeyEvent.META_SHIFT_ON)   // KEY_O (shifted) -> 'O'
-        tapWithMeta(if (end) 33 else 35, KeyEvent.META_SHIFT_ON) // KEY_F/KEY_H -> 'F'/'H'
-    }
-
     private fun modKeysFor(metaState: Int): IntArray {
         val mods = ArrayList<Int>(4)
         if (metaState and KeyEvent.META_SHIFT_ON != 0) mods.add(KeyMap.KEY_LEFTSHIFT)

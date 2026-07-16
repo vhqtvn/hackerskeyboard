@@ -273,28 +273,15 @@ class ThorKeyboardHost(
     private var gpDownMods: IntArray = IntArray(0)
 
     /**
-     * Send an edit key (e.g. MOVE_HOME/END) straight to the focused app via the IME
-     * connection -- the way Hacker's Keyboard delivers keys. It reaches the app's own
-     * key handling (so text fields, terminals and editors all honour it) and does NOT
-     * pass through the global input dispatcher/policy (which turns an unhandled Home
-     * into device-home). metaState carries the deck modifiers (Shift -> selection).
+     * Send an edit key (MOVE_HOME/MOVE_END) via uinput, following focus like every other
+     * injected key. Works generically in text fields AND terminals because the Sig-Grant
+     * LSPosed module hooks PhoneWindowManager.interceptKeyBeforeDispatching to neutralize the
+     * AYN ROM's MOVE_HOME->device-home mapping (see ~/devices/ayn-thor/framework/README.md),
+     * so MOVE_HOME/END now reach the focused app instead of launching the launcher. The deck
+     * modifiers ride along (Shift -> selection).
      */
     fun sendEditKey(keyCode: Int) {
-        val ime = ThorController.ime ?: return
-        if (!ThorController.editorFocused) return
-        // Raw-key editors (inputType TYPE_NULL, e.g. the Termux terminal in VHEditor)
-        // ignore the soft-IME connection and read hardware keys directly; there, uinput
-        // KEY_HOME is hijacked by the Odin daemon, so deliver Home/End as the terminal
-        // escape sequence over uinput. Normal editors honour InputConnection.sendKeyEvent.
-        if ((ime.currentInputEditorInfo?.inputType ?: 0) == android.text.InputType.TYPE_NULL) {
-            InputInjector.sendTermHomeEnd(keyCode == KeyEvent.KEYCODE_MOVE_END)
-            return
-        }
-        val ic = ime.currentInputConnection ?: return
-        val meta = navMetaState()
-        val now = android.os.SystemClock.uptimeMillis()
-        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, meta))
-        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, meta))
+        InputInjector.injectAndroidKey(keyCode, navMetaState())
     }
 
     fun gamepadKey(evdev: Int, down: Boolean) {

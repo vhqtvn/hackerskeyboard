@@ -12,3 +12,6 @@
 /captures
 gradle
 .externalNativeBuild
+
+# local reverse-engineering reference clones (not part of the app)
+/refs/
