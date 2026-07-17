@@ -21,6 +21,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.view.ContextThemeWrapper
@@ -243,11 +244,19 @@ class OverlayKeyboardService : Service() {
         // density so the strip wraps taller than the icons -- otherwise they clip.
         val ddens = ctx.resources.displayMetrics.density
         val vpad = (8f * ddens).toInt()
-        recents.setPadding(dp(52f), vpad, dp(100f), vpad)
-        col.addView(recents, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(6f)
-        })
+        recents.setPadding(0, vpad, 0, vpad)
+        // Left-align so the most-recent icons start at the left edge; the strip lives
+        // in a HorizontalScrollView (built into the top bar below) so extra apps stay
+        // reachable by scrolling rather than being clipped. The toggle buttons are
+        // real bar siblings, so the strip can never grow over them however many apps
+        // accumulate.
+        recents.gravity = Gravity.START or Gravity.CENTER_VERTICAL
+        val recentsScroll = HorizontalScrollView(ctx).apply {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            addView(recents, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+        }
 
         // Nav line (one keyboard-row tall, fills the gap): [Home] [cursor pad] [End].
         // Home/End are key-styled buttons at the same height as the keyboard rows;
@@ -278,7 +287,9 @@ class OverlayKeyboardService : Service() {
         root.addView(col, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
-        // --- corner buttons overlaid on top of the column ---
+        // --- top bar: [lang] [recents strip] [gamepad] [minimize] ---
+        // The toggle buttons are real row siblings (not overlays), so the recents
+        // strip can never grow over them however many apps accumulate.
         val s = dp(40f)
         val minimize = TextView(ctx).apply {
             text = "▾"; gravity = Gravity.CENTER; setTextColor(Color.WHITE)
@@ -286,10 +297,6 @@ class OverlayKeyboardService : Service() {
             background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt()) }
             setOnClickListener { minimize() }
         }
-        root.addView(minimize, FrameLayout.LayoutParams(s, s).apply {
-            gravity = Gravity.TOP or Gravity.END; topMargin = dp(8f); rightMargin = dp(8f)
-        })
-
         val gp = TextView(ctx).apply {
             text = "🎮"; gravity = Gravity.CENTER; setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(0xCC333333.toInt()) }
@@ -297,10 +304,6 @@ class OverlayKeyboardService : Service() {
             setOnClickListener { toggleGamepad() }
         }
         gamepadButton = gp
-        root.addView(gp, FrameLayout.LayoutParams(s, s).apply {
-            gravity = Gravity.TOP or Gravity.END; topMargin = dp(8f); rightMargin = dp(8f) + s + dp(8f)
-        })
-
         val lang = TextView(ctx).apply {
             text = if (vnOn) "Vi" else "En"; gravity = Gravity.CENTER
             setTextColor(if (vnOn) 0xFFF3CB63.toInt() else Color.WHITE)
@@ -309,8 +312,23 @@ class OverlayKeyboardService : Service() {
             setOnClickListener { toggleVn() }
         }
         langButton = lang
-        root.addView(lang, FrameLayout.LayoutParams(s, s).apply {
-            gravity = Gravity.TOP or Gravity.START; topMargin = dp(8f); leftMargin = dp(8f)
+
+        val topBar = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        topBar.addView(lang, LinearLayout.LayoutParams(s, s).apply {
+            marginStart = dp(8f); marginEnd = dp(8f)
+        })
+        // Weighted middle: the scroll strip gets whatever width is left after the
+        // buttons (width=0 + weight), so it can never encroach on them; apps past
+        // that width scroll into view instead of being clipped.
+        topBar.addView(recentsScroll, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        topBar.addView(gp, LinearLayout.LayoutParams(s, s).apply { marginEnd = dp(8f) })
+        topBar.addView(minimize, LinearLayout.LayoutParams(s, s).apply { marginEnd = dp(8f) })
+        col.addView(topBar, 0, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(6f)
         })
 
         return root
