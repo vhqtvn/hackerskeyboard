@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
@@ -69,6 +70,7 @@ class RecentAppsView(context: Context) : LinearLayout(context) {
     private fun fetchState(): Pair<List<String>, Set<String>> {
         val am = appCtx.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val pm = appCtx.packageManager
+        val homePkgs = homePackages(pm)
         val pkgs = LinkedHashSet<String>()   // recents order, deduped
         try {
             @Suppress("DEPRECATION")
@@ -79,6 +81,7 @@ class RecentAppsView(context: Context) : LinearLayout(context) {
                     ?: t.baseIntent?.component?.packageName
                     ?: continue
                 if (pkg == appCtx.packageName) continue
+                if (pkg in homePkgs) continue          // don't show the launcher(s) as an app
                 if (pm.getLaunchIntentForPackage(pkg) == null) continue
                 pkgs.add(pkg)
                 if (pkgs.size >= MAX_APPS) break
@@ -92,6 +95,26 @@ class RecentAppsView(context: Context) : LinearLayout(context) {
             am.runningAppProcesses?.forEach { p -> p.pkgList?.forEach { running.add(it) } }
         } catch (_: Throwable) {}
         return pkgs.toList() to running
+    }
+
+    /**
+     * Packages that act as a home launcher, so we can hide them from the strip (the
+     * user's launcher is a task like any other and would otherwise show as an app).
+     * Only real launchers register their HOME activity at priority >= 0; boot stubs
+     * like Settings' FallbackHome sit at a negative priority, so filtering on priority
+     * drops the launcher(s) without also dropping the real Settings app.
+     */
+    private fun homePackages(pm: PackageManager): Set<String> {
+        return try {
+            val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            pm.queryIntentActivities(home, PackageManager.MATCH_DEFAULT_ONLY)
+                .filter { it.priority >= 0 }
+                .mapNotNull { it.activityInfo?.packageName }
+                .toHashSet()
+        } catch (e: Throwable) {
+            Log.e(TAG, "homePackages query failed", e)
+            emptySet()
+        }
     }
 
     private fun render(pkgs: List<String>, running: Set<String>) {
