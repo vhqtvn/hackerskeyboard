@@ -41,6 +41,11 @@ class OverlayKeyboardService : Service() {
 
     private var displayContext: Context? = null
     private var windowManager: WindowManager? = null
+    private var displayManager: DisplayManager? = null
+    private var secondaryDisplayId = Display.INVALID_DISPLAY
+    private var lastDisplayRotation = -1
+    private var lastDisplayW = 0
+    private var lastDisplayH = 0
     private var host: ThorKeyboardHost? = null
     private var deckView: View? = null
     private var floatingButton: View? = null
@@ -114,6 +119,8 @@ class OverlayKeyboardService : Service() {
     override fun onDestroy() {
         InputInjector.gamepadKeyListener = null
         InputInjector.scrollListener = null
+        mainHandler.removeCallbacks(rebuildDeckRunnable)
+        displayManager?.unregisterDisplayListener(displayListener)
         ThorScroller.shutdown()
         TaskWatcher.unregister()
         ThorController.setServiceRunning(false)
@@ -135,8 +142,55 @@ class OverlayKeyboardService : Service() {
         val ctx = createDisplayContext(display)
         displayContext = ContextThemeWrapper(ctx, android.R.style.Theme_DeviceDefault)
         windowManager = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        displayManager = dm
+        secondaryDisplayId = display.displayId
+        rememberDisplayMetrics(display)
+        // The open deck is mis-measured after the second screen rotates or resizes
+        // (waking the device / opening it): the weighted top bar + nav rows overflow
+        // and their right-edge children -- the toggle buttons, the End key -- get
+        // pushed off-screen. A fresh buildDeck lays out correctly, so rebuild on any
+        // real size/rotation change of this display.
+        dm.registerDisplayListener(displayListener, mainHandler)
         Log.d(TAG, "using display ${display.displayId} '${display.name}'")
         return true
+    }
+
+    private fun rememberDisplayMetrics(display: Display) {
+        val p = android.graphics.Point()
+        @Suppress("DEPRECATION") display.getRealSize(p)
+        lastDisplayRotation = display.rotation
+        lastDisplayW = p.x
+        lastDisplayH = p.y
+    }
+
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) {}
+        override fun onDisplayRemoved(displayId: Int) {}
+        override fun onDisplayChanged(displayId: Int) {
+            if (displayId != secondaryDisplayId) return
+            val d = displayManager?.getDisplay(displayId) ?: return
+            val p = android.graphics.Point()
+            @Suppress("DEPRECATION") d.getRealSize(p)
+            // Ignore brightness / refresh-rate-only changes; only rebuild when the
+            // usable geometry actually changes.
+            if (d.rotation == lastDisplayRotation && p.x == lastDisplayW && p.y == lastDisplayH) return
+            rememberDisplayMetrics(d)
+            mainHandler.removeCallbacks(rebuildDeckRunnable)
+            mainHandler.postDelayed(rebuildDeckRunnable, 300)
+        }
+    }
+
+    private val rebuildDeckRunnable = Runnable { rebuildDeck() }
+
+    /** Tear down and re-create the open deck so it re-measures against the new size. */
+    private fun rebuildDeck() {
+        if (!expanded) return
+        deckView?.let { safeRemove(it) }
+        deckView = null
+        host?.destroy()
+        host = null
+        expanded = false
+        expand()
     }
 
     private fun pickSecondaryDisplay(dm: DisplayManager): Display? {
