@@ -41,6 +41,11 @@ class OverlayKeyboardService : Service() {
 
     private var displayContext: Context? = null
     private var windowManager: WindowManager? = null
+    private var displayManager: DisplayManager? = null
+    private var secondaryDisplayId = Display.INVALID_DISPLAY
+    private var lastRotation = -1
+    private var lastRealW = 0
+    private var lastRealH = 0
     private var host: ThorKeyboardHost? = null
     private var deckView: View? = null
     private var floatingButton: View? = null
@@ -114,6 +119,8 @@ class OverlayKeyboardService : Service() {
     override fun onDestroy() {
         InputInjector.gamepadKeyListener = null
         InputInjector.scrollListener = null
+        mainHandler.removeCallbacks(rebuildRunnable)
+        displayManager?.unregisterDisplayListener(displayListener)
         ThorScroller.shutdown()
         TaskWatcher.unregister()
         ThorController.setServiceRunning(false)
@@ -135,8 +142,52 @@ class OverlayKeyboardService : Service() {
         val ctx = createDisplayContext(display)
         displayContext = ContextThemeWrapper(ctx, android.R.style.Theme_DeviceDefault)
         windowManager = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        displayManager = dm
+        secondaryDisplayId = display.displayId
+        rememberDisplayGeometry(display)
+        // The deck width is derived from the keyboard, which is built from the second
+        // screen's physical mode at expand time. That screen isn't meant to rotate, but
+        // if it ever rotates/resizes the derived width goes stale -- just rebuild so it
+        // re-derives. (Brightness/refresh-only onDisplayChanged events are ignored.)
+        dm.registerDisplayListener(displayListener, mainHandler)
         Log.d(TAG, "using display ${display.displayId} '${display.name}'")
         return true
+    }
+
+    private fun rememberDisplayGeometry(display: Display) {
+        val p = android.graphics.Point()
+        @Suppress("DEPRECATION") display.getRealSize(p)
+        lastRotation = display.rotation
+        lastRealW = p.x
+        lastRealH = p.y
+    }
+
+    private val rebuildRunnable = Runnable { rebuildDeck() }
+
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) {}
+        override fun onDisplayRemoved(displayId: Int) {}
+        override fun onDisplayChanged(displayId: Int) {
+            if (displayId != secondaryDisplayId) return
+            val d = displayManager?.getDisplay(displayId) ?: return
+            val p = android.graphics.Point()
+            @Suppress("DEPRECATION") d.getRealSize(p)
+            if (d.rotation == lastRotation && p.x == lastRealW && p.y == lastRealH) return
+            rememberDisplayGeometry(d)
+            mainHandler.removeCallbacks(rebuildRunnable)
+            mainHandler.postDelayed(rebuildRunnable, 300)
+        }
+    }
+
+    /** Tear down and re-create the open deck so it re-derives its width from the keyboard. */
+    private fun rebuildDeck() {
+        if (!expanded) return
+        deckView?.let { safeRemove(it) }
+        deckView = null
+        host?.destroy()
+        host = null
+        expanded = false
+        expand()
     }
 
     private fun pickSecondaryDisplay(dm: DisplayManager): Display? {
