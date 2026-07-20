@@ -2,6 +2,7 @@ package vn.vhn.pckeyboard.thor
 
 import android.content.Context
 import android.preference.PreferenceManager
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.KeyEvent
 import android.view.View
@@ -34,6 +35,7 @@ class ThorKeyboardHost(
 
     val rootView: ViewGroup
     private val inputView: LatinKeyboardView
+    private val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(displayContext)
 
     /** Invoked when the keyboard requests to hide itself (Cancel key). */
     var onHideRequested: (() -> Unit)? = null
@@ -312,7 +314,21 @@ class ThorKeyboardHost(
     }
 
     // --- OnKeyboardActionListener ----------------------------------------------
+    /**
+     * Soft key-press haptic for the deck, gated by the shared "vibrate_on" pref (the
+     * existing Feedback-settings toggle). The deck bypasses LatinIME.onKey, so it must
+     * fire its own feedback. KEYBOARD_TAP is the OEM-tuned, short, low-energy primitive;
+     * FLAG_IGNORE_GLOBAL_SETTING makes the app toggle the source of truth (as LatinIME does).
+     */
+    private fun hapticTap() {
+        if (!sharedPrefs.getBoolean("vibrate_on", false)) return   // mirrors LatinIME.PREF_VIBRATE_ON
+        inputView.performHapticFeedback(
+            HapticFeedbackConstants.KEYBOARD_TAP,
+            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+    }
+
     override fun onPress(primaryCode: Int) {
+        hapticTap()
         modFor(primaryCode)?.let { it.held = true; it.used = false; updateIndicators(); return }
         fnModFor(primaryCode)?.let { it.held = true; it.used = false; syncFn(); return }
         if (isActionCode(primaryCode)) return
