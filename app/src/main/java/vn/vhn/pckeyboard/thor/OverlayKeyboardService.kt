@@ -157,31 +157,59 @@ class OverlayKeyboardService : Service() {
         override fun onDisplayAdded(displayId: Int) {}
         override fun onDisplayRemoved(displayId: Int) {}
         override fun onDisplayChanged(displayId: Int) {
-            if (displayId == secondaryDisplayId) mainHandler.postDelayed({ healDeckIfBroken() }, 300)
+            if (displayId != secondaryDisplayId) return
+            healAttempts = 0   // a new display event (e.g. wake) gets a fresh heal budget
+            mainHandler.postDelayed({ healDeckIfBroken() }, 300)
         }
     }
 
+    /** Physical width (px) of the second screen in its current rotation, or 0. */
+    private fun secondaryScreenWidth(): Int {
+        val d = displayManager?.getDisplay(secondaryDisplayId) ?: return 0
+        val p = android.graphics.Point()
+        @Suppress("DEPRECATION") d.getRealSize(p)
+        return p.x
+    }
+
     /**
-     * The deck is mis-laid-out iff a toggle button ends up outside the deck's width
-     * (pushed off-screen) or collapsed to zero width. A fresh [buildDeck] always lands
-     * within bounds (verified across sleep/wake and process-restart), so rebuild when
-     * we see the bad state. Trigger-independent: whatever produced the bad layout, the
-     * bad layout itself fires the global-layout listener that calls this.
+     * The wake-from-sleep bug: the whole deck sometimes lays out at the MAIN display's
+     * width (~1920) instead of this screen's (~1240) -- the tree-boundary arithmetic on
+     * a captured bad frame gives row width ~= 1920 (Home key ~= width/10 of the 1:8:1
+     * nav row). Because the ENTIRE tree (root included) scales up together, children
+     * still look in-bounds *relative to the deck*, so we must judge against the physical
+     * screen width, not deck.width. Symptom: deck wider than the screen, or the gamepad
+     * toggle laid out at/past the screen's right edge.
      */
-    private fun healDeckIfBroken() {
-        val deck = deckView ?: return
-        val gp = gamepadButton ?: return
-        if (!expanded || deck.width == 0 || gp.width == 0) return
-        // Button's right edge in window (== deck) coordinates, robust to nesting.
+    private fun deckIsBroken(): Boolean {
+        val deck = deckView ?: return false
+        val gp = gamepadButton ?: return false
+        val screenW = secondaryScreenWidth()
+        if (!expanded || deck.width == 0 || gp.width == 0 || screenW == 0) return false
         val loc = IntArray(2)
         gp.getLocationInWindow(loc)
         val gpRightAbs = loc[0] + gp.width
-        val broken = loc[0] >= deck.width || gpRightAbs > deck.width
-        if (!broken) { healAttempts = 0; return }
-        if (healAttempts >= 3) return   // give up rather than loop forever
+        return deck.width > screenW || loc[0] >= screenW || gpRightAbs > screenW
+    }
+
+    private val healRunnable = Runnable {
+        if (!deckIsBroken()) { healAttempts = 0; return@Runnable }
+        if (healAttempts >= 4) { Log.w(TAG, "deck still broken after $healAttempts rebuilds; giving up"); return@Runnable }
         healAttempts++
-        Log.w(TAG, "deck mis-laid-out (gpLeftAbs=${loc[0]} gpRightAbs=$gpRightAbs deckW=${deck.width}); rebuild #$healAttempts")
-        mainHandler.post { rebuildDeck() }
+        val gp = gamepadButton; val loc = IntArray(2); gp?.getLocationInWindow(loc)
+        Log.w(TAG, "deck wider than screen (deckW=${deckView?.width} screenW=${secondaryScreenWidth()} gpRight=${loc[0] + (gp?.width ?: 0)}); rebuild #$healAttempts")
+        rebuildDeck()
+    }
+
+    /**
+     * Debounced self-heal: whatever produced the bad layout, the bad layout itself fires
+     * the deck's global-layout listener. Wait 400ms for the (wrong) layout to settle,
+     * then rebuild if still bad. A fresh [buildDeck] lays out at the correct width; the
+     * attempt cap (reset on any good layout) stops a persistently-bad deck from looping.
+     */
+    private fun healDeckIfBroken() {
+        mainHandler.removeCallbacks(healRunnable)
+        if (deckIsBroken()) mainHandler.postDelayed(healRunnable, 400)
+        else healAttempts = 0
     }
 
     /** Tear down and re-create the open deck so it re-measures cleanly. */
