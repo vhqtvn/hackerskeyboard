@@ -56,7 +56,7 @@ class LatinIMESettings : PreferenceActivity(), OnSharedPreferenceChangeListener,
         var version = ""
         try {
             val info = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-            version = info.versionName
+            version = info.versionName ?: ""
         } catch (e: NameNotFoundException) {
             Log.e(TAG, "Could not find version info.")
         }
@@ -69,7 +69,7 @@ class LatinIMESettings : PreferenceActivity(), OnSharedPreferenceChangeListener,
         super.onDestroy()
     }
 
-    override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String) {
+    override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String?) {
         BackupManager(this).dataChanged()
         // If turning on voice input, show dialog
         if (key == VOICE_SETTINGS_KEY && !mVoiceOn) {

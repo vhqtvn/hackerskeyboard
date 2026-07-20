@@ -1814,9 +1814,10 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
         mMiniKeyboardSlideAllowance = res.getDimension(R.dimen.mini_keyboard_slide_allowance)
         val listener: SimpleOnGestureListener = object : SimpleOnGestureListener() {
             override fun onFling(
-                me1: MotionEvent, me2: MotionEvent, velocityX: Float,
+                me1: MotionEvent?, me2: MotionEvent, velocityX: Float,
                 velocityY: Float,
             ): Boolean {
+                if (me1 == null) return false   // API 34+ made e1 nullable
                 val absX = Math.abs(velocityX)
                 val absY = Math.abs(velocityY)
                 val deltaX = me2.x - me1.x

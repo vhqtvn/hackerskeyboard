@@ -38,6 +38,12 @@ android {
     lint {
         checkReleaseBuilds false
     }
+    // AGP 8 turns these off by default; this project uses BuildConfig (LatinIME) and
+    // an AIDL interface (ITaskStackListener), so re-enable them explicitly.
+    buildFeatures {
+        buildConfig true
+        aidl true
+    }
     kotlinOptions {
         jvmTarget = '1.8'
     }
