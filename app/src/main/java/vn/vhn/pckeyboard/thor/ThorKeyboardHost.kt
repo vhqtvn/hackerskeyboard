@@ -4,6 +4,7 @@ import android.content.Context
 import android.preference.PreferenceManager
 import android.view.LayoutInflater
 import android.view.KeyEvent
+import android.view.View
 import android.view.ViewGroup
 import vn.vhn.pckeyboard.Keyboard
 import vn.vhn.pckeyboard.LanguageSwitcher
@@ -114,6 +115,19 @@ class ThorKeyboardHost(
         inputView.setKeyboard(kb)
         inputView.setPreviewEnabled(false)
         inputView.setOnKeyboardActionListener(this)
+    }
+
+    /**
+     * The keyboard's fixed intrinsic width in px. [LatinKeyboardBaseView.onMeasure]
+     * ignores the width spec and always reports `mKeyboard.minWidth + padding` (sized
+     * from the display when the keyboard was built), so this is the correct deck width
+     * regardless of what (possibly wrong) width the overlay window reports. Returns 0
+     * if the keyboard isn't ready.
+     */
+    fun keyboardWidth(): Int {
+        val unspec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        inputView.measure(unspec, unspec)
+        return inputView.measuredWidth
     }
 
     // --- meta / modifier helpers ----------------------------------------------

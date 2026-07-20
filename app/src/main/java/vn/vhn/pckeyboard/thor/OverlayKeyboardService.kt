@@ -41,9 +41,6 @@ class OverlayKeyboardService : Service() {
 
     private var displayContext: Context? = null
     private var windowManager: WindowManager? = null
-    private var displayManager: DisplayManager? = null
-    private var secondaryDisplayId = Display.INVALID_DISPLAY
-    private var healAttempts = 0
     private var host: ThorKeyboardHost? = null
     private var deckView: View? = null
     private var floatingButton: View? = null
@@ -117,8 +114,6 @@ class OverlayKeyboardService : Service() {
     override fun onDestroy() {
         InputInjector.gamepadKeyListener = null
         InputInjector.scrollListener = null
-        mainHandler.removeCallbacksAndMessages(null)
-        displayManager?.unregisterDisplayListener(displayListener)
         ThorScroller.shutdown()
         TaskWatcher.unregister()
         ThorController.setServiceRunning(false)
@@ -140,87 +135,8 @@ class OverlayKeyboardService : Service() {
         val ctx = createDisplayContext(display)
         displayContext = ContextThemeWrapper(ctx, android.R.style.Theme_DeviceDefault)
         windowManager = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        displayManager = dm
-        secondaryDisplayId = display.displayId
-        // Waking the second screen (and possibly other, unreproduced events) can leave
-        // the open deck mis-laid-out: the weighted top bar + nav rows overflow and push
-        // their right-edge children -- the toggle buttons, the End key -- off-screen.
-        // The display geometry does NOT change on wake, so we can't key off that; instead
-        // a global-layout listener (see expand) detects the bad layout and self-heals.
-        // This listener just nudges a re-check after any display event on our screen.
-        dm.registerDisplayListener(displayListener, mainHandler)
         Log.d(TAG, "using display ${display.displayId} '${display.name}'")
         return true
-    }
-
-    private val displayListener = object : DisplayManager.DisplayListener {
-        override fun onDisplayAdded(displayId: Int) {}
-        override fun onDisplayRemoved(displayId: Int) {}
-        override fun onDisplayChanged(displayId: Int) {
-            if (displayId != secondaryDisplayId) return
-            healAttempts = 0   // a new display event (e.g. wake) gets a fresh heal budget
-            mainHandler.postDelayed({ healDeckIfBroken() }, 300)
-        }
-    }
-
-    /** Physical width (px) of the second screen in its current rotation, or 0. */
-    private fun secondaryScreenWidth(): Int {
-        val d = displayManager?.getDisplay(secondaryDisplayId) ?: return 0
-        val p = android.graphics.Point()
-        @Suppress("DEPRECATION") d.getRealSize(p)
-        return p.x
-    }
-
-    /**
-     * The wake-from-sleep bug: the whole deck sometimes lays out at the MAIN display's
-     * width (~1920) instead of this screen's (~1240) -- the tree-boundary arithmetic on
-     * a captured bad frame gives row width ~= 1920 (Home key ~= width/10 of the 1:8:1
-     * nav row). Because the ENTIRE tree (root included) scales up together, children
-     * still look in-bounds *relative to the deck*, so we must judge against the physical
-     * screen width, not deck.width. Symptom: deck wider than the screen, or the gamepad
-     * toggle laid out at/past the screen's right edge.
-     */
-    private fun deckIsBroken(): Boolean {
-        val deck = deckView ?: return false
-        val gp = gamepadButton ?: return false
-        val screenW = secondaryScreenWidth()
-        if (!expanded || deck.width == 0 || gp.width == 0 || screenW == 0) return false
-        val loc = IntArray(2)
-        gp.getLocationInWindow(loc)
-        val gpRightAbs = loc[0] + gp.width
-        return deck.width > screenW || loc[0] >= screenW || gpRightAbs > screenW
-    }
-
-    private val healRunnable = Runnable {
-        if (!deckIsBroken()) { healAttempts = 0; return@Runnable }
-        if (healAttempts >= 4) { Log.w(TAG, "deck still broken after $healAttempts rebuilds; giving up"); return@Runnable }
-        healAttempts++
-        val gp = gamepadButton; val loc = IntArray(2); gp?.getLocationInWindow(loc)
-        Log.w(TAG, "deck wider than screen (deckW=${deckView?.width} screenW=${secondaryScreenWidth()} gpRight=${loc[0] + (gp?.width ?: 0)}); rebuild #$healAttempts")
-        rebuildDeck()
-    }
-
-    /**
-     * Debounced self-heal: whatever produced the bad layout, the bad layout itself fires
-     * the deck's global-layout listener. Wait 400ms for the (wrong) layout to settle,
-     * then rebuild if still bad. A fresh [buildDeck] lays out at the correct width; the
-     * attempt cap (reset on any good layout) stops a persistently-bad deck from looping.
-     */
-    private fun healDeckIfBroken() {
-        mainHandler.removeCallbacks(healRunnable)
-        if (deckIsBroken()) mainHandler.postDelayed(healRunnable, 400)
-        else healAttempts = 0
-    }
-
-    /** Tear down and re-create the open deck so it re-measures cleanly. */
-    private fun rebuildDeck() {
-        if (!expanded) return
-        deckView?.let { safeRemove(it) }
-        deckView = null
-        host?.destroy()
-        host = null
-        expanded = false
-        expand()
     }
 
     private fun pickSecondaryDisplay(dm: DisplayManager): Display? {
@@ -265,11 +181,6 @@ class OverlayKeyboardService : Service() {
             expanded = true
             ThorController.setDeckShown(true)
             host?.forceRedraw()
-            // Self-heal: if a layout pass ever leaves the toggle buttons off-screen
-            // (the observed wake-from-sleep bug), rebuild the deck. healAttempts is NOT
-            // reset here -- it resets only when a good layout is observed, so a deck
-            // that stays broken across rebuilds gives up instead of looping forever.
-            deck.viewTreeObserver.addOnGlobalLayoutListener { healDeckIfBroken() }
         } catch (e: Exception) {
             Log.e(TAG, "addView(deck) failed", e)
         }
@@ -373,8 +284,18 @@ class OverlayKeyboardService : Service() {
         col.addView(kb, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
 
-        root.addView(col, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        // Pin the deck's content to the keyboard's fixed intrinsic width, left-aligned.
+        // The keyboard view ignores its parent's width (LatinKeyboardBaseView.onMeasure),
+        // so it is the one node that always reflects the real second-screen width. If the
+        // overlay window is ever measured at the wrong (main-display ~1920) width -- which
+        // happens on wake -- the weighted top bar + nav rows would otherwise stretch to it
+        // and push the toggle buttons / End key off the visible screen. Pinning col to the
+        // keyboard width keeps every row exactly as wide as the keyboard, window be damned.
+        val contentW = host!!.keyboardWidth().takeIf { it > 0 }
+            ?: FrameLayout.LayoutParams.MATCH_PARENT
+        root.addView(col, FrameLayout.LayoutParams(contentW, FrameLayout.LayoutParams.MATCH_PARENT).apply {
+            gravity = Gravity.TOP or Gravity.START
+        })
 
         // --- top bar: [lang] [recents strip] [gamepad] [minimize] ---
         // The toggle buttons are real row siblings (not overlays), so the recents
