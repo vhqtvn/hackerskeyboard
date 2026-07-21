@@ -322,14 +322,13 @@ class ThorKeyboardHost(
      */
     private fun hapticTap() {
         if (!sharedPrefs.getBoolean("vibrate_on", false)) return   // mirrors LatinIME.PREF_VIBRATE_ON
-        // On this ROM KEYBOARD_TAP maps to the strong CLICK effect; KEYBOARD_RELEASE maps
-        // to the light TICK (probed on-device) -- a soft key-tap. FLAG_IGNORE_GLOBAL_SETTING
-        // is REQUIRED: the device's system "vibrate on touch" is off, which drops every
-        // non-bypassed vibration (incl. slider-length one-shots), so this is the only path
-        // that actually plays. (CLOCK_TICK -> TEXTURE_TICK is even softer if TICK is still
-        // too strong.)
+        // On this ROM (probed on-device): KEYBOARD_TAP -> CLICK (strong), KEYBOARD_RELEASE
+        // -> TICK (light), CLOCK_TICK -> TEXTURE_TICK (softest, subtle) -- using the softest.
+        // FLAG_IGNORE_GLOBAL_SETTING is REQUIRED: the device's system "vibrate on touch" is
+        // off, which drops every non-bypassed vibration, so this bypass path is the only one
+        // that plays (and needs no system-setting change).
         inputView.performHapticFeedback(
-            HapticFeedbackConstants.KEYBOARD_RELEASE,
+            HapticFeedbackConstants.CLOCK_TICK,
             HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
     }
 
