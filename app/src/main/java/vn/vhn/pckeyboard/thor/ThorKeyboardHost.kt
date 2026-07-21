@@ -327,9 +327,18 @@ class ThorKeyboardHost(
         // FLAG_IGNORE_GLOBAL_SETTING is REQUIRED: the device's system "vibrate on touch" is
         // off, which drops every non-bypassed vibration, so this bypass path is the only one
         // that plays (and needs no system-setting change).
-        inputView.performHapticFeedback(
-            HapticFeedbackConstants.CLOCK_TICK,
-            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+        // The device's system "vibrate on touch" is off, so only performHapticFeedback's
+        // fixed OEM effects bypass it (a custom-strength one-shot gets dropped, and the
+        // bypass flag is stripped from a direct Vibrator call). So map the vibrate_len
+        // slider (5..200ms) to a soft->firm ladder of bypassing effects, giving the slider
+        // control over the feel: drag DOWN for softer, UP for firmer.
+        val len = (sharedPrefs.getString("vibrate_len", "40") ?: "40").toFloatOrNull() ?: 40f
+        val effect = when {
+            len < 60f  -> HapticFeedbackConstants.CLOCK_TICK        // -> TEXTURE_TICK (softest); default 40 lands here
+            len < 120f -> HapticFeedbackConstants.KEYBOARD_RELEASE  // -> TICK (light)
+            else       -> HapticFeedbackConstants.KEYBOARD_TAP      // -> CLICK (firm)
+        }
+        inputView.performHapticFeedback(effect, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
     }
 
     override fun onPress(primaryCode: Int) {
