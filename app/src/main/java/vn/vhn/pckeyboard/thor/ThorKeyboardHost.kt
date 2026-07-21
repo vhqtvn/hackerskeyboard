@@ -315,15 +315,21 @@ class ThorKeyboardHost(
 
     // --- OnKeyboardActionListener ----------------------------------------------
     /**
-     * Soft key-press haptic for the deck, gated by the shared "vibrate_on" pref (the
-     * existing Feedback-settings toggle). The deck bypasses LatinIME.onKey, so it must
-     * fire its own feedback. KEYBOARD_TAP is the OEM-tuned, short, low-energy primitive;
-     * FLAG_IGNORE_GLOBAL_SETTING makes the app toggle the source of truth (as LatinIME does).
+     * Soft key-press vibration for the deck, gated by the shared "vibrate_on" pref and
+     * sized by the "vibrate_len" slider (both from the existing Feedback settings). The
+     * deck bypasses LatinIME.onKey, so it fires its own. Duration-based one-shot (like
+     * LatinIME.vibrate) so the slider controls the strength -- drag it down for softer.
      */
     private fun hapticTap() {
         if (!sharedPrefs.getBoolean("vibrate_on", false)) return   // mirrors LatinIME.PREF_VIBRATE_ON
+        // On this ROM KEYBOARD_TAP maps to the strong CLICK effect; KEYBOARD_RELEASE maps
+        // to the light TICK (probed on-device) -- a soft key-tap. FLAG_IGNORE_GLOBAL_SETTING
+        // is REQUIRED: the device's system "vibrate on touch" is off, which drops every
+        // non-bypassed vibration (incl. slider-length one-shots), so this is the only path
+        // that actually plays. (CLOCK_TICK -> TEXTURE_TICK is even softer if TICK is still
+        // too strong.)
         inputView.performHapticFeedback(
-            HapticFeedbackConstants.KEYBOARD_TAP,
+            HapticFeedbackConstants.KEYBOARD_RELEASE,
             HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
     }
 
