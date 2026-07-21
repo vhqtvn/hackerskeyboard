@@ -2,7 +2,9 @@ package vn.vhn.pckeyboard.thor
 
 import android.content.Context
 import android.preference.PreferenceManager
-import android.view.HapticFeedbackConstants
+import android.os.VibrationAttributes
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.LayoutInflater
 import android.view.KeyEvent
 import android.view.View
@@ -36,6 +38,7 @@ class ThorKeyboardHost(
     val rootView: ViewGroup
     private val inputView: LatinKeyboardView
     private val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(displayContext)
+    private val vibrator = displayContext.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
 
     /** Invoked when the keyboard requests to hide itself (Cancel key). */
     var onHideRequested: (() -> Unit)? = null
@@ -327,18 +330,22 @@ class ThorKeyboardHost(
         // FLAG_IGNORE_GLOBAL_SETTING is REQUIRED: the device's system "vibrate on touch" is
         // off, which drops every non-bypassed vibration, so this bypass path is the only one
         // that plays (and needs no system-setting change).
-        // The device's system "vibrate on touch" is off, so only performHapticFeedback's
-        // fixed OEM effects bypass it (a custom-strength one-shot gets dropped, and the
-        // bypass flag is stripped from a direct Vibrator call). So map the vibrate_len
-        // slider (5..200ms) to a soft->firm ladder of bypassing effects, giving the slider
-        // control over the feel: drag DOWN for softer, UP for firmer.
+        // Continuous strength via a custom one-shot: the vibrate_len slider (5..200ms)
+        // drives BOTH duration and amplitude, so short=soft, long=firm -- smoothly.
+        // The device's system "vibrate on touch" is off, which would drop this, EXCEPT we
+        // set flag 2 (FLAG_BYPASS_USER_VIBRATION_INTENSITY_OFF): VibratorManagerService
+        // keeps that flag because the app holds WRITE_SECURE_SETTINGS (see its
+        // fixupVibrationAttributes), and shouldIgnoreVibration then skips the settings gate.
         val len = (sharedPrefs.getString("vibrate_len", "40") ?: "40").toFloatOrNull() ?: 40f
-        val effect = when {
-            len < 60f  -> HapticFeedbackConstants.CLOCK_TICK        // -> TEXTURE_TICK (softest); default 40 lands here
-            len < 120f -> HapticFeedbackConstants.KEYBOARD_RELEASE  // -> TICK (light)
-            else       -> HapticFeedbackConstants.KEYBOARD_TAP      // -> CLICK (firm)
-        }
-        inputView.performHapticFeedback(effect, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+        val v = vibrator ?: return
+        val amp = (len / 200f * 255f).toInt().coerceIn(1, 255)     // slider -> strength
+        val dur = len.toLong().coerceIn(1L, 45L)                   // cap so it stays a crisp tap
+        val effect = VibrationEffect.createOneShot(dur, amp)
+        val attrs = VibrationAttributes.Builder()
+            .setUsage(VibrationAttributes.USAGE_TOUCH)
+            .setFlags(2, 2)   // FLAG_BYPASS_USER_VIBRATION_INTENSITY_OFF (kept via WRITE_SECURE_SETTINGS)
+            .build()
+        v.vibrate(effect, attrs)
     }
 
     override fun onPress(primaryCode: Int) {
