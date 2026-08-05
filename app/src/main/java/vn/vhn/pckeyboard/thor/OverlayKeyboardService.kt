@@ -1,11 +1,14 @@
 package vn.vhn.pckeyboard.thor
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
@@ -57,6 +60,18 @@ class OverlayKeyboardService : Service() {
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var mainDisplayWidth = 1920
     private var mainDisplayHeight = 1080
+    private val keyguardManager by lazy { getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager }
+    private var deckLockedMode = false   // the current deck was built keyboard-only (locked)
+
+    /** True when the keyguard is up: the deck must expose ONLY the keyboard. */
+    private fun deviceLocked() = keyguardManager.isKeyguardLocked
+
+    // Rebuild the deck when the lock state flips (lock -> keyboard-only, unlock -> full).
+    private val lockReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (expanded && deviceLocked() != deckLockedMode) rebuildDeck()
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -93,6 +108,10 @@ class OverlayKeyboardService : Service() {
         ThorScroller.fallbackY = mainDisplayHeight / 2f
         ThorController.expandRequest = { expand() }
         ThorController.setServiceRunning(true)
+        registerReceiver(lockReceiver, IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)      // woke to lock screen
+            addAction(Intent.ACTION_USER_PRESENT)   // unlocked
+        })
         expand()
     }
 
@@ -119,6 +138,7 @@ class OverlayKeyboardService : Service() {
     override fun onDestroy() {
         InputInjector.gamepadKeyListener = null
         InputInjector.scrollListener = null
+        try { unregisterReceiver(lockReceiver) } catch (_: Exception) {}
         mainHandler.removeCallbacks(rebuildRunnable)
         displayManager?.unregisterDisplayListener(displayListener)
         ThorScroller.shutdown()
@@ -285,6 +305,26 @@ class OverlayKeyboardService : Service() {
     // content placed in the exposed top area.
     private fun buildDeck(ctx: Context): View {
         val root = FrameLayout(ctx).apply { setBackgroundColor(Color.BLACK) }
+
+        // Lock-screen mode: expose ONLY the keyboard (no recents / app-launch / nav pad /
+        // toggle buttons) so the deck can type the unlock credential but can never be used
+        // to bypass the lock or reach anything while the device is secured.
+        deckLockedMode = deviceLocked()
+        if (deckLockedMode) {
+            val kb = host!!.rootView
+            (kb.parent as? ViewGroup)?.removeView(kb)
+            val col = LinearLayout(ctx).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.BOTTOM
+            }
+            col.addView(kb, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            val w = host!!.keyboardWidth().takeIf { it > 0 } ?: FrameLayout.LayoutParams.MATCH_PARENT
+            root.addView(col, FrameLayout.LayoutParams(w, FrameLayout.LayoutParams.MATCH_PARENT).apply {
+                gravity = Gravity.TOP or Gravity.START
+            })
+            return root
+        }
 
         // Vertical column so the top area distributes cleanly (no dead band / no
         // fragile measured-height offsets): recents on top, nav pad fills the middle,
