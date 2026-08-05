@@ -237,10 +237,17 @@ class OverlayKeyboardService : Service() {
             }
         }
         val deck = buildDeck(ctx)
+        // While locked, TYPE_APPLICATION_OVERLAY sits BELOW the secondary-display keyguard
+        // (SecondaryKeyguard4), which then eats the deck's touches. TYPE_SYSTEM_ERROR layers
+        // above the keyguard and is touchable (needs INTERNAL_SYSTEM_WINDOW, which we hold),
+        // so the keyboard-only deck can actually be used to type the unlock credential.
+        @Suppress("DEPRECATION")
+        val windowType = if (deviceLocked()) WindowManager.LayoutParams.TYPE_SYSTEM_ERROR
+                         else WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            windowType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
