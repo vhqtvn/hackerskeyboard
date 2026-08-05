@@ -35,12 +35,26 @@ object ThorSetup {
      */
     private fun installBootScript(pkg: String) {
         val path = "/data/adb/service.d/thor_keyboard.sh"
+        // The app is unavailable until the user's first unlock (file-based encryption) --
+        // `am start` returns "Not found" before that -- so retry until the start succeeds
+        // (i.e. just after the first unlock), then exit. A single fire-once start would
+        // always miss, since service.d runs before unlock.
         val script = """
             #!/system/bin/sh
-            # Start the Thor second-screen keyboard deck on boot.
+            # Start the Thor deck on boot, retrying until the app is available (it isn't
+            # until the user's first unlock -- FBE). On the first success, immediately make
+            # VHKeyboard the IME so the system doesn't linger on the fallback keyboard.
             while [ "${'$'}(getprop sys.boot_completed)" != "1" ]; do sleep 2; done
-            sleep 8
-            am start-foreground-service -n $pkg/.thor.OverlayKeyboardService
+            i=0
+            while [ "${'$'}i" -lt 300 ]; do
+              out=${'$'}(am start-foreground-service -n $pkg/.thor.OverlayKeyboardService 2>&1)
+              case "${'$'}out" in
+                *Error*|*Exception*) : ;;
+                *) ime enable $pkg/.LatinIME 2>/dev/null; ime set $pkg/.LatinIME 2>/dev/null; exit 0 ;;
+              esac
+              i=${'$'}((i + 1))
+              sleep 2
+            done
         """.trimIndent()
         val cmd = "mkdir -p /data/adb/service.d && cat > $path <<'THOREOF'\n$script\nTHOREOF\nchmod 755 $path"
         runAsRoot(cmd)
