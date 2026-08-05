@@ -223,7 +223,11 @@ class OverlayKeyboardService : Service() {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                // Show/receive touches over the keyguard so the deck is usable while
+                // locked (e.g. to type the unlock password) -- otherwise the keyguard
+                // sits above this overlay on the 2nd screen and eats its touches.
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
             PixelFormat.OPAQUE
         )
         try {
