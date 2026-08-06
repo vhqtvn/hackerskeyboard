@@ -1116,6 +1116,15 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                 }
                 canvas.translate(-drawableX.toFloat(), -drawableY.toFloat())
             }
+            // Icon-only keys (e.g. Enter) skip the label branch above, so a runtime fn2Label
+            // (used for the Enter key's IME-action hint) would never be drawn -- draw it here.
+            if (label == null) {
+                key.fn2Label?.toString()?.takeIf { it.isNotEmpty() }?.let { fn2 ->
+                    paintFn2.textSize = (mKeyTextSize * 0.3 * mLabelScale).toFloat()
+                    canvas.drawText(fn2, (key.width - padding.right).toFloat(),
+                        (key.height - padding.bottom - 5).toFloat(), paintFn2)
+                }
+            }
             canvas.translate((-key.x - kbdPaddingLeft).toFloat(),
                 (-key.y - kbdPaddingTop).toFloat())
         }

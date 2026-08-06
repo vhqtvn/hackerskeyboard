@@ -36,6 +36,10 @@ object ThorController {
     @Volatile
     var expandRequest: (() -> Unit)? = null
 
+    /** Set by the deck: notified when the focused editor (and its IME action) changes. */
+    @Volatile
+    var onEditorChanged: (() -> Unit)? = null
+
     /**
      * True after the user explicitly minimizes the deck (▾) -- suppresses auto-show
      * on focus so switching activities won't pop the keyboard back up. Cleared when
@@ -62,6 +66,7 @@ object ThorController {
     /** Called by LatinIME when an editor gains/loses focus. */
     fun onEditorFocus(focused: Boolean) {
         editorFocused = focused
+        onEditorChanged?.invoke()   // let the deck refresh the Enter key's IME-action hint
         // Auto-show the deck on the second screen when a field is focused and the
         // deck is currently minimized -- unless the user chose to keep it minimized.
         if (focused && serviceRunning && !deckShown && !suppressAutoShow) expandRequest?.invoke()

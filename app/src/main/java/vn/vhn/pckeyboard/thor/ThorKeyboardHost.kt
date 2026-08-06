@@ -119,6 +119,8 @@ class ThorKeyboardHost(
         val kb = LatinKeyboard(displayContext, R.xml.kbd_thor, 0, keyboardHeightPercent)
         kb.setLanguageSwitcher(lang, false)
         inputView.setKeyboard(kb)
+        ThorController.onEditorChanged = { inputView.post { updateEnterActionHint() } }
+        updateEnterActionHint()   // reflect a field that's already focused
         inputView.setPreviewEnabled(false)
         inputView.setOnKeyboardActionListener(this)
     }
@@ -446,6 +448,35 @@ class ThorKeyboardHost(
     }
 
     fun destroy() {
+        ThorController.onEditorChanged = null
         try { inputView.closing() } catch (_: Exception) {}
+    }
+
+    /**
+     * Show the focused field's IME action (Go/Search/Send/Done/Next/...) as the Enter
+     * key's Fn hint (drawn in the Fn colour, same style as PgDn/arrows) so the user can
+     * see what Fn+Enter will do. Cleared when no field/action is focused.
+     */
+    private fun updateEnterActionHint() {
+        val enter = inputView.getKeyboard()?.keys?.firstOrNull { it?.codes?.getOrNull(0) == keyReturn } ?: return
+        val label = imeActionHint()
+        if (enter.fn2Label == label) return
+        enter.fn2Label = label
+        inputView.invalidateKey(enter)
+    }
+
+    private fun imeActionHint(): CharSequence? {
+        if (!ThorController.editorFocused) return null
+        val ei = ThorController.ime?.currentInputEditorInfo ?: return null
+        ei.actionLabel?.let { return it }   // app-defined custom action label
+        return when (ei.imeOptions and EditorInfo.IME_MASK_ACTION) {
+            EditorInfo.IME_ACTION_GO -> "Go"
+            EditorInfo.IME_ACTION_SEARCH -> "Search"
+            EditorInfo.IME_ACTION_SEND -> "Send"
+            EditorInfo.IME_ACTION_NEXT -> "Next"
+            EditorInfo.IME_ACTION_DONE -> "Done"
+            EditorInfo.IME_ACTION_PREVIOUS -> "Prev"
+            else -> null
+        }
     }
 }
