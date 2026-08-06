@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import vn.vhn.pckeyboard.Keyboard
 import vn.vhn.pckeyboard.LanguageSwitcher
 import vn.vhn.pckeyboard.LatinIME
@@ -195,6 +196,8 @@ class ThorKeyboardHost(
     private var downEvdev: Int? = null
     private var downMods: IntArray = IntArray(0)
     private var vnConsumed = false   // last press was composed by VN, no uinput up needed
+    private var actionConsumed = false   // last press fired the field's IME action (no uinput up)
+    private val keyReturn = 10   // @integer/key_return -- the Enter key's primaryCode
 
     /** Action keys perform a one-shot side effect (no evdev key to hold). */
     private fun isActionCode(c: Int): Boolean = when (c) {
@@ -247,6 +250,24 @@ class ThorKeyboardHost(
 
     private fun currentIc() =
         if (ThorController.editorFocused) ThorController.ime?.currentInputConnection else null
+
+    /**
+     * Fire the focused field's IME action (Go / Search / Send / Done / Next / ...) via the
+     * InputConnection. Prefers a custom EditorInfo.actionId, else the imeOptions action.
+     * Returns false when the field declares no action, so the caller can fall back to Enter.
+     */
+    private fun performImeAction(): Boolean {
+        val ic = currentIc() ?: return false
+        val ei = ThorController.ime?.currentInputEditorInfo ?: return false
+        val masked = ei.imeOptions and EditorInfo.IME_MASK_ACTION
+        val action = when {
+            ei.actionId != 0 -> ei.actionId
+            masked != EditorInfo.IME_ACTION_NONE && masked != EditorInfo.IME_ACTION_UNSPECIFIED -> masked
+            else -> return false
+        }
+        ic.performEditorAction(action)   // handled regardless of its return value
+        return true
+    }
 
     /** US-QWERTY shifted glyphs, so VN sees the character the user actually typed. */
     private val shiftMap = hashMapOf(
@@ -353,6 +374,11 @@ class ThorKeyboardHost(
         modFor(primaryCode)?.let { it.held = true; it.used = false; updateIndicators(); return }
         fnModFor(primaryCode)?.let { it.held = true; it.used = false; syncFn(); return }
         if (isActionCode(primaryCode)) return
+        // Fn + Enter -> the focused field's IME action (Go/Search/Send/Done/Next/...)
+        // instead of a newline. Falls through to a normal Enter if the field has none.
+        if (primaryCode == keyReturn && (fn1.active() || fn2.active()) && performImeAction()) {
+            actionConsumed = true; return
+        }
         if (tryVn(primaryCode)) { vnConsumed = true; return }   // composed via InputConnection
         startKeyPress(primaryCode)   // inject key DOWN now; held until release
     }
@@ -373,6 +399,7 @@ class ThorKeyboardHost(
             return
         }
         if (isActionCode(primaryCode)) return
+        if (actionConsumed) { actionConsumed = false; consumeMods(); return }   // IME action, no uinput up
         if (vnConsumed) { vnConsumed = false; consumeMods(); return }   // no uinput key to release
         endKeyPress()   // inject key UP
         consumeMods()
