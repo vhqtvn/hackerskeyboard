@@ -51,6 +51,12 @@
         <intent android:action="vn.vhn.pckeyboard.PREFS_VIEW"/>
     </PreferenceScreen>
 
+    <PreferenceScreen
+            android:title="@string/pref_screen_profiles_title"
+            android:summary="@string/pref_screen_profiles_summary">
+        <intent android:action="vn.vhn.pckeyboard.PREFS_PROFILES"/>
+    </PreferenceScreen>
+
     </PreferenceCategory>
 
     <PreferenceCategory

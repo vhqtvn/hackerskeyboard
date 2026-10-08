@@ -113,6 +113,18 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     private var mVolDownAction: String? = null
     private var mHeightPortrait = 0
     private var mHeightLandscape = 0
+
+    /**
+     * The layout profile currently in effect (screen size x orientation). Every
+     * layout-shaped preference can be overridden per profile; see [KeyboardProfile].
+     */
+    private var mProfile = KeyboardProfile.SMALL_PORTRAIT
+
+    /** Keyboard height for [mProfile], already clamped. */
+    private var mHeightProfile = 0
+
+    /** Keyboard mode (compact / full) for [mProfile], or -1 to use the global setting. */
+    private var mKeyboardModeProfile = -1
     private var mNumKeyboardModes = 3
     private var mKeyboardModeOverridePortrait = 0
     private var mKeyboardModeOverrideLandscape = 0
@@ -214,14 +226,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mKeyboardNotification = prefs.getBoolean(PREF_KEYBOARD_NOTIFICATION,
             res.getBoolean(R.bool.default_keyboard_notification))
         mNoIME = prefs.getBoolean(PREF_NOIME, false)
-        mHeightPortrait =
-            getHeight(prefs, PREF_HEIGHT_PORTRAIT, res.getString(R.string.default_height_portrait))
-        mHeightLandscape = getHeight(prefs,
-            PREF_HEIGHT_LANDSCAPE,
-            res.getString(R.string.default_height_landscape))
-        sKeyboardSettings.hintMode =
-            prefs.getString(PREF_HINT_MODE, res.getString(R.string.default_hint_mode))!!
-                .toInt()
+        loadProfileSettings(prefs, res, conf)
         sKeyboardSettings.longpressTimeout = getPrefInt(prefs,
             PREF_LONGPRESS_TIMEOUT,
             res.getString(R.string.default_long_press_duration))
@@ -258,12 +263,17 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     }
 
     private fun updateOrientation(conf: Configuration): Boolean {
+        // Folding a device changes the profile without changing the orientation, so the
+        // profile is checked separately -- otherwise unfolding would keep the cover
+        // screen's layout.
+        val profileChanged = KeyboardProfile.of(conf) != mProfile
+        if (profileChanged) loadProfileSettings(conf = conf)
         if (!supportDualScreen()) {
             if (conf.orientation != mOrientation) {
                 mOrientation = conf.orientation
                 return true
             }
-            return false
+            return profileChanged
         }
         var newOrientation = mOrientation
         if (mOrientation == -1337) {
@@ -302,43 +312,69 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         return num
     }
 
+    /**
+     * Resolves every layout preference that a [KeyboardProfile] may override, for the
+     * profile the given configuration selects. Called on startup, whenever one of these
+     * preferences changes, and when folding or rotating moves us to another profile.
+     */
+    private fun loadProfileSettings(
+        prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(this),
+        res: Resources = resources,
+        conf: Configuration = resources.configuration,
+    ) {
+        mProfile = KeyboardProfile.of(conf)
+        mHeightPortrait =
+            getHeight(prefs, PREF_HEIGHT_PORTRAIT, res.getString(R.string.default_height_portrait))
+        mHeightLandscape = getHeight(prefs,
+            PREF_HEIGHT_LANDSCAPE,
+            res.getString(R.string.default_height_landscape))
+        // Height: the profile override wins over the legacy per-orientation setting.
+        mHeightProfile = ProfilePrefs.getInt(prefs, PREF_HEIGHT, mProfile,
+            legacyKey = if (mProfile.isPortrait) PREF_HEIGHT_PORTRAIT else PREF_HEIGHT_LANDSCAPE,
+            default = if (mProfile.isPortrait) mHeightPortrait else mHeightLandscape
+        ).coerceIn(MIN_HEIGHT_PERCENT, MAX_HEIGHT_PERCENT)
+        sKeyboardSettings.hintMode = ProfilePrefs.getInt(prefs, PREF_HINT_MODE, mProfile,
+            default = res.getString(R.string.default_hint_mode).toInt())
+        // -1 means "inherit": profileKeyboardMode() then falls back to the global setting.
+        mKeyboardModeProfile =
+            if (ProfilePrefs.hasOverride(prefs, PREF_KEYBOARD_MODE, mProfile))
+                ProfilePrefs.getInt(prefs, PREF_KEYBOARD_MODE, mProfile, default = -1)
+            else -1
+    }
+
+    /**
+     * Keyboard mode for the active profile: its own override if it has one, otherwise
+     * the global per-orientation setting (plus any in-session override toggle).
+     */
+    private fun profileKeyboardMode(): Int {
+        if (mKeyboardModeProfile >= 0) return mKeyboardModeProfile
+        return if (isPortrait) {
+            getKeyboardModeNum(sKeyboardSettings.keyboardModePortrait,
+                mKeyboardModeOverridePortrait)
+        } else {
+            getKeyboardModeNum(sKeyboardSettings.keyboardModeLandscape,
+                mKeyboardModeOverrideLandscape)
+        }
+    }
+
     var updateKeyboardOptionsRecursive = false
     private fun updateKeyboardOptions() {
         if (!supportDualScreen()) {
-            val isPortrait = isPortrait
-            val kbMode: Int
             mNumKeyboardModes = 2
-            kbMode = if (isPortrait) {
-                getKeyboardModeNum(sKeyboardSettings.keyboardModePortrait,
-                    mKeyboardModeOverridePortrait)
-            } else {
-                getKeyboardModeNum(sKeyboardSettings.keyboardModeLandscape,
-                    mKeyboardModeOverrideLandscape)
-            }
-            // Convert overall keyboard height to per-row percentage
-            val screenHeightPercent = if (isPortrait) mHeightPortrait else mHeightLandscape
-            sKeyboardSettings.keyboardMode = kbMode
-            sKeyboardSettings.keyboardHeightPercent = screenHeightPercent.toFloat()
+            sKeyboardSettings.keyboardMode = profileKeyboardMode()
+            sKeyboardSettings.keyboardHeightPercent = mHeightProfile.toFloat()
             return
         }
         if (updateKeyboardOptionsRecursive) return
         updateKeyboardOptionsRecursive = true
         try {
-            val isPortrait = isPortrait
-            val kbMode: Int
             mNumKeyboardModes = 2
-            kbMode = if (isPortrait) {
-                getKeyboardModeNum(sKeyboardSettings.keyboardModePortrait,
-                    mKeyboardModeOverridePortrait)
-            } else {
-                getKeyboardModeNum(sKeyboardSettings.keyboardModeLandscape,
-                    mKeyboardModeOverrideLandscape)
-            }
+            val kbMode = profileKeyboardMode()
             // Convert overall keyboard height to per-row percentage
             Log.i(TAG, "updateKeyboardOptions: mDualEnabled=" + isDualEnabled)
             if (!isDualEnabled && checkForceLandscape(this)) setDualDisplay(false)
             val screenHeightPercent =
-                if (isDualEnabled) 96.25f else (if (isPortrait) mHeightPortrait else mHeightLandscape).toFloat()
+                if (isDualEnabled) 96.25f else mHeightProfile.toFloat()
             sKeyboardSettings.keyboardMode = kbMode
             if (sKeyboardSettings.keyboardMode != kbMode
                 || sKeyboardSettings.keyboardHeightPercent != screenHeightPercent
@@ -1569,6 +1605,16 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         var needReload = false
         val res = resources
 
+        // A per-profile override ("settings_height@ll" etc). Only the active profile's
+        // keys can change what is on screen, but re-reading is cheap and keeps the
+        // resolution rules in one place -- loadSettings().
+        if (key.contains(PROFILE_KEY_SEPARATOR)) {
+            loadProfileSettings()
+            updateKeyboardOptions()
+            mKeyboardSwitcher.makeKeyboards(true)
+            return
+        }
+
         // Apply globally handled shared prefs
         sKeyboardSettings.sharedPreferenceChanged(sharedPreferences, key)
         if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.FLAG_PREF_NEED_RELOAD)) {
@@ -2163,6 +2209,14 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         const val PREF_VOL_DOWN = "pref_vol_down"
         const val PREF_VN_ENABLED = "pref_vn_enabled"
 
+        // Base keys for the per-profile overrides; see KeyboardProfile.
+        const val PREF_HEIGHT = "settings_height"
+        const val PREF_KEYBOARD_MODE = "pref_keyboard_mode"
+        const val PROFILE_KEY_SEPARATOR = "@"
+
+        const val MIN_HEIGHT_PERCENT = 15
+        const val MAX_HEIGHT_PERCENT = 75
+
         // How many continuous deletes at which to start deleting at a higher speed.
         private const val DELETE_ACCELERATE_AT = 20
 
@@ -2212,10 +2266,8 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         }
 
         fun getHeight(prefs: SharedPreferences, prefName: String?, defVal: String?): Int {
-            var `val` = getPrefInt(prefs, prefName, defVal)
-            if (`val` < 15) `val` = 15
-            if (`val` > 75) `val` = 75
-            return `val`
+            return getPrefInt(prefs, prefName, defVal)
+                .coerceIn(MIN_HEIGHT_PERCENT, MAX_HEIGHT_PERCENT)
         }
     }
 

@@ -127,6 +127,18 @@
 
         <activity
             android:exported="true"
+            android:name="vn.vhn.pckeyboard.PrefScreenProfiles"
+            android:label="@string/pref_screen_profiles_title">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="vn.vhn.pckeyboard.PREFS_PROFILES" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:exported="true"
             android:name="vn.vhn.pckeyboard.PrefScreenFeedback"
             android:label="@string/pref_screen_feedback_title">
             <intent-filter>

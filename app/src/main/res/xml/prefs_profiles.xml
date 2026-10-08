@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Per-profile layout overrides. Each category writes keys suffixed with its
+     profile ("settings_height@ll" and so on); a setting the user never touches is
+     simply absent, and ProfilePrefs falls back to the global preference. See
+     KeyboardProfile.kt.
+-->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:hk="http://schemas.android.com/apk/res-auto"
+    android:key="prefs_profiles"
+    android:title="@string/pref_screen_profiles_title" >
+
+    <Preference
+        android:key="profile_explain"
+        android:selectable="false"
+        android:summary="@string/profile_explain" />
+
+    <PreferenceCategory
+        android:key="profile_sp"
+        android:title="@string/profile_small_portrait" >
+
+        <vn.vhn.pckeyboard.SeekBarPreferenceString
+            android:key="settings_height@sp"
+            android:title="@string/title_profile_height"
+            android:defaultValue="@string/default_height_portrait"
+            hk:minValue="15"
+            hk:maxValue="75"
+            hk:step="1"
+            hk:displayFormat="%.0f%%"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.AutoSummaryListPreference
+            android:key="pref_keyboard_mode@sp"
+            android:title="@string/title_profile_keyboard_mode"
+            android:entries="@array/profile_keyboard_mode_entries"
+            android:entryValues="@array/profile_keyboard_mode_values"
+            android:defaultValue="-1"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.AutoSummaryListPreference
+            android:key="pref_hint_mode@sp"
+            android:title="@string/title_hint_mode"
+            android:entries="@array/hint_modes"
+            android:entryValues="@array/hint_modes_values"
+            android:defaultValue="1"
+            android:persistent="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="profile_sl"
+        android:title="@string/profile_small_landscape" >
+
+        <vn.vhn.pckeyboard.SeekBarPreferenceString
+            android:key="settings_height@sl"
+            android:title="@string/title_profile_height"
+            android:defaultValue="@string/default_height_landscape"
+            hk:minValue="15"
+            hk:maxValue="75"
+            hk:step="1"
+            hk:displayFormat="%.0f%%"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.AutoSummaryListPreference
+            android:key="pref_keyboard_mode@sl"
+            android:title="@string/title_profile_keyboard_mode"
+            android:entries="@array/profile_keyboard_mode_entries"
+            android:entryValues="@array/profile_keyboard_mode_values"
+            android:defaultValue="-1"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.AutoSummaryListPreference
+            android:key="pref_hint_mode@sl"
+            android:title="@string/title_hint_mode"
+            android:entries="@array/hint_modes"
+            android:entryValues="@array/hint_modes_values"
+            android:defaultValue="1"
+            android:persistent="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="profile_lp"
+        android:title="@string/profile_large_portrait" >
+
+        <vn.vhn.pckeyboard.SeekBarPreferenceString
+            android:key="settings_height@lp"
+            android:title="@string/title_profile_height"
+            android:defaultValue="45%"
+            hk:minValue="15"
+            hk:maxValue="75"
+            hk:step="1"
+            hk:displayFormat="%.0f%%"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.AutoSummaryListPreference
+            android:key="pref_keyboard_mode@lp"
+            android:title="@string/title_profile_keyboard_mode"
+            android:entries="@array/profile_keyboard_mode_entries"
+            android:entryValues="@array/profile_keyboard_mode_values"
+            android:defaultValue="-1"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.AutoSummaryListPreference
+            android:key="pref_hint_mode@lp"
+            android:title="@string/title_hint_mode"
+            android:entries="@array/hint_modes"
+            android:entryValues="@array/hint_modes_values"
+            android:defaultValue="1"
+            android:persistent="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="profile_ll"
+        android:title="@string/profile_large_landscape" >
+
+        <vn.vhn.pckeyboard.SeekBarPreferenceString
+            android:key="settings_height@ll"
+            android:title="@string/title_profile_height"
+            android:defaultValue="55%"
+            hk:minValue="15"
+            hk:maxValue="75"
+            hk:step="1"
+            hk:displayFormat="%.0f%%"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.AutoSummaryListPreference
+            android:key="pref_keyboard_mode@ll"
+            android:title="@string/title_profile_keyboard_mode"
+            android:entries="@array/profile_keyboard_mode_entries"
+            android:entryValues="@array/profile_keyboard_mode_values"
+            android:defaultValue="-1"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.AutoSummaryListPreference
+            android:key="pref_hint_mode@ll"
+            android:title="@string/title_hint_mode"
+            android:entries="@array/hint_modes"
+            android:entryValues="@array/hint_modes_values"
+            android:defaultValue="1"
+            android:persistent="true" />
+    </PreferenceCategory>
+
+</PreferenceScreen>
