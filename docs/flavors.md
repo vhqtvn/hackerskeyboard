@@ -51,3 +51,25 @@ Current hooks: `suppressMainScreenKeyboard`, `attachIme`, `detachIme`,
 Add a flavor, add `app/src/<name>/java/vn/vhn/pckeyboard/device/DeviceIntegration.kt`
 (copy the generic one and fill in), and add a manifest only if the device needs
 extra components or permissions.
+
+## Toolchain
+
+AGP 9.4.1 / Gradle 9.8.1 / Kotlin 2.4.21, compileSdk 36, built on JDK 25.
+
+A few things that upgrade forced, worth knowing before touching the build files:
+
+- AGP 9 has **built-in Kotlin support** — there is no `kotlin-android` plugin to apply,
+  and `kotlinOptions` is now a `kotlin { compilerOptions { ... } }` block.
+- `compileSdkVersion`/`minSdkVersion`/`targetSdkVersion` are gone; use
+  `compileSdk`/`minSdk`/`targetSdk`, and `packagingOptions` is now `packaging`.
+- `buildToolsVersion` is pinned, because AGP 9.4 otherwise defaults to build-tools
+  36.0.0 and tries to auto-install it.
+- Gradle 10 will drop Groovy space-assignment (`namespace 'x'`) and
+  `Project.getProperties`, so the build files use `namespace = 'x'` and
+  `findProperty(...)` throughout. One exception: `cppFlags ""` stays a method call,
+  since it appends to a list rather than assigning.
+- **JCenter is gone**, and with it `me.jfenn:crasher` — it had been resolving only
+  from a stale local Gradle cache. Replaced by `vn.vhn.pckeyboard.CrashReporter`, a
+  small in-repo uncaught-exception screen with no dependencies.
+- **Jetifier is no longer needed** and has been removed from `gradle.properties`;
+  `com.microsoft.device.display:display-mask` builds fine without it.

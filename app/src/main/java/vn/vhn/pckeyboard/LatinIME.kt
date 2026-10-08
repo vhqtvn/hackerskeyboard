@@ -43,7 +43,6 @@ import com.lge.ime.util.p118f.LGMultiDisplayUtils.supportDualScreen
 import com.novia.lg_dualscreen_ime.ToggleFullScreenIME
 import com.vhn.SurfaceDuoPaneManager
 import com.vhn.SurfaceDuoUtils
-import james.crasher.Crasher
 import vn.vhn.pckeyboard.LatinIMEUtil.GCUtils
 import vn.vhn.pckeyboard.LatinIMEUtil.RingCharBuffer
 import vn.vhn.pckeyboard.orientation.IScreenOrientationLocker
@@ -166,7 +165,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         KeyboardSwitcher.init(this)
         super.onCreate()
         if (!BuildConfig.GOOGLEPLAY_BUILD)
-            Crasher(applicationContext)
+            CrashReporter.install(applicationContext)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.window!!.setDecorFitsSystemWindows(false)
         } else {

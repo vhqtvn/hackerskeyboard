@@ -57,6 +57,14 @@
                 android:resource="@xml/method" />
         </service>
 
+        <!-- Separate process so it outlives whichever process just crashed. -->
+        <activity
+            android:name="vn.vhn.pckeyboard.CrashActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance" />
+
         <activity
             android:exported="true"
             android:name="vn.vhn.pckeyboard.Main"

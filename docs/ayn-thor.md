@@ -56,11 +56,8 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
 
 ## Build notes (important)
 
-- **Toolchain**: AGP 8.7.3 / Gradle 8.9 / Kotlin 2.0.21, compileSdk 35, Java 17 target.
-- **JDK**: build with **JDK 21**. Newer is not better here: Gradle 8.9's Groovy cannot
-  read JDK 25 class files (`Unsupported class file major version 69`, hit with Android
-  Studio's JBR), and under JDK 27 AGP's `JdkImageTransform` fails when it runs `jlink`
-  on `core-for-system-modules.jar`. JDK 21 is also what AGP officially supports.
+- **Toolchain**: AGP 9.4.1 / Gradle 9.8.1 / Kotlin 2.4.21, compileSdk 36, Java 17 target.
+  Builds on **JDK 25** (Android Studio's bundled JBR works: `JAVA_HOME=/opt/android-studio/jbr`).
 - **Flavors**: Thor is now the `thor` product flavor -- build `assembleThorDebug`,
   not `assembleDebug`. See `docs/flavors.md`.
 - **NDK** pinned to `25.1.8937393` in `app/build.gradle` (`ndkVersion`).
