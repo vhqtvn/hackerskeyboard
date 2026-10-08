@@ -473,6 +473,11 @@
     <string name="orientation_locker_not_supported">Orientation locker not supported!</string>
     <string name="orientation_locked">Orientation locked</string>
 
+    <!-- Clipboard history -->
+    <string name="clipboard_title">Clipboard history</string>
+    <string name="clipboard_empty">Clipboard history is empty</string>
+    <string name="clipboard_clear">Clear history</string>
+
     <!-- Vietnamese (Unikey) input -->
     <string name="vn_enabled">Vietnamese on</string>
     <string name="vn_disabled">Vietnamese off</string>
@@ -519,6 +524,8 @@
     <string name="profile_explain">A screen counts as large from 600dp wide \u2014 a foldable\u0027s inner screen, or a tablet. Settings left untouched here follow the global ones.</string>
     <string name="title_profile_height">Keyboard height</string>
     <string name="title_profile_keyboard_mode">Keyboard layout</string>
+    <string name="title_profile_extension_row">Always show the extension row</string>
+    <string name="summary_profile_extension_row">Keeps the extra punctuation and Home/End/Del row up instead of needing a swipe. Compact layout only.</string>
     <string name="title_profile_split_gap">Split keyboard</string>
     <string name="summary_profile_split_gap">Width of the gap down the middle. 0% keeps the keyboard in one piece.</string>
     <string name="keyboard_mode_inherit">Use global setting</string>

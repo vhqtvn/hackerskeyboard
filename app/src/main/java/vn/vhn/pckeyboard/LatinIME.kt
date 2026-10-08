@@ -126,6 +126,9 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     /** Keyboard mode (compact / full) for [mProfile], or -1 to use the global setting. */
     private var mKeyboardModeProfile = -1
+
+    /** Whether [mProfile] keeps the extension row up rather than toggling it by swipe. */
+    private var mExtensionRowProfile = false
     private var mNumKeyboardModes = 3
     private var mKeyboardModeOverridePortrait = 0
     private var mKeyboardModeOverrideLandscape = 0
@@ -340,6 +343,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         sKeyboardSettings.hintMode =
             ProfilePrefs.getInt(prefs, PREF_HINT_MODE, mProfile, default = globalHintMode)
                 .takeIf { it >= 0 } ?: globalHintMode
+        // The extension row (an extra row of punctuation and Home/End/Del, currently
+        // only present in the compact layout) is normally a swipe-up toggle that resets
+        // on every field. A profile can instead keep it up permanently.
+        mExtensionRowProfile = ProfilePrefs.getBoolean(prefs, PREF_EXTENSION_ROW, mProfile,
+            default = false)
         // Splitting only makes sense on a screen wide enough to reach across, so it is
         // off by default everywhere and switched on per profile.
         sKeyboardSettings.splitGapPercent =
@@ -740,6 +748,9 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // re-applied rather than assumed to have survived.
         updateVnSuspended(attribute)
         updateVnIndicator()
+        // An IME is not told about copies made elsewhere, so sample the clipboard at the
+        // one moment it is allowed to read it: now, while it has focus.
+        ClipboardHistory.capture(this)
         sKeyboardSettings.editorFieldId = attribute.fieldId
         sKeyboardSettings.editorInputType = attribute.inputType
 
@@ -776,7 +787,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mEnteredText = null
         mKeyboardModeOverridePortrait = 0
         mKeyboardModeOverrideLandscape = 0
-        sKeyboardSettings.useExtension = false
+        sKeyboardSettings.useExtension = mExtensionRowProfile
         when (attribute.inputType and EditorInfo.TYPE_MASK_CLASS) {
             EditorInfo.TYPE_CLASS_NUMBER, EditorInfo.TYPE_CLASS_DATETIME, EditorInfo.TYPE_CLASS_PHONE -> mKeyboardSwitcher.setKeyboardMode(
                 KeyboardSwitcher.MODE_PHONE,
@@ -1273,6 +1284,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             LatinKeyboardView.KEYCODE_TOGGLE_VN -> {
                 handleFNModifierKeysUp(false)
                 setVnEnabled(!sKeyboardSettings.vnEnabled)
+            }
+            LatinKeyboardView.KEYCODE_CLIPBOARD -> {
+                handleFNModifierKeysUp(false)
+                if (!isShowingOptionDialog) showClipboardHistory()
             }
             Keyboard.KEYCODE_CANCEL -> if (!isShowingOptionDialog) {
                 handleClose()
@@ -2183,6 +2198,56 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mDeadKeysActive = mLanguageSwitcher!!.allowDeadKeys()
     }
 
+    /**
+     * Shows the clipboard history and pastes whatever is picked.
+     *
+     * Attached to the input view's window the same way as the options menu: an IME has
+     * no activity of its own, so a dialog has to borrow the keyboard's window token and
+     * stay out of the IME's own focus handling (FLAG_ALT_FOCUSABLE_IM).
+     */
+    private fun showClipboardHistory() {
+        // The clipboard may have changed since the keyboard opened on this field.
+        ClipboardHistory.capture(this)
+        val history = ClipboardHistory.entries(this)
+        if (history.isEmpty()) {
+            Toast.makeText(applicationContext, R.string.clipboard_empty, Toast.LENGTH_SHORT)
+                .show()
+            return
+        }
+        val labels = history.map { summarize(it) }.toMutableList<CharSequence>()
+        labels.add(getString(R.string.clipboard_clear))
+        val builder = AlertDialog.Builder(this)
+        builder.setCancelable(true)
+        builder.setTitle(R.string.clipboard_title)
+        builder.setNegativeButton(android.R.string.cancel, null)
+        builder.setItems(labels.toTypedArray()) { dialog, position ->
+            dialog.dismiss()
+            if (position == history.size) {
+                ClipboardHistory.clear(this)
+            } else {
+                // Ends any Vietnamese word first, so the pasted text is not swallowed
+                // into the composing region.
+                vnFinishWord()
+                currentInputConnection?.commitText(history[position], 1)
+            }
+        }
+        mOptionsDialog = builder.create()
+        val window = mOptionsDialog!!.window
+        val lp = window!!.attributes
+        lp.token = mKeyboardSwitcher.inputView!!.windowToken
+        lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
+        window.attributes = lp
+        window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+        mOptionsDialog!!.show()
+    }
+
+    /** One line of a clipboard entry, with newlines flattened so rows stay even. */
+    private fun summarize(text: String): CharSequence {
+        val flat = text.replace(Regex("\\s+"), " ").trim()
+        return if (flat.length <= CLIPBOARD_SUMMARY_LENGTH) flat
+        else flat.substring(0, CLIPBOARD_SUMMARY_LENGTH) + "\u2026"
+    }
+
     private fun showOptionsMenu() {
         val builder = AlertDialog.Builder(this)
         builder.setCancelable(true)
@@ -2261,11 +2326,13 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         const val PREF_HEIGHT = "settings_height"
         const val PREF_KEYBOARD_MODE = "pref_keyboard_mode"
         const val PREF_SPLIT_GAP = "pref_split_gap"
+        const val PREF_EXTENSION_ROW = "pref_extension_row"
         const val PROFILE_KEY_SEPARATOR = "@"
 
         const val MIN_HEIGHT_PERCENT = 15
         const val MAX_HEIGHT_PERCENT = 75
         const val MAX_SPLIT_GAP_PERCENT = 40
+        private const val CLIPBOARD_SUMMARY_LENGTH = 60
 
         // How many continuous deletes at which to start deleting at a higher speed.
         private const val DELETE_ACCELERATE_AT = 20

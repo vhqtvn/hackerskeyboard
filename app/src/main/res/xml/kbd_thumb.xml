@@ -116,7 +116,8 @@
         <Key android:keyLabel="z" />
         <Key android:keyLabel="x" />
         <Key android:keyLabel="c" />
-        <Key android:keyLabel="v" />
+        <Key android:keyLabel="v"
+             android:fn2Codes="@integer/key_clipboard" android:fn2Label="Clip" />
         <Key android:keyLabel="b" />
         <Key android:keyLabel="n" />
         <Key android:keyLabel="m" />

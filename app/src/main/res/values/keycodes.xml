@@ -33,6 +33,8 @@
     <integer name="key_orientation_lock">-1003</integer>
     <!-- Toggles Vietnamese (Unikey) composing on/off. Bound to Fn + ; -->
     <integer name="key_toggle_vn">-1004</integer>
+    <!-- Opens the clipboard history. Bound to Fn + v -->
+    <integer name="key_clipboard">-1005</integer>
     <integer name="key_settings">-100</integer>
     <integer name="key_voice">-102</integer>
     <integer name="key_f1">-103</integer>

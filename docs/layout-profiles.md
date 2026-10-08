@@ -36,8 +36,8 @@ Overrides are stored under `"<base key>@<profile suffix>"`, e.g.
 A profile nobody has touched stores nothing, so a device that only ever sees one
 profile behaves exactly as it did before, and existing settings keep working.
 
-Profile-scoped so far: keyboard height, keyboard layout mode, hint mode, and the
-split gap.
+Profile-scoped so far: keyboard height, keyboard layout mode, hint mode, the split
+gap, and whether the extension row stays up.
 
 ## What to put in each profile
 
@@ -174,3 +174,36 @@ passwords, URLs, email addresses, numbers, phone numbers, dates, and anything
 asking for no suggestions. Typing `aa` into a password and getting `â` is the kind
 of thing you only notice after the login fails. The setting stays on; it simply
 does not apply, and the key is unlit so you can see that.
+
+
+## Clipboard history
+
+Android only lets an app read the clipboard while it has focus, and an IME counts
+as focused while it is up -- but it is never *notified* of a copy made in another
+app. So `ClipboardHistory` does not listen; it samples the clipboard at the moments
+the keyboard is allowed to read it: when it opens on a field, and when the history
+is opened.
+
+**Fn + v** opens it. Picking an entry commits it (ending any Vietnamese word first,
+so the paste is not swallowed into the composing region). The last item clears the
+history.
+
+The history is persisted, because an IME process is killed and restarted constantly
+and an in-memory-only history would almost always be empty exactly when wanted. It
+is capped at 30 entries of at most 4000 characters, and clips the source app marked
+sensitive -- password managers set this -- are refused.
+
+The picker borrows the keyboard's window token and sets `FLAG_ALT_FOCUSABLE_IM`,
+the same way the existing options menu does: an IME has no activity of its own, so
+a dialog has to attach to the input view's window and stay out of the IME's own
+focus handling.
+
+## The extension row
+
+The compact layout has an extra top row of punctuation and Home/End/Del marked
+`android:extension="true"`. It is normally a swipe-up toggle that resets on every
+field; a profile can keep it up permanently instead.
+
+Worth knowing: this row only exists in `kbd_compact.xml`. `kbd_full` already has an
+F-key row and a number row, and `kbd_thumb` already carries Esc and punctuation on
+its top row, so the setting has no effect on either.

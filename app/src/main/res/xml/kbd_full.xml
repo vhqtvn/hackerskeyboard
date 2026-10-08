@@ -294,6 +294,8 @@
         <Key
             android:keyLabel="@string/key_ab04_main"
             android:isRepeatable="true"
+            android:fn1Codes="@integer/key_clipboard"
+            android:fn1Label="Clip"
             android:shiftLabel="@string/key_ab04_shift" />
         <Key
             android:keyLabel="@string/key_ab05_main"
