@@ -252,6 +252,8 @@
         <Key
             android:keyLabel="@string/key_ac10_main"
             android:isRepeatable="true"
+            android:fn1Codes="@integer/key_toggle_vn"
+            android:fn1Label="VN"
             android:shiftLabel="@string/key_ac10_shift" />
         <Key
             android:keyLabel="@string/key_ac11_main"

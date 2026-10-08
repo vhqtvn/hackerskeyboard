@@ -472,9 +472,38 @@
     <string name="sticky_disabled">Keyboard sticky disabled</string>
     <string name="orientation_locker_not_supported">Orientation locker not supported!</string>
     <string name="orientation_locked">Orientation locked</string>
+
+    <!-- Vietnamese (Unikey) input -->
+    <string name="vn_enabled">Vietnamese on</string>
+    <string name="vn_disabled">Vietnamese off</string>
+    <string name="title_vn_settings">Vietnamese input</string>
+    <string name="title_vn_enabled">Vietnamese (Unikey)</string>
+    <string name="summary_vn_enabled">Compose Vietnamese as you type. Toggle any time with Fn + ;</string>
+    <string name="title_vn_method">Input method</string>
+    <string name="vn_method_telex">Telex</string>
+    <string name="vn_method_vni">VNI</string>
+    <string name="vn_method_viqr">VIQR</string>
+    <string name="vn_method_simple_telex">Simple Telex</string>
+    <string name="vn_method_simple_telex2">Simple Telex 2</string>
     <string name="orientation_unlocked">Orientation unlocked</string>
     <string name="orientation_lock_failed">Orientation lock failed!</string>
     <string name="locking_orientation_rewrite_write_settings">\"Modify system settings\" permission needs to be enabled!</string>
     <string name="noime_enabled">Send key for each press</string>
     <string name="noime_disabled">Normal send key (with IME)</string>
+
+    <string-array name="vn_method_entries">
+        <item>@string/vn_method_telex</item>
+        <item>@string/vn_method_vni</item>
+        <item>@string/vn_method_viqr</item>
+        <item>@string/vn_method_simple_telex</item>
+        <item>@string/vn_method_simple_telex2</item>
+    </string-array>
+    <!-- Must match the UkInputMethod constants in Unikey.kt / keycons.h -->
+    <string-array name="vn_method_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>5</item>
+        <item>6</item>
+    </string-array>
 </resources>

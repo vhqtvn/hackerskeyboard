@@ -28,6 +28,8 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.view.ContextThemeWrapper
+import vn.vhn.pckeyboard.Unikey
+import vn.vhn.pckeyboard.VnComposer
 
 /**
  * Foreground service that shows the Hacker's Keyboard on the AYN Thor's second

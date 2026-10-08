@@ -17,6 +17,8 @@ import vn.vhn.pckeyboard.LatinKeyboard
 import vn.vhn.pckeyboard.LatinKeyboardBaseView
 import vn.vhn.pckeyboard.LatinKeyboardView
 import vn.vhn.pckeyboard.R
+import vn.vhn.pckeyboard.Unikey
+import vn.vhn.pckeyboard.VnComposer
 
 /**
  * Hosts Hacker's Keyboard's own [LatinKeyboardView] (full PC layout) for a given

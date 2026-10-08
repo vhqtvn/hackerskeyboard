@@ -46,6 +46,10 @@ class GlobalKeyboardSettings {
     var capsLock = true
     var shiftLockModifiers = false
 
+    // Vietnamese (Unikey) composing. vnMethod holds a Unikey.TELEX/VNI/VIQR constant.
+    var vnEnabled = false
+    var vnMethod = Unikey.TELEX
+
     //
     // Read by LatinKeyboardBaseView
     var labelScalePref = 1.0f
@@ -271,6 +275,32 @@ class GlobalKeyboardSettings {
 
             override fun getDefault(): Boolean {
                 return resources.getBoolean(R.bool.default_shift_lock_modifiers)
+            }
+
+            override fun getFlags(): Int {
+                return FLAG_PREF_NONE
+            }
+        })
+        addBooleanPref("pref_vn_enabled", object : BooleanPref {
+            override fun set(`val`: Boolean) {
+                vnEnabled = `val`
+            }
+
+            override fun getDefault(): Boolean {
+                return false
+            }
+
+            override fun getFlags(): Int {
+                return FLAG_PREF_NONE
+            }
+        })
+        addStringPref("pref_vn_method", object : StringPref {
+            override fun set(`val`: String?) {
+                vnMethod = Integer.valueOf(`val`)
+            }
+
+            override fun getDefault(): String {
+                return Unikey.TELEX.toString()
             }
 
             override fun getFlags(): Int {

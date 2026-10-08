@@ -75,6 +75,28 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+            android:title="@string/title_vn_settings"
+            android:key="vn_settings">
+
+    <CheckBoxPreference
+            android:key="pref_vn_enabled"
+            android:title="@string/title_vn_enabled"
+            android:summary="@string/summary_vn_enabled"
+            android:persistent="true"
+            android:defaultValue="false"
+            />
+
+    <vn.vhn.pckeyboard.AutoSummaryListPreference
+            android:key="pref_vn_method"
+            android:title="@string/title_vn_method"
+            android:persistent="true"
+            android:entryValues="@array/vn_method_values"
+            android:entries="@array/vn_method_entries"
+            android:defaultValue="0"
+            />
+    </PreferenceCategory>
+
+    <PreferenceCategory
             android:title="@string/title_key_behavior_settings"
             android:key="key_settings">
 

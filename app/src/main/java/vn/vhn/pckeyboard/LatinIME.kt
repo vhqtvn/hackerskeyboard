@@ -761,6 +761,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     override fun onFinishInput() {
         super.onFinishInput()
+        vnFinishWord()
         vn.vhn.pckeyboard.device.DeviceIntegration.onEditorFocus(false)
         mKeyboardSwitcher.inputView?.closing()
     }
@@ -788,8 +789,27 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         return mForceKeyboardOn || mStick || parent
     }
 
+    override fun onUpdateSelection(
+        oldSelStart: Int, oldSelEnd: Int,
+        newSelStart: Int, newSelEnd: Int,
+        candidatesStart: Int, candidatesEnd: Int,
+    ) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
+            candidatesStart, candidatesEnd)
+        // The caret left the text we are composing -- the user tapped elsewhere, or
+        // another source edited the field. Commit the Vietnamese word rather than let
+        // the engine keep rewriting characters that are no longer under the caret.
+        if (mVnLoaded && mVnComposer.composing &&
+            (candidatesStart < 0 || newSelStart != newSelEnd || newSelStart != candidatesEnd)
+        ) {
+            vnFinishWord()
+        }
+    }
+
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
+        // Drop any half-composed word from the previous field (do not commit it there).
+        if (mVnLoaded) mVnComposer.reset(null)
         vn.vhn.pckeyboard.device.DeviceIntegration.onEditorFocus(true)
     }
 
@@ -1152,6 +1172,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             mDeleteCount = 0
         }
         mLastKeyTime = `when`
+        if (mVnLoaded && !isVnWordKey(primaryCode)) vnFinishWord()
         val distinctMultiTouch = mKeyboardSwitcher
             .hasDistinctMultitouch()
         when (primaryCode) {
@@ -1197,6 +1218,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             LatinKeyboardView.KEYCODE_ORIENTATION_LOCK -> {
                 handleFNModifierKeysUp(false)
                 setOrientationLock(!mOrientationLocked)
+            }
+            LatinKeyboardView.KEYCODE_TOGGLE_VN -> {
+                handleFNModifierKeysUp(false)
+                setVnEnabled(!sKeyboardSettings.vnEnabled)
             }
             Keyboard.KEYCODE_CANCEL -> if (!isShowingOptionDialog) {
                 handleClose()
@@ -1364,6 +1389,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     private fun handleBackspace() {
         val ic = currentInputConnection ?: return
+        if (vnActive && mVnComposer.composing && mVnComposer.onBackspace(ic)) return
         ic.beginBatchEdit()
         if (mEnteredText != null
             && sameAsTextBeforeCursor(ic, mEnteredText!!)
@@ -1412,9 +1438,89 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mModFn2 = active
     }
 
+    // --- Vietnamese (Unikey) ---------------------------------------------------
+    // While enabled, printable keys are composed through the Unikey engine against the
+    // InputConnection (setComposingText until the word breaks) instead of being sent as
+    // key events, because Vietnamese needs a Unicode commit. Everything else -- chords,
+    // navigation, Enter -- ends the current word and takes the normal path.
+
+    private val mVnComposer = VnComposer()
+    private var mVnLoaded = false
+    private var mVnMethodApplied = -1
+
+    /** Loads the native engine on first use, and keeps it on the configured method. */
+    private fun vnReady(): Boolean {
+        if (!mVnLoaded) {
+            if (!Unikey.init()) return false
+            mVnLoaded = true
+        }
+        if (mVnMethodApplied != sKeyboardSettings.vnMethod) {
+            mVnMethodApplied = sKeyboardSettings.vnMethod
+            mVnComposer.setMethod(mVnMethodApplied)
+        }
+        return true
+    }
+
+    private val vnActive: Boolean
+        get() = sKeyboardSettings.vnEnabled && !mNoIME && vnReady()
+
+    private fun setVnEnabled(on: Boolean) {
+        sKeyboardSettings.vnEnabled = on
+        PreferenceManager.getDefaultSharedPreferences(this).edit()
+            .putBoolean(PREF_VN_ENABLED, on).apply()
+        if (mVnLoaded) mVnComposer.reset(currentInputConnection)
+        Toast.makeText(applicationContext,
+            if (on) R.string.vn_enabled else R.string.vn_disabled,
+            Toast.LENGTH_SHORT).show()
+    }
+
+    /** Commits whatever is being composed; call when the word ends for any reason. */
+    private fun vnFinishWord() {
+        if (mVnLoaded) mVnComposer.reset(currentInputConnection)
+    }
+
+    /**
+     * Keys that may occur inside a Vietnamese word without ending it: the printable
+     * characters themselves, backspace, the toggle, and the modifiers (which arrive as
+     * their own onKey calls when you shift a letter mid-word).
+     */
+    private fun isVnWordKey(code: Int): Boolean = when (code) {
+        Keyboard.KEYCODE_DELETE,
+        LatinKeyboardView.KEYCODE_TOGGLE_VN,
+        LatinKeyboardView.KEYCODE_SHIFT_LEFT, LatinKeyboardView.KEYCODE_SHIFT_RIGHT,
+        LatinKeyboardView.KEYCODE_CTRL_LEFT, LatinKeyboardView.KEYCODE_CTRL_RIGHT,
+        LatinKeyboardView.KEYCODE_ALT_LEFT, LatinKeyboardView.KEYCODE_ALT_RIGHT,
+        LatinKeyboardView.KEYCODE_META_LEFT, LatinKeyboardView.KEYCODE_META_RIGHT,
+        LatinKeyboardView.KEYCODE_FN_1, LatinKeyboardView.KEYCODE_FN_2 -> true
+        else -> code in 32..126
+    }
+
+    /** Returns true when the composer consumed the key, so no key event should be sent. */
+    private fun handleVnCharacter(primaryCode: Int): Boolean {
+        if (!vnActive) return false
+        // A modifier chord is a shortcut, not text.
+        if (mModCtrlLeft || mModCtrlRight || mModAltLeft || mModAltRight
+            || mModMetaLeft || mModMetaRight) {
+            vnFinishWord()
+            return false
+        }
+        if (primaryCode !in 32..126) {
+            vnFinishWord()
+            return false
+        }
+        val ic = currentInputConnection ?: return false
+        // primaryCode is already the shifted glyph; tell the engine the resulting case.
+        val upper = Character.isUpperCase(primaryCode)
+        return mVnComposer.onChar(primaryCode, upper, false, ic)
+    }
+
     private fun handleCharacter(primaryCode: Int, keyCodes: IntArray?) {
         if (mModShiftLeft || mModShiftRight || mModCtrlLeft || mModAltLeft || mModMetaLeft || mModCtrlRight || mModAltRight || mModMetaRight) {
             commitTyped(currentInputConnection, true) // sets mPredicting=false
+        }
+        if (handleVnCharacter(primaryCode)) {
+            updateShiftKeyState(currentInputEditorInfo)
+            return
         }
         sendModifiableKeyChar(primaryCode.toChar())
         updateShiftKeyState(currentInputEditorInfo)
@@ -2055,6 +2161,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         const val PREF_SWIPE_RIGHT = "pref_swipe_right"
         const val PREF_VOL_UP = "pref_vol_up"
         const val PREF_VOL_DOWN = "pref_vol_down"
+        const val PREF_VN_ENABLED = "pref_vn_enabled"
 
         // How many continuous deletes at which to start deleting at a higher speed.
         private const val DELETE_ACCELERATE_AT = 20

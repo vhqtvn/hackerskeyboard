@@ -1,4 +1,4 @@
-package vn.vhn.pckeyboard.thor
+package vn.vhn.pckeyboard
 
 /**
  * Thin binding to the bundled Unikey engine (native, see cpp/ukengine + unikey_jni.cpp).
@@ -9,6 +9,8 @@ package vn.vhn.pckeyboard.thor
  * Feed it a keystroke via [filter]; it returns how many characters to delete from the
  * text before appending [output] (tone/mark re-composition). See [VnComposer] for the
  * preedit/InputConnection driving that mirrors ibus-unikey.
+ *
+ * Unprivileged NDK code, so it ships in every product flavor.
  */
 object Unikey {
     // UkInputMethod values (keycons.h).
