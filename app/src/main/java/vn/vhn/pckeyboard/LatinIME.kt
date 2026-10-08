@@ -28,6 +28,7 @@ import android.media.AudioManager
 import android.os.*
 import android.preference.PreferenceActivity
 import android.preference.PreferenceManager
+import android.text.InputType
 import android.text.TextUtils
 import android.util.Log
 import android.util.PrintWriterPrinter
@@ -735,6 +736,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         }
         sKeyboardSettings.editorPackageName = attribute.packageName
         sKeyboardSettings.editorFieldName = attribute.fieldName
+        // The keyboard view is rebuilt per field, so key indicator state has to be
+        // re-applied rather than assumed to have survived.
+        updateVnSuspended(attribute)
+        updateVnIndicator()
         sKeyboardSettings.editorFieldId = attribute.fieldId
         sKeyboardSettings.editorInputType = attribute.inputType
 
@@ -855,6 +860,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         super.onStartInput(attribute, restarting)
         // Drop any half-composed word from the previous field (do not commit it there).
         if (mVnLoaded) mVnComposer.reset(null)
+        updateVnSuspended(attribute)
         vn.vhn.pckeyboard.device.DeviceIntegration.onEditorFocus(true)
     }
 
@@ -1507,13 +1513,46 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     }
 
     private val vnActive: Boolean
-        get() = sKeyboardSettings.vnEnabled && !mNoIME && vnReady()
+        get() = sKeyboardSettings.vnEnabled && !mNoIME && !mVnSuspended && vnReady()
+
+    /**
+     * True while the focused field is one where Vietnamese composing would do harm
+     * rather than good: a password, a URL, an email address, a number or a phone
+     * number, or a field that has asked for no suggestions at all. Typing "aa" into a
+     * password and getting "â" is the kind of thing you only notice after the
+     * login fails.
+     */
+    private var mVnSuspended = false
+
+    private fun updateVnSuspended(attribute: EditorInfo?) {
+        val type = attribute?.inputType ?: 0
+        val cls = type and InputType.TYPE_MASK_CLASS
+        val variation = type and InputType.TYPE_MASK_VARIATION
+        mVnSuspended = when {
+            cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE
+                || cls == InputType.TYPE_CLASS_DATETIME -> true
+            cls != InputType.TYPE_CLASS_TEXT -> false
+            variation == InputType.TYPE_TEXT_VARIATION_PASSWORD
+                || variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                || variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+                || variation == InputType.TYPE_TEXT_VARIATION_URI
+                || variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+                || variation == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS -> true
+            else -> type and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS != 0
+        }
+    }
+
+    /** Lights the key carrying the toggle while Vietnamese is actually composing. */
+    private fun updateVnIndicator() {
+        mKeyboardSwitcher.setVnIndicator(sKeyboardSettings.vnEnabled && !mVnSuspended)
+    }
 
     private fun setVnEnabled(on: Boolean) {
         sKeyboardSettings.vnEnabled = on
         PreferenceManager.getDefaultSharedPreferences(this).edit()
             .putBoolean(PREF_VN_ENABLED, on).apply()
         if (mVnLoaded) mVnComposer.reset(currentInputConnection)
+        updateVnIndicator()
         Toast.makeText(applicationContext,
             if (on) R.string.vn_enabled else R.string.vn_disabled,
             Toast.LENGTH_SHORT).show()

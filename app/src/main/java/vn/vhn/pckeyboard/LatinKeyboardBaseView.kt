@@ -684,6 +684,12 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
         }
     }
 
+    fun setVnIndicator(active: Boolean) {
+        if (mKeyboard != null) {
+            invalidateKey(mKeyboard!!.setVnIndicator(active))
+        }
+    }
+
     /**
      * Enables or disables the key feedback popup. This is a popup that shows a magnified
      * version of the depressed key. By default the preview is enabled.

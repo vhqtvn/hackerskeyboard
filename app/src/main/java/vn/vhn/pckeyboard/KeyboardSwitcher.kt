@@ -274,6 +274,11 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
         inputView!!.setFn1Indicator(active)
     }
 
+    fun setVnIndicator(active: Boolean) {
+        if (inputView == null) return
+        inputView!!.setVnIndicator(active)
+    }
+
     fun setFn2Indicator(active: Boolean) {
         if (inputView == null) return
         inputView!!.setFn2Indicator(active)

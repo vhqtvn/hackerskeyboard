@@ -98,6 +98,8 @@ open class Keyboard @JvmOverloads constructor(
     private var mCtrlRightKey: Key? = null
     private var mMetaRightKey: Key? = null
     private var mFn1Key: Key? = null
+    /** The key carrying the Vietnamese toggle, lit while Vietnamese is on. */
+    private var mVnKey: Key? = null
     private var mFn2Key: Key? = null
     /**
      * Returns the total height of the keyboard
@@ -1146,6 +1148,11 @@ open class Keyboard @JvmOverloads constructor(
         return mFn2Key
     }
 
+    fun setVnIndicator(active: Boolean): Key? {
+        if (mVnKey != null) mVnKey!!.on = active
+        return mVnKey
+    }
+
     val isFN1: Boolean get() = mFn1Key?.on ?: false
     val isFN2: Boolean get() = mFn2Key?.on ?: false
 
@@ -1312,6 +1319,13 @@ open class Keyboard @JvmOverloads constructor(
                                     mFn1Key = key
                                 } else if (key.codes!![0] == LatinKeyboardView.Companion.KEYCODE_FN_2) {
                                     mFn2Key = key
+                                }
+                                // The Vietnamese toggle sits on an Fn layer rather than
+                                // being a key of its own, so look for it there.
+                                if (key.fn1codes?.contains(LatinKeyboardView.Companion.KEYCODE_TOGGLE_VN) == true ||
+                                    key.fn2codes?.contains(LatinKeyboardView.Companion.KEYCODE_TOGGLE_VN) == true
+                                ) {
+                                    mVnKey = key
                                 }
                             }
                         }

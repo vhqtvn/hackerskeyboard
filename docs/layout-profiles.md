@@ -162,3 +162,15 @@ has the same toggle plus a Telex/VNI/VIQR picker; both default to off.
 
 The Thor deck has its own independent toggle, since it composes against a
 different target.
+
+### Knowing it is on, and when it stays out of the way
+
+The key carrying the toggle lights up like an active modifier while Vietnamese is
+composing, using the same `key.on` plumbing as Shift and Fn. Without that the only
+feedback is a toast you have already dismissed by the time you start typing.
+
+Composing also suspends itself for fields where it would do harm rather than good:
+passwords, URLs, email addresses, numbers, phone numbers, dates, and anything
+asking for no suggestions. Typing `aa` into a password and getting `â` is the kind
+of thing you only notice after the login fails. The setting stays on; it simply
+does not apply, and the key is unlit so you can see that.
