@@ -335,6 +335,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         ).coerceIn(MIN_HEIGHT_PERCENT, MAX_HEIGHT_PERCENT)
         sKeyboardSettings.hintMode = ProfilePrefs.getInt(prefs, PREF_HINT_MODE, mProfile,
             default = res.getString(R.string.default_hint_mode).toInt())
+        // Splitting only makes sense on a screen wide enough to reach across, so it is
+        // off by default everywhere and switched on per profile.
+        sKeyboardSettings.splitGapPercent =
+            ProfilePrefs.getInt(prefs, PREF_SPLIT_GAP, mProfile, default = 0)
+                .coerceIn(0, MAX_SPLIT_GAP_PERCENT).toFloat()
         // -1 means "inherit": profileKeyboardMode() then falls back to the global setting.
         mKeyboardModeProfile =
             if (ProfilePrefs.hasOverride(prefs, PREF_KEYBOARD_MODE, mProfile))
@@ -2212,10 +2217,12 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // Base keys for the per-profile overrides; see KeyboardProfile.
         const val PREF_HEIGHT = "settings_height"
         const val PREF_KEYBOARD_MODE = "pref_keyboard_mode"
+        const val PREF_SPLIT_GAP = "pref_split_gap"
         const val PROFILE_KEY_SEPARATOR = "@"
 
         const val MIN_HEIGHT_PERCENT = 15
         const val MAX_HEIGHT_PERCENT = 75
+        const val MAX_SPLIT_GAP_PERCENT = 40
 
         // How many continuous deletes at which to start deleting at a higher speed.
         private const val DELETE_ACCELERATE_AT = 20

@@ -72,6 +72,11 @@ class GlobalKeyboardSettings {
     var keyboardHeightPercent = 40.0f // percent of screen height
 
     //
+    // Read by Keyboard. Width of the gap down the middle of a split keyboard, as a
+    // percentage of the keyboard width; 0 means not split. Set per layout profile.
+    var splitGapPercent = 0.0f
+
+    //
     // Read by LatinKeyboardBaseView
     var hintMode = 0
     var renderMode = 1

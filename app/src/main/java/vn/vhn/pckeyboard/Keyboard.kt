@@ -1343,6 +1343,64 @@ open class Keyboard @JvmOverloads constructor(
             e.printStackTrace()
         }
         height = y - verticalGap
+        applySplit(LatinIME.Companion.sKeyboardSettings.splitGapPercent / 100f)
+    }
+
+    /**
+     * Opens a gap down the middle of the keyboard, so a wide screen can be typed on with
+     * both thumbs instead of reaching across.
+     *
+     * The outer edges stay put: every key is scaled down by the width of the gap and the
+     * right-hand half is then pushed right by it, so the keyboard still spans the screen.
+     *
+     * Where a row opens is decided per row, because the rows are not aligned: the number
+     * row and the home row are offset by their leading key, so no single x splits all of
+     * them between keys. Each row opens at the key boundary nearest the middle, which
+     * leaves the gap very slightly ragged -- the same as any staggered split layout. A key
+     * that genuinely spans the middle and is much wider than its neighbours (the space
+     * bar) is stretched across the gap instead, so it stays reachable by either thumb.
+     */
+    private fun applySplit(gapFraction: Float) {
+        val allKeys = mKeys?.filterNotNull() ?: return
+        if (gapFraction <= 0f || allKeys.isEmpty()) return
+        val total = minWidth.toFloat()
+        if (total <= 0f) return
+        val gap = total * gapFraction
+        val scale = (total - gap) / total
+        val middle = total / 2f
+        // Key positions accumulate from percentages, so a boundary meant to land exactly
+        // on the middle arrives a hair off it; without this tolerance such a row would
+        // read as one key straddling the centre and no gap would open at all.
+        val epsilon = total * 0.01f
+
+        for ((_, rowKeys) in allKeys.groupBy { it.y }) {
+            val widths = rowKeys.map { it.realWidth }.sorted()
+            val medianWidth = widths[widths.size / 2]
+            val straddler = rowKeys.firstOrNull {
+                it.realX < middle - epsilon && it.realX + it.realWidth > middle + epsilon
+            }
+            val boundary = when {
+                // No key spans the middle: the row already has a boundary there.
+                straddler == null -> middle
+                // A wide central key stays whole and bridges the gap.
+                straddler.realWidth > medianWidth * 1.5f -> middle
+                // Otherwise open at whichever edge of that key is nearer the middle.
+                middle - straddler.realX <= straddler.realX + straddler.realWidth - middle ->
+                    straddler.realX
+                else -> straddler.realX + straddler.realWidth
+            }
+            for (key in rowKeys) {
+                val left = key.realX
+                val right = key.realX + key.realWidth
+                key.realX = left * scale + if (left >= boundary - epsilon) gap else 0f
+                val newRight = right * scale + if (right > boundary + epsilon) gap else 0f
+                key.realWidth = newRight - key.realX
+                key.realGap *= scale
+                key.x = Math.round(key.realX)
+                key.width = Math.round(key.realWidth)
+                key.gap = Math.round(key.realGap)
+            }
+        }
     }
 
     fun setKeyboardWidth(newWidth: Int) {
