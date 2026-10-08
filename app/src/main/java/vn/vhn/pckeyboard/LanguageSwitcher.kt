@@ -15,6 +15,7 @@
  */
 package vn.vhn.pckeyboard
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
 import android.text.TextUtils
@@ -24,8 +25,12 @@ import java.util.*
 /**
  * Keeps track of list of selected input languages and the current
  * input language that the user has selected.
+ *
+ * Takes a plain [Context] (not the IME) so the language state can also be built
+ * by the standalone Thor overlay keyboard, not just the IME. LatinIME is-a
+ * Context, so existing `LanguageSwitcher(this)` calls are unaffected.
  */
-class LanguageSwitcher(private val mIme: LatinIME) {
+class LanguageSwitcher(private val mIme: Context) {
     var locales: Array<Locale?>
         private set
     private var mSelectedLanguageArray: Array<String> = arrayOf()

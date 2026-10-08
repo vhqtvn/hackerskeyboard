@@ -35,7 +35,7 @@ class PrefScreenFeedback : PreferenceActivity(), OnSharedPreferenceChangeListene
         super.onDestroy()
     }
 
-    override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String) {
+    override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String?) {
         BackupManager(this).dataChanged()
     }
 

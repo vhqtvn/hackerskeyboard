@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="gold" x1="256" y1="150" x2="256" y2="292" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF3C8"/><stop offset="0.48" stop-color="#F3CB63"/><stop offset="1" stop-color="#C08A1E"/>
+    </linearGradient>
+    <linearGradient id="goldbar" x1="256" y1="398" x2="256" y2="422" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE9A8"/><stop offset="1" stop-color="#D19A2A"/>
+    </linearGradient>
+    <linearGradient id="screenFill" x1="256" y1="82" x2="256" y2="328" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD57A" stop-opacity="0.10"/><stop offset="1" stop-color="#FFD57A" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="kbdFill" x1="256" y1="350" x2="256" y2="434" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A1712"/><stop offset="1" stop-color="#0B0A08"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(256 256) scale(0.82) translate(-256 -262)">
+    <rect x="78" y="78" width="356" height="248" rx="42" fill="url(#screenFill)" stroke="#E9C46A" stroke-width="7" stroke-opacity="0.55"/>
+    <path d="M256 100V304" stroke="#E9C46A" stroke-width="5" stroke-linecap="round" stroke-opacity="0.18"/>
+    <path d="M109 108H226" stroke="#E9C46A" stroke-width="4" stroke-linecap="round" stroke-opacity="0.14"/>
+    <path d="M286 108H403" stroke="#E9C46A" stroke-width="4" stroke-linecap="round" stroke-opacity="0.14"/>
+    <g fill="none" stroke="#000000" stroke-width="23" stroke-linecap="round" stroke-linejoin="round" opacity="0.35" transform="translate(0 9)">
+      <path d="M122 154 L187 282 L248 154"/><path d="M286 282 L320 154"/><path d="M358 282 L392 154"/><path d="M303 221 H374"/>
+    </g>
+    <g fill="none" stroke="url(#gold)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M122 154 L187 282 L248 154"/><path d="M286 282 L320 154"/><path d="M358 282 L392 154"/><path d="M303 221 H374"/>
+    </g>
+    <rect x="116" y="362" width="280" height="88" rx="28" fill="#000000" opacity="0.35"/>
+    <rect x="116" y="354" width="280" height="88" rx="28" fill="url(#kbdFill)" stroke="#E9C46A" stroke-width="5" stroke-opacity="0.5"/>
+    <g fill="#EBD9A6">
+      <rect x="146" y="378" width="38" height="24" rx="7"/><rect x="195" y="378" width="38" height="24" rx="7"/><rect x="244" y="378" width="38" height="24" rx="7"/><rect x="293" y="378" width="58" height="24" rx="7"/>
+    </g>
+    <rect x="178" y="412" width="156" height="20" rx="9" fill="url(#goldbar)"/>
+  </g>
+</svg>

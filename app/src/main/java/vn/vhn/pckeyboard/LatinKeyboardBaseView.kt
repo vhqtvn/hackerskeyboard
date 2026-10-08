@@ -145,6 +145,63 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
     private var mShadowColor = 0
     private var mShadowRadius = 0f
     private var mKeyBackground: Drawable? = null
+
+    /**
+     * When true, the key background is tinted per function group so keys read as
+     * distinct blocks (used by the Thor deck). Modifiers = blue, edit/nav = gold,
+     * digits/symbols = cool grey, letters = untinted.
+     */
+    // Thor deck: keys are custom-drawn as a true-black (OLED-off) body with a
+    // group-coloured rounded border, so they read as separate blocks without any
+    // lit background. The active-modifier indicator is a faint body + brighter
+    // border (subtle, not a full-button flood).
+    var colorCodeKeys = false
+    private val mKeyFillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+    }
+    private val mKeyBorderPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = 2f
+    }
+    private val mKeyRect = android.graphics.RectF()
+
+    private fun isModifierCode(code: Int) = when (code) {
+        LatinKeyboardView.KEYCODE_SHIFT_LEFT, LatinKeyboardView.KEYCODE_SHIFT_RIGHT,
+        LatinKeyboardView.KEYCODE_CTRL_LEFT, LatinKeyboardView.KEYCODE_CTRL_RIGHT,
+        LatinKeyboardView.KEYCODE_ALT_LEFT, LatinKeyboardView.KEYCODE_ALT_RIGHT,
+        LatinKeyboardView.KEYCODE_META_LEFT, LatinKeyboardView.KEYCODE_META_RIGHT,
+        LatinKeyboardView.KEYCODE_FN_1, LatinKeyboardView.KEYCODE_FN_2 -> true
+        else -> false
+    }
+
+    /** 3 = modifier, 2 = edit/nav, 1 = digit/symbol, 0 = letter. */
+    private fun keyCategory(key: Keyboard.Key): Int {
+        val code = key.codes?.firstOrNull() ?: return 2
+        if (isModifierCode(code)) return 3
+        if (code in 'a'.code..'z'.code || code in 'A'.code..'Z'.code) return 0
+        if (code in 33..126) return 1
+        return 2
+    }
+
+    private fun drawDeckKey(canvas: android.graphics.Canvas, key: Keyboard.Key) {
+        val bi = 2f
+        mKeyRect.set(bi, bi, key.width - bi, key.height - bi)
+        val r = key.height * 0.16f
+        val cat = keyCategory(key)
+        mKeyFillPaint.color = when {
+            cat == 3 && key.on -> 0x335C9DFF          // active modifier: faint blue body
+            key.pressed -> 0x22FFFFFF                 // touch feedback
+            else -> 0xFF000000.toInt()                // true black (OLED off)
+        }
+        canvas.drawRoundRect(mKeyRect, r, r, mKeyFillPaint)
+        mKeyBorderPaint.color = when (cat) {
+            3 -> if (key.on) 0xFF7FD4FF.toInt() else 0x885C9DFF.toInt()  // modifiers (bright when active)
+            2 -> 0x88F3CB63.toInt()                                       // edit/nav gold
+            1 -> 0x44AAC4E0                                               // digits/symbols faint cool
+            else -> 0x33FFFFFF                                            // letters faint grey
+        }
+        canvas.drawRoundRect(mKeyRect, r, r, mKeyBorderPaint)
+    }
     private var mBackgroundAlpha = 0
     private var mBackgroundDimAmount = 0f
     private var mKeyHysteresisDistance = 0f
@@ -480,7 +537,9 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
     }
 
     private fun showHints7Bit(): Boolean {
-        return LatinIME.Companion.sKeyboardSettings.hintMode >= 1
+        // The Thor deck always shows the shift sub-char (ASCII), independent of the
+        // shared hintMode (which LatinIME owns and may leave at 0).
+        return colorCodeKeys || LatinIME.Companion.sKeyboardSettings.hintMode >= 1
     }
 
     private fun showHintsAll(): Boolean {
@@ -866,17 +925,26 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                 }
             }
             canvas.translate((key.x + kbdPaddingLeft).toFloat(), (key.y + kbdPaddingTop).toFloat())
-            if (yscale != 1.0f) {
-                canvas.save()
-                canvas.scale(1.0f, yscale)
+            if (colorCodeKeys) {
+                drawDeckKey(canvas, key)   // OLED-black body + group-coloured border
+            } else {
+                if (yscale != 1.0f) {
+                    canvas.save()
+                    canvas.scale(1.0f, yscale)
+                }
+                if (mBackgroundAlpha != 255) {
+                    keyBackground.alpha = mBackgroundAlpha
+                }
+                keyBackground.draw(canvas)
+                if (yscale != 1.0f) canvas.restore()
             }
-            if (mBackgroundAlpha != 255) {
-                keyBackground.alpha = mBackgroundAlpha
-            }
-            keyBackground.draw(canvas)
-            if (yscale != 1.0f) canvas.restore()
             var shouldDrawIcon = true
             if (label != null) {
+                // On the deck, a single glyph that carries a shift hint is laid out
+                // dual-legend: smaller and pushed to the lower-left, so the (larger)
+                // hint sits clear in the top-right corner.
+                val hasHint = colorCodeKeys && label.length <= 1 &&
+                    key.getHintLabel(showHints7Bit(), showHintsAll()) != ""
                 // For characters, use large font. For labels like "Done", use small font.
                 val labelSize: Int
                 if (label.length > 1 && key.codes!!.size < 2) {
@@ -884,7 +952,8 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                     labelSize = (mLabelTextSize * mLabelScale).toInt()
                     paint.typeface = Typeface.DEFAULT
                 } else {
-                    labelSize = (mKeyTextSize * mLabelScale).toInt()
+                    val scale = if (hasHint) 0.8 else 1.0
+                    labelSize = (mKeyTextSize * mLabelScale * scale).toInt()
                     paint.typeface = mKeyTextStyle
                 }
                 paint.isFakeBoldText = key.isCursor
@@ -900,7 +969,10 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                 // Draw hint label (if present) behind the main key
                 val hint = key.getHintLabel(showHints7Bit(), showHintsAll())
                 if (hint != "") {
-                    val hintTextSize = (mKeyTextSize * 0.6 * mLabelScale).toInt()
+                    // Larger shift sub-char (!@#…) on the Thor deck for legibility;
+                    // the main glyph is shrunk (above) to make room, so no collision.
+                    val hintScale = if (colorCodeKeys) 0.72 else 0.6
+                    val hintTextSize = (mKeyTextSize * hintScale * mLabelScale).toInt()
                     paintHint.textSize = hintTextSize.toFloat()
                     val hintLabelHeight = getLabelHeight(paintHint, hintTextSize)
                     val x = key.width - padding.right
@@ -965,12 +1037,17 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                 // Draw main key label
                 val centerX = (key.width + padding.left - padding.right) / 2
                 val centerY = (key.height + padding.top - padding.bottom) / 2
-                val baseline = (centerY
+                var baseline = (centerY
                         + labelHeight * KEY_LABEL_VERTICAL_ADJUSTMENT_FACTOR)
+                var labelX = centerX.toFloat()
+                if (hasHint) {   // dual-legend: main glyph to the lower-left
+                    labelX -= key.width * 0.15f
+                    baseline += key.height * 0.12f
+                }
                 if (key.isDeadKey) {
-                    drawDeadKeyLabel(canvas, label, centerX, baseline, paint)
+                    drawDeadKeyLabel(canvas, label, labelX.toInt(), baseline, paint)
                 } else {
-                    canvas.drawText(label, centerX.toFloat(), baseline, paint)
+                    canvas.drawText(label, labelX, baseline, paint)
                 }
                 if (key.isCursor) {
                     // poor man's bold - FIXME
@@ -1038,6 +1115,15 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                     icon.draw(canvas)
                 }
                 canvas.translate(-drawableX.toFloat(), -drawableY.toFloat())
+            }
+            // Icon-only keys (e.g. Enter) skip the label branch above, so a runtime fn2Label
+            // (used for the Enter key's IME-action hint) would never be drawn -- draw it here.
+            if (label == null) {
+                key.fn2Label?.toString()?.takeIf { it.isNotEmpty() }?.let { fn2 ->
+                    paintFn2.textSize = (mKeyTextSize * 0.3 * mLabelScale).toFloat()
+                    canvas.drawText(fn2, (key.width - padding.right).toFloat(),
+                        (key.height - padding.bottom - 5).toFloat(), paintFn2)
+                }
             }
             canvas.translate((-key.x - kbdPaddingLeft).toFloat(),
                 (-key.y - kbdPaddingTop).toFloat())
@@ -1737,9 +1823,10 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
         mMiniKeyboardSlideAllowance = res.getDimension(R.dimen.mini_keyboard_slide_allowance)
         val listener: SimpleOnGestureListener = object : SimpleOnGestureListener() {
             override fun onFling(
-                me1: MotionEvent, me2: MotionEvent, velocityX: Float,
+                me1: MotionEvent?, me2: MotionEvent, velocityX: Float,
                 velocityY: Float,
             ): Boolean {
+                if (me1 == null) return false   // API 34+ made e1 nullable
                 val absX = Math.abs(velocityX)
                 val absY = Math.abs(velocityY)
                 val deltaX = me2.x - me1.x

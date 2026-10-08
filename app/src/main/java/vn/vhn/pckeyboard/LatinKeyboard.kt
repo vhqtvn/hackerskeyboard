@@ -686,7 +686,7 @@ class LatinKeyboard @JvmOverloads constructor(
             mLeftDrawable = mRes.getDrawable(R.drawable.sym_keyboard_feedback_language_arrows_left)
             mRightDrawable =
                 mRes.getDrawable(R.drawable.sym_keyboard_feedback_language_arrows_right)
-            mThreshold = ViewConfiguration.get(mContext).scaledTouchSlop
+            mThreshold = ViewConfiguration.get(mContext!!).scaledTouchSlop
         }
     }
 

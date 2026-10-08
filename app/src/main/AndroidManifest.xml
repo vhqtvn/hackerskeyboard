@@ -3,6 +3,19 @@
 
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Signature perms; granted on the AYN Thor via the LSPosed sig-grant module
+         (see ~/devices/ayn-thor/system-sig). Ignored by the framework otherwise. -->
+    <uses-permission android:name="android.permission.INJECT_EVENTS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW"
+        tools:ignore="ProtectedPermissions" />
+    <!-- Recent tasks in-process + event-driven updates (granted via sig-grant module). -->
+    <uses-permission android:name="android.permission.REAL_GET_TASKS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.MANAGE_ACTIVITY_TASKS"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
@@ -21,7 +34,10 @@
     <application
         android:allowBackup="true"
         android:backupAgent="vn.vhn.pckeyboard.LatinIMEBackupAgent"
-        android:hardwareAccelerated="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="VHKeyboard"
+        android:hardwareAccelerated="true"
         android:killAfterRestore="false"
         android:restoreAnyVersion="true">
 
@@ -54,6 +70,18 @@
                 android:resource="@xml/method" />
         </service>
 
+        <service
+            android:name="vn.vhn.pckeyboard.thor.OverlayKeyboardService"
+            android:exported="true" />
+
+        <receiver
+            android:name="vn.vhn.pckeyboard.thor.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <activity
             android:exported="true"
             android:name="vn.vhn.pckeyboard.Main"
@@ -61,6 +89,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <!-- Launcher icon: tap to (re)start the second-screen deck if it stopped. -->
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 

@@ -3,6 +3,7 @@ apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion project.properties.compileSdkVersion.toInteger() ?: 31
+    ndkVersion "25.1.8937393"
     defaultConfig {
         applicationId 'vn.vhn.pckeyboard'
         buildConfigField "Boolean", "GOOGLEPLAY_BUILD", project.properties.googlePlayBuild ?: "false"
@@ -10,11 +11,22 @@ android {
         targetSdkVersion project.properties.targetSdkVersion.toInteger() ?: 31
         versionCode 1
         versionName "v1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
                 cppFlags ""
             }
+        }
+        // AYN Thor is arm64 (kalama / SD8 Gen2); build only that ABI for fast cycles.
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+    // The kbdinject binary ships as libkbdinject.so and must be extracted to disk
+    // (nativeLibraryDir) so it can be exec'd as a root daemon.
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
     buildTypes {
@@ -26,8 +38,23 @@ android {
     lint {
         checkReleaseBuilds false
     }
+    // AGP 8 turns these off by default; this project uses BuildConfig (LatinIME) and
+    // an AIDL interface (ITaskStackListener), so re-enable them explicitly.
+    buildFeatures {
+        buildConfig true
+        aidl true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
     }
     namespace 'vn.vhn.pckeyboard'
 }
@@ -35,8 +62,6 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     compileOnly fileTree(include: ['*.jar'], dir: 'frameworks')
-    implementation 'com.android.support:appcompat-v7:27.1.1'
-    implementation "com.android.support:support-compat:26.0.0"
     implementation 'com.github.tiann:FreeReflection:3.1.0'
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.core:core-ktx:1.2.0'
@@ -49,6 +74,6 @@ dependencies {
     implementation 'me.jfenn:crasher:0.0.2'
 
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }

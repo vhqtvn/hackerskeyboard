@@ -408,8 +408,9 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
 
     override fun onSharedPreferenceChanged(
         sharedPreferences: SharedPreferences,
-        key: String,
+        key: String?,
     ) {
+        if (key == null) return   // API 34+: null key signals "all prefs cleared"
         if (PREF_KEYBOARD_LAYOUT == key) {
             changeLatinKeyboardView(Integer.valueOf(sharedPreferences
                 .getString(key, DEFAULT_LAYOUT_ID)), true)
