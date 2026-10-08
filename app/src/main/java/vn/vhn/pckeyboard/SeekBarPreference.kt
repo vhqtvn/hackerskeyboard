@@ -154,8 +154,24 @@ open class SeekBarPreference(context: Context, attrs: AttributeSet?) :
         // override in subclasses
     }
 
+    /**
+     * Set when nothing is stored for this preference and the slider is showing a value
+     * inherited from elsewhere, so the summary can say where it came from. Cleared as
+     * soon as the user stores a value of their own. See [PrefScreenProfiles].
+     */
+    var inheritedNote: CharSequence? = null
+
+    /** Shows [value] without persisting it, so an inherited setting reads honestly. */
+    fun setDisplayedValue(value: Float) {
+        setVal(value)
+        savePrevVal()
+        notifyChanged()
+    }
+
     override fun getSummary(): CharSequence {
-        return formatFloatDisplay(mVal)
+        val shown = formatFloatDisplay(mVal)
+        val note = inheritedNote ?: return shown
+        return "$shown  $note"
     }
 
     override fun onDialogClosed(positiveResult: Boolean) {
@@ -166,6 +182,7 @@ open class SeekBarPreference(context: Context, attrs: AttributeSet?) :
         if (shouldPersist()) {
             persistFloat(mVal)
             savePrevVal()
+            inheritedNote = null
         }
         notifyChanged()
     }

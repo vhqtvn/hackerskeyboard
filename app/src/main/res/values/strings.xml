@@ -514,6 +514,7 @@
     <string name="profile_small_landscape">Small screen, landscape</string>
     <string name="profile_large_portrait">Large screen, portrait</string>
     <string name="profile_large_landscape">Large screen, landscape</string>
+    <string name="profile_inherited_note">(from the global setting)</string>
     <string name="profile_active_marker">%1$s \u2014 in use now</string>
     <string name="profile_explain">A screen counts as large from 600dp wide \u2014 a foldable\u0027s inner screen, or a tablet. Settings left untouched here follow the global ones.</string>
     <string name="title_profile_height">Keyboard height</string>
@@ -521,20 +522,37 @@
     <string name="title_profile_split_gap">Split keyboard</string>
     <string name="summary_profile_split_gap">Width of the gap down the middle. 0% keeps the keyboard in one piece.</string>
     <string name="keyboard_mode_inherit">Use global setting</string>
-    <string name="keyboard_mode_standard">Standard</string>
+    <string name="keyboard_mode_full_symbols">Full 5-row, symbols page</string>
     <string name="keyboard_mode_compact">Compact 5-row</string>
-    <string name="keyboard_mode_full">Full 5-row</string>
+    <string name="keyboard_mode_full">Full 5-row, Fn layer</string>
+    <string name="keyboard_mode_thumb">Thumb, 10 columns</string>
 
     <string-array name="profile_keyboard_mode_entries">
         <item>@string/keyboard_mode_inherit</item>
-        <item>@string/keyboard_mode_standard</item>
+        <item>@string/keyboard_mode_full_symbols</item>
         <item>@string/keyboard_mode_compact</item>
         <item>@string/keyboard_mode_full</item>
+        <item>@string/keyboard_mode_thumb</item>
     </string-array>
+    <string-array name="profile_hint_mode_entries">
+        <item>@string/keyboard_mode_inherit</item>
+        <item>Hide hint labels</item>
+        <item>Show ASCII punctuation</item>
+        <item>Show all hint labels</item>
+    </string-array>
+    <string-array name="profile_hint_mode_values">
+        <item>-1</item>
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <!-- Must match KeyboardSwitcher's mFullMode handling. -->
     <string-array name="profile_keyboard_mode_values">
         <item>-1</item>
         <item>0</item>
         <item>1</item>
         <item>2</item>
+        <item>3</item>
     </string-array>
 </resources>

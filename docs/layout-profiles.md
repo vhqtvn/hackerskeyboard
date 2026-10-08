@@ -37,7 +37,73 @@ A profile nobody has touched stores nothing, so a device that only ever sees one
 profile behaves exactly as it did before, and existing settings keep working.
 
 Profile-scoped so far: keyboard height, keyboard layout mode, hint mode, and the
-split gap. To add another, give it a base key, read it through `ProfilePrefs` in
+split gap.
+
+## What to put in each profile
+
+The layouts differ mainly in how many columns they pack into the width, which is
+what decides whether a key is thumbable. Typical letter-key widths, for a Galaxy
+Z Fold (cover screen 411dp wide; inner screen roughly 673dp portrait / 762dp
+landscape), against Material's 48dp minimum touch target:
+
+| layout | columns | cover portrait | cover landscape | inner portrait | inner landscape |
+|---|---|---|---|---|---|
+| `kbd_full`    | 14 | **29dp** | 65dp | 48dp | 54dp |
+| `kbd_compact` | 11 | **37dp** | 83dp | 61dp | 69dp |
+| `kbd_thumb`   | 10 | 41dp | 91dp | 67dp | 76dp |
+
+That table is most of the answer:
+
+**Small portrait (cover screen).** `kbd_full` gives 29dp keys here, which is not a
+thumb target, it is a dare. `kbd_thumb` is the only layout that clears a usable
+width, and it was built for exactly this shape -- a short panel typed on with
+thumbs -- with symbols on the surface so there is no page to flip to, and F-keys
+and arrows on the inline Fn2 layer. Height around 40-45%: the cover screen is very
+tall, so even 40% is a lot of pixels.
+
+**Small landscape (cover screen).** Width stops being the constraint and height
+becomes one: the panel is only about 411dp tall, so a six-row keyboard at 55%
+leaves roughly 37dp per row. `kbd_full` fits comfortably across the width. Keep
+the split off unless reaching the middle one-handed bothers you.
+
+**Large portrait (inner screen).** `kbd_full` lands exactly on 48dp, so the full
+layout is finally comfortable. Height around 38-42%. This is the first profile
+where a small split (10-12%) earns its keep: holding both halves open, the centre
+of the keyboard is past where either thumb reaches.
+
+**Large landscape (inner screen).** The widest case, and the one the split exists
+for: 15-20% is the useful range. Height around 45-50% -- the inner screen is
+short in landscape, so the percentage has to be higher to get the same key height.
+
+One thing worth knowing about a book-style foldable: the inner screen is nearly
+square (about 673x775dp portrait, 762x673dp landscape), so its two orientations
+are far more alike than a normal phone's. The real divide is cover versus inner,
+not portrait versus landscape. The two large profiles will usually differ only in
+height percentage and split width.
+
+### Choosing the layout
+
+The per-profile "Keyboard layout" setting maps to `KeyboardSwitcher`'s `mFullMode`:
+
+| value | layout |
+|---|---|
+| `-1` | inherit the global per-orientation setting |
+| `0` | full 5-row, with the phone-style symbols page |
+| `1` | compact 5-row |
+| `2` | full 5-row, with the Fn layer (`kbd_full_fn`) |
+| `3` | thumb, 10 columns (`kbd_thumb`) |
+
+Modes 0 and 2 use the same letter layout and differ only in what the symbol key
+reaches. Mode 3 is only selectable per profile; the in-session mode cycling in
+`LatinIME.getKeyboardModeNum()` still toggles between compact and full.
+
+### Inherited values in the settings screen
+
+A slider cannot express "unset", so an untouched height slider would otherwise
+show a default that is not what the keyboard is doing. `PrefScreenProfiles` moves
+those sliders to the value actually being inherited and labels them. The list
+preferences solve the same problem with an explicit "Use global setting" entry.
+ To add another, give it a base key, read it through `ProfilePrefs` in
 `LatinIME.loadProfileSettings()`, and add a row to each category in
 `res/xml/prefs_profiles.xml`.
 
@@ -88,9 +154,10 @@ ends: a non-word key, a modifier chord (a chord is a shortcut, not text),
 backspace past the start, a new field, or the caret moving out of the composing
 region.
 
-**Fn + ;** toggles it, via the keyboard's existing per-key `fn1Codes` mechanism,
-so it needs no special handling in the view layer. The binding lives in
-`kbd_full.xml` only -- the compact layout has no key at that position. Settings
+**Fn + ;** toggles it, via the keyboard's existing per-key fn-codes mechanism, so
+it needs no special handling in the view layer. It is bound in `kbd_full.xml` (on
+Fn1) and in `kbd_thumb.xml` (on Fn2, because that is the Fn key that layout has).
+The compact layout has no key at that position. Settings
 has the same toggle plus a Telex/VNI/VIQR picker; both default to off.
 
 The Thor deck has its own independent toggle, since it composes against a

@@ -51,9 +51,9 @@
         <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_hint_mode@sp"
             android:title="@string/title_hint_mode"
-            android:entries="@array/hint_modes"
-            android:entryValues="@array/hint_modes_values"
-            android:defaultValue="1"
+            android:entries="@array/profile_hint_mode_entries"
+            android:entryValues="@array/profile_hint_mode_values"
+            android:defaultValue="-1"
             android:persistent="true" />
     </PreferenceCategory>
 
@@ -93,9 +93,9 @@
         <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_hint_mode@sl"
             android:title="@string/title_hint_mode"
-            android:entries="@array/hint_modes"
-            android:entryValues="@array/hint_modes_values"
-            android:defaultValue="1"
+            android:entries="@array/profile_hint_mode_entries"
+            android:entryValues="@array/profile_hint_mode_values"
+            android:defaultValue="-1"
             android:persistent="true" />
     </PreferenceCategory>
 
@@ -106,7 +106,7 @@
         <vn.vhn.pckeyboard.SeekBarPreferenceString
             android:key="settings_height@lp"
             android:title="@string/title_profile_height"
-            android:defaultValue="45%"
+            android:defaultValue="35%"
             hk:minValue="15"
             hk:maxValue="75"
             hk:step="1"
@@ -135,9 +135,9 @@
         <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_hint_mode@lp"
             android:title="@string/title_hint_mode"
-            android:entries="@array/hint_modes"
-            android:entryValues="@array/hint_modes_values"
-            android:defaultValue="1"
+            android:entries="@array/profile_hint_mode_entries"
+            android:entryValues="@array/profile_hint_mode_values"
+            android:defaultValue="-1"
             android:persistent="true" />
     </PreferenceCategory>
 
@@ -148,7 +148,7 @@
         <vn.vhn.pckeyboard.SeekBarPreferenceString
             android:key="settings_height@ll"
             android:title="@string/title_profile_height"
-            android:defaultValue="55%"
+            android:defaultValue="50%"
             hk:minValue="15"
             hk:maxValue="75"
             hk:step="1"
@@ -177,9 +177,9 @@
         <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_hint_mode@ll"
             android:title="@string/title_hint_mode"
-            android:entries="@array/hint_modes"
-            android:entryValues="@array/hint_modes_values"
-            android:defaultValue="1"
+            android:entries="@array/profile_hint_mode_entries"
+            android:entryValues="@array/profile_hint_mode_values"
+            android:defaultValue="-1"
             android:persistent="true" />
     </PreferenceCategory>
 

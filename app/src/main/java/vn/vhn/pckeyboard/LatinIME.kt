@@ -333,8 +333,12 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             legacyKey = if (mProfile.isPortrait) PREF_HEIGHT_PORTRAIT else PREF_HEIGHT_LANDSCAPE,
             default = if (mProfile.isPortrait) mHeightPortrait else mHeightLandscape
         ).coerceIn(MIN_HEIGHT_PERCENT, MAX_HEIGHT_PERCENT)
-        sKeyboardSettings.hintMode = ProfilePrefs.getInt(prefs, PREF_HINT_MODE, mProfile,
-            default = res.getString(R.string.default_hint_mode).toInt())
+        // -1 is the explicit "inherit" entry in the per-profile list.
+        val globalHintMode = prefs.getString(PREF_HINT_MODE, null)?.toIntOrNull()
+            ?: res.getString(R.string.default_hint_mode).toInt()
+        sKeyboardSettings.hintMode =
+            ProfilePrefs.getInt(prefs, PREF_HINT_MODE, mProfile, default = globalHintMode)
+                .takeIf { it >= 0 } ?: globalHintMode
         // Splitting only makes sense on a screen wide enough to reach across, so it is
         // off by default everywhere and switched on per profile.
         sKeyboardSettings.splitGapPercent =

@@ -40,6 +40,7 @@ open class SeekBarPreferenceString(context: Context, attrs: AttributeSet?) :
         if (shouldPersist()) {
             savePrevVal()
             persistString(getValString())
+            inheritedNote = null
         }
         notifyChanged()
     }

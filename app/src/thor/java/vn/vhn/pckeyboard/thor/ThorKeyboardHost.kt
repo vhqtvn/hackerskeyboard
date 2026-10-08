@@ -118,7 +118,7 @@ class ThorKeyboardHost(
         val lang = LanguageSwitcher(displayContext)
         lang.loadLocales(prefs)
 
-        val kb = LatinKeyboard(displayContext, R.xml.kbd_thor, 0, keyboardHeightPercent)
+        val kb = LatinKeyboard(displayContext, R.xml.kbd_thumb, 0, keyboardHeightPercent)
         kb.setLanguageSwitcher(lang, false)
         inputView.setKeyboard(kb)
         ThorController.onEditorChanged = { inputView.post { updateEnterActionHint() } }

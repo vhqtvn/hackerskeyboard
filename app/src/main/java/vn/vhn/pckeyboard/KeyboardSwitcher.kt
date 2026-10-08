@@ -78,6 +78,11 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
             return KeyboardId(KBD_COMPACT_FN, KEYBOARDMODE_SYMBOLS, true, hasVoice)
         } else if (mFullMode == 2) {
             return KeyboardId(KBD_FULL_FN, KEYBOARDMODE_SYMBOLS, true, hasVoice)
+        } else if (mFullMode == MODE_THUMB) {
+            // The thumb layout carries its symbols as Shift labels and its Fn layer
+            // inline, so it has no symbols page and no mode-change key. Point the
+            // symbols id back at itself rather than at a layout of another shape.
+            return KeyboardId(KBD_THUMB, KEYBOARDMODE_SYMBOLS, true, hasVoice)
         }
         return KeyboardId(KBD_SYMBOLS,
             if (mHasSettingsKey) KEYBOARDMODE_SYMBOLS_WITH_SETTINGS_KEY else KEYBOARDMODE_SYMBOLS,
@@ -236,8 +241,12 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
     }
 
     private fun getKeyboardId(mode: Int, imeOptions: Int, isSymbols: Boolean): KeyboardId {
-        return KeyboardId(if (mFullMode == 1) KBD_COMPACT else KBD_FULL,
-            0, false, false)
+        val layout = when (mFullMode) {
+            1 -> KBD_COMPACT
+            MODE_THUMB -> KBD_THUMB
+            else -> KBD_FULL
+        }
+        return KeyboardId(layout, 0, false, false)
     }
 
     fun setShiftIndicator(left: Boolean, right: Boolean) {
@@ -480,6 +489,14 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
         private val KBD_FULL_FN = R.xml.kbd_full_fn
         private val KBD_COMPACT = R.xml.kbd_compact
         private val KBD_COMPACT_FN = R.xml.kbd_compact_fn
+        private val KBD_THUMB = R.xml.kbd_thumb
+
+        /**
+         * Keyboard mode for [KBD_THUMB]. Only reachable as a per-profile override --
+         * the in-session mode cycling in LatinIME.getKeyboardModeNum() still toggles
+         * between compact and full.
+         */
+        const val MODE_THUMB = 3
         private const val AUTO_MODE_SWITCH_STATE_ALPHA = 0
         private const val AUTO_MODE_SWITCH_STATE_SYMBOL_BEGIN = 1
         private const val AUTO_MODE_SWITCH_STATE_SYMBOL = 2

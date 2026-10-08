@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  AYN Thor deck keyboard. Char rows are 10 keys wide (~10% each) for big thumb
-  targets. Symbols on the surface (Shift labels, PC-style). Blue Fn (Fn2) layer:
-  F1-F12 on the number / - / = keys, vim arrows on hjkl, PgUp/PgDn on u/d.
+  Thumb layout: character rows are 10 keys wide (~10% each) for big touch targets,
+  against kbd_full's 14 columns. Symbols sit on the surface as Shift labels, PC
+  style, so there is no separate symbols page to page through. The blue Fn (Fn2)
+  layer is inline per key rather than a second layout: F1 to F12 on the number and
+  punctuation keys, vim arrows on hjkl, PgUp/PgDn on u/d.
+
+  Written for the AYN Thor's second screen, which is why it is tuned for thumbs on
+  a short, near-square panel: the same shape as a foldable's cover screen. It is
+  selectable as a keyboard layout on any device, see docs/layout-profiles.md.
 -->
 <Keyboard
     xmlns:android="http://schemas.android.com/apk/res-auto"
@@ -132,7 +138,10 @@
              android:keyIcon="@drawable/sym_keyboard_space"
              android:iconPreview="@drawable/sym_keyboard_feedback_space"
              android:isModifier="true" android:keyWidth="32%p" />
-        <Key android:keyLabel=";" android:shiftLabel=":" android:keyWidth="9%p" />
+        <!-- Fn here is Fn2 (the blue layer), so the Vietnamese toggle rides that one;
+             on kbd_full the same toggle is on Fn1 + ; -->
+        <Key android:keyLabel=";" android:shiftLabel=":" android:keyWidth="9%p"
+             android:fn2Codes="@integer/key_toggle_vn" android:fn2Label="VN" />
         <Key android:keyLabel="'" android:shiftLabel="&quot;" android:keyWidth="9%p" />
         <Key android:codes="@integer/key_shift_right"
              android:keyIcon="@drawable/sym_keyboard_shift"
