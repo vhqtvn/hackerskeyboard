@@ -6,6 +6,10 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- API 34+: a foreground service must name its type. Drawing a keyboard on a
+         second screen and injecting input into the first is not any of the stock
+         types, so it is specialUse. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Signature perms; granted on the AYN Thor via the LSPosed sig-grant module
          (see ~/devices/ayn-thor/system-sig). Ignored by the framework otherwise. -->
@@ -19,10 +23,26 @@
     <uses-permission android:name="android.permission.MANAGE_ACTIVITY_TASKS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- API 30+: RecentAppsView resolves the launcher to filter it out of the task
+         list, which needs the HOME intent declared to stay visible. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+    </queries>
+
     <application>
         <service
             android:name="vn.vhn.pckeyboard.thor.OverlayKeyboardService"
-            android:exported="true" />
+            android:exported="true"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Second-screen keyboard deck for the AYN Thor: draws the
+                    keyboard on display 4 and injects the keystrokes into the app
+                    focused on display 0." />
+        </service>
 
         <receiver
             android:name="vn.vhn.pckeyboard.thor.BootReceiver"

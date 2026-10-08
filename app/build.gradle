@@ -6,7 +6,7 @@ android {
     // Pinned: AGP 9.4 would otherwise default to build-tools 36.0.0 and try to
     // auto-install it. 36.1.0 is what this machine has.
     buildToolsVersion = "36.1.0"
-    ndkVersion = "25.1.8937393"
+    ndkVersion = "29.0.13599879"
     defaultConfig {
         applicationId = 'vn.vhn.pckeyboard'
         buildConfigField "Boolean", "GOOGLEPLAY_BUILD", (findProperty('googlePlayBuild') ?: "false").toString()

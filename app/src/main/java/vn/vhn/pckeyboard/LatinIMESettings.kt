@@ -40,6 +40,7 @@ class LatinIMESettings : PreferenceActivity(), OnSharedPreferenceChangeListener,
     override fun onCreate(icicle: Bundle?) {
         super.onCreate(icicle)
         addPreferencesFromResource(R.xml.prefs)
+        padForSystemBars()
         mVoicePreference = findPreference(VOICE_SETTINGS_KEY) as ListPreference?
         mSettingsKeyPreference = findPreference(PREF_SETTINGS_KEY) as ListPreference?
         mInputConnectionInfo = findPreference(INPUT_CONNECTION_INFO) as Preference?

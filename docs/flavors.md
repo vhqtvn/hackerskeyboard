@@ -75,25 +75,45 @@ A few things that upgrade forced, worth knowing before touching the build files:
 - **Jetifier is no longer needed** and has been removed from `gradle.properties`;
   `com.microsoft.device.display:display-mask` builds fine without it.
 
-### Still on targetSdk 28
+### targetSdk 36
 
-`targetSdkVersion` is 28 while `compileSdk` is 36. That is deliberate for now:
-raising it is not a number change, it is a behaviour change with several
-specific consequences to handle first.
+`targetSdk` is a declaration to the OS of which behaviour rules the app has been
+tested against; Android keeps older apps on older rules rather than breaking them.
+This was stuck on 28 (Android 9) for years, which meant install-time warnings and
+being frozen out of every insets and window improvement since. Raising it switched
+on roughly seven years of rules at once, so each one was handled explicitly:
 
-- **targetSdk 33+** makes `POST_NOTIFICATIONS` a runtime permission. The keyboard
-  posts an ongoing notification (`PREF_KEYBOARD_NOTIFICATION`), which would
-  silently stop appearing until something requests the permission.
-- **targetSdk 34+** requires every foreground service to declare a
-  `foregroundServiceType` and hold the matching permission. The Thor deck
-  (`OverlayKeyboardService`) is a foreground service and would fail to start.
-- **targetSdk 30+** changes window-insets behaviour, which this IME already
-  works around by hand in `LatinIME.onCreate` (`setDecorFitsSystemWindows`).
-- **targetSdk 35** enforces edge-to-edge for activities, affecting the settings
-  screens.
+- **API 31** rejects a `PendingIntent` that declares neither mutability. The two
+  behind the keyboard notification are now `FLAG_IMMUTABLE` -- the receiver fills
+  nothing in.
+- **API 33** made `POST_NOTIFICATIONS` a runtime permission. An IME has no activity
+  to prompt from, so `Main` asks, and only when the notification setting is on.
+  `setNotification()` checks the grant and skips quietly if refused: the
+  notification is a convenience, not worth a crash or a nag.
+- **API 34** requires runtime-registered receivers to state their export status.
+  All three (ringer mode, the notification actions, the Thor lock-screen watcher)
+  are `RECEIVER_NOT_EXPORTED`; each only ever hears from the system or from our
+  own `PendingIntent`s.
+- **API 34** also requires a foreground service to name its type. Drawing a
+  keyboard on a second screen and injecting input into the first is none of the
+  stock types, so `OverlayKeyboardService` is `specialUse`, with the subtype
+  property the platform asks for, and passes the type to `startForeground` as well
+  as declaring it.
+- **API 30** package visibility: `RecentAppsView` resolves the launcher to filter
+  it out of the task list, so the thor manifest declares a `<queries>` entry for
+  the HOME intent.
+- **API 35** draws activities edge to edge whether they ask or not. These are plain
+  framework `PreferenceActivity` lists with no insets handling, so their first row
+  would hide behind the status bar. `padForSystemBars()` pads by the real system
+  bar and cutout insets, rather than using the edge-to-edge opt-out flag that
+  Android is phasing out.
 
-None of that can be checked without a device, so it is left as a deliberate
-to-do rather than a blind bump.
+### 16 KB page size
+
+Android 15 devices can use 16 KB memory pages, and will refuse to load native
+libraries aligned to 4 KB. NDK 25 aligned to `0x1000`; the NDK is now 29, which
+aligns to `0x4000`. Verified with `llvm-readelf --program-headers` on the packaged
+`libunikey.so` and `libkbdinject.so`.
 
 ### Dependencies
 

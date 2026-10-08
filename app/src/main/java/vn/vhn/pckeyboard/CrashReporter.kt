@@ -115,6 +115,8 @@ class CrashActivity : Activity() {
         }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
         setContentView(root)
+
+        padForSystemBars()
     }
 
     private fun button(label: String, onClick: () -> Unit) = Button(this).apply {

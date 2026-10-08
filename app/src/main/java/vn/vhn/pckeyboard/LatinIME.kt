@@ -37,6 +37,7 @@ import android.view.*
 import android.view.inputmethod.*
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationManagerCompat
 import com.lge.ime.util.p118f.DualKeyboardManager.Companion.setContext
 import com.lge.ime.util.p118f.LGMultiDisplayUtils.checkForceLandscape
@@ -255,7 +256,8 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // register to receive ringer mode changes for silent mode
         val filter = IntentFilter(
             AudioManager.RINGER_MODE_CHANGED_ACTION)
-        registerReceiver(mReceiver, filter)
+        ContextCompat.registerReceiver(this, mReceiver, filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED)
         prefs.registerOnSharedPreferenceChangeListener(this)
         setNotification(mKeyboardNotification)
         if (supportDualScreen()) {
@@ -435,14 +437,15 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             mNotificationReceiver = NotificationReceiver(this)
             val pFilter = IntentFilter(NotificationReceiver.ACTION_SHOW)
             pFilter.addAction(NotificationReceiver.ACTION_SETTINGS)
-            registerReceiver(mNotificationReceiver, pFilter)
+            ContextCompat.registerReceiver(this, mNotificationReceiver, pFilter,
+                ContextCompat.RECEIVER_NOT_EXPORTED)
             val notificationIntent = Intent(NotificationReceiver.ACTION_SHOW)
-            val contentIntent =
-                PendingIntent.getBroadcast(applicationContext, 1, notificationIntent, 0)
+            val contentIntent = PendingIntent.getBroadcast(applicationContext, 1,
+                notificationIntent, PendingIntent.FLAG_IMMUTABLE)
             //PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
             val configIntent = Intent(NotificationReceiver.ACTION_SETTINGS)
-            val configPendingIntent = PendingIntent.getBroadcast(
-                applicationContext, 2, configIntent, 0)
+            val configPendingIntent = PendingIntent.getBroadcast(applicationContext, 2,
+                configIntent, PendingIntent.FLAG_IMMUTABLE)
             val title = "Show VHKeyboard"
             val body = "Select this to open the keyboard. Disable in settings."
             val mBuilder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
@@ -472,10 +475,18 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             notification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_NO_CLEAR;
             mNotificationManager.notify(ID, notification);
             */
-            val notificationManager = NotificationManagerCompat.from(this)
-
-            // notificationId is a unique int for each notification that you must define
-            notificationManager.notify(NOTIFICATION_ONGOING_ID, mBuilder.build())
+            // From API 33 this needs POST_NOTIFICATIONS, which Main asks for; an IME has
+            // no activity of its own to prompt from. If it was refused, skip quietly --
+            // the notification is a convenience, not something to crash or nag over.
+            if (ContextCompat.checkSelfPermission(this,
+                    android.Manifest.permission.POST_NOTIFICATIONS)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                NotificationManagerCompat.from(this)
+                    .notify(NOTIFICATION_ONGOING_ID, mBuilder.build())
+            } else {
+                Log.i(TAG, "Keyboard notification suppressed: POST_NOTIFICATIONS denied")
+            }
         } else if (mNotificationReceiver != null) {
             mNotificationManager.cancel(NOTIFICATION_ONGOING_ID)
             unregisterReceiver(mNotificationReceiver)

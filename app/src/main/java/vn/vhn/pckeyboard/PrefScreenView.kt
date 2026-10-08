@@ -27,6 +27,7 @@ class PrefScreenView : PreferenceActivity(), OnSharedPreferenceChangeListener {
     override fun onCreate(icicle: Bundle?) {
         super.onCreate(icicle)
         addPreferencesFromResource(R.xml.prefs_view)
+        padForSystemBars()
         val prefs = preferenceManager.sharedPreferences
         prefs.registerOnSharedPreferenceChangeListener(this)
         mRenderModePreference =

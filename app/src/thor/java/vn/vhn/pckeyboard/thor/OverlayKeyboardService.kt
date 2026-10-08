@@ -79,7 +79,14 @@ class OverlayKeyboardService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForeground(NOTIF_ID, buildNotification())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // There is no stock type for "draws a keyboard on the second screen and
+            // injects input", so this is specialUse; see the manifest for the subtype.
+            startForeground(NOTIF_ID, buildNotification(),
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(NOTIF_ID, buildNotification())
+        }
         // Self-configure via root (overlay permission + default IME) so the deck
         // works standalone, however it was started (button or boot).
         ThorSetup.ensure(this)
@@ -110,10 +117,12 @@ class OverlayKeyboardService : Service() {
         ThorScroller.fallbackY = mainDisplayHeight / 2f
         ThorController.expandRequest = { expand() }
         ThorController.setServiceRunning(true)
-        registerReceiver(lockReceiver, IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_ON)      // woke to lock screen
-            addAction(Intent.ACTION_USER_PRESENT)   // unlocked
-        })
+        androidx.core.content.ContextCompat.registerReceiver(this, lockReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_ON)      // woke to lock screen
+                addAction(Intent.ACTION_USER_PRESENT)   // unlocked
+            },
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         expand()
     }
 

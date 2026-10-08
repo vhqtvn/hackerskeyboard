@@ -25,6 +25,7 @@ class PrefScreenFeedback : PreferenceActivity(), OnSharedPreferenceChangeListene
     override fun onCreate(icicle: Bundle?) {
         super.onCreate(icicle)
         addPreferencesFromResource(R.xml.prefs_feedback)
+        padForSystemBars()
         val prefs = preferenceManager.sharedPreferences
         prefs.registerOnSharedPreferenceChangeListener(this)
     }

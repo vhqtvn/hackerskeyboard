@@ -146,6 +146,7 @@ class InputLanguageSelection : PreferenceActivity() {
     override fun onCreate(icicle: Bundle?) {
         super.onCreate(icicle)
         addPreferencesFromResource(R.xml.language_prefs)
+        padForSystemBars()
         // Get the settings preferences
         val sp = PreferenceManager.getDefaultSharedPreferences(this)
         val selectedLanguagePref = sp.getString(LatinIME.Companion.PREF_SELECTED_LANGUAGES, "")

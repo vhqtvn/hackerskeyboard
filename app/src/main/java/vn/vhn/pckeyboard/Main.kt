@@ -15,8 +15,12 @@
  */
 package vn.vhn.pckeyboard
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.preference.PreferenceManager
 import android.os.Bundle
 import android.provider.Settings
 import android.text.Html
@@ -33,6 +37,8 @@ class Main : Activity() {
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main)
+        padForSystemBars()
+        requestNotificationPermissionIfNeeded()
         var html = getString(R.string.main_body)
         html += "<p><i>Version: " + getString(R.string.auto_version) + "</i></p>"
         val content = Html.fromHtml(html)
@@ -66,7 +72,28 @@ class Main : Activity() {
             that, findViewById(R.id.main_device_extras))
     }
 
+    /**
+     * The ongoing "tap to open the keyboard" notification needs a runtime permission
+     * from API 33. The IME itself has no activity to ask from, so this screen does it,
+     * and only when that setting is actually switched on -- there is no reason to
+     * prompt someone who does not use the notification.
+     */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val wanted = PreferenceManager.getDefaultSharedPreferences(this)
+            .getBoolean(LatinIME.PREF_KEYBOARD_NOTIFICATION,
+                resources.getBoolean(R.bool.default_keyboard_notification))
+        if (!wanted) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+            == PackageManager.PERMISSION_GRANTED
+        ) return
+        requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+            REQUEST_POST_NOTIFICATIONS)
+    }
+
     companion object {
+        private const val REQUEST_POST_NOTIFICATIONS = 1001
+
         private const val MARKET_URI = "market://search?q=pub:\"Klaus Weidner\""
     }
 }

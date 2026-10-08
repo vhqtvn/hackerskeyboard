@@ -23,6 +23,7 @@ class PrefScreenProfiles : PreferenceActivity(), OnSharedPreferenceChangeListene
     override fun onCreate(icicle: Bundle?) {
         super.onCreate(icicle)
         addPreferencesFromResource(R.xml.prefs_profiles)
+        padForSystemBars()
         preferenceManager.sharedPreferences.registerOnSharedPreferenceChangeListener(this)
         markActiveProfile()
         showInheritedHeights()
