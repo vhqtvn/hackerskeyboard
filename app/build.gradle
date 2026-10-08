@@ -12,17 +12,41 @@ android {
         versionCode 1
         versionName "v1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        externalNativeBuild {
-            cmake {
-                cppFlags ""
-            }
-        }
-        // AYN Thor is arm64 (kalama / SD8 Gen2); build only that ABI for fast cycles.
+        // Every target device is arm64; building one ABI keeps cycles fast.
         ndk {
             abiFilters 'arm64-v8a'
         }
+        externalNativeBuild {
+            cmake {
+                cppFlags ""
+                // Vietnamese input (libunikey) is in every flavor; the uinput
+                // injector daemon is Thor-only and opted into below.
+                arguments "-DBUILD_KBDINJECT=OFF"
+            }
+        }
     }
-    // The kbdinject binary ships as libkbdinject.so and must be extracted to disk
+
+    // One APK per device: device-specific code, permissions and native binaries are
+    // selected at compile time rather than guarded at runtime. Shared code talks to
+    // `vn.vhn.pckeyboard.device.DeviceIntegration`, which each flavor implements.
+    flavorDimensions += 'device'
+    productFlavors {
+        // Phones, foldables, tablets. No root, no second screen, no extra permissions.
+        generic {
+            dimension 'device'
+            isDefault = true
+        }
+        // AYN Thor dual-screen handheld: rooted, uinput injection, second-screen deck.
+        thor {
+            dimension 'device'
+            externalNativeBuild {
+                cmake {
+                    arguments "-DBUILD_KBDINJECT=ON"
+                }
+            }
+        }
+    }
+    // The Thor kbdinject binary ships as libkbdinject.so and must be extracted to disk
     // (nativeLibraryDir) so it can be exec'd as a root daemon.
     packagingOptions {
         jniLibs {
@@ -38,8 +62,8 @@ android {
     lint {
         checkReleaseBuilds false
     }
-    // AGP 8 turns these off by default; this project uses BuildConfig (LatinIME) and
-    // an AIDL interface (ITaskStackListener), so re-enable them explicitly.
+    // AGP 8 turns these off by default; this project uses BuildConfig (LatinIME) and,
+    // in the thor flavor, an AIDL interface (ITaskStackListener).
     buildFeatures {
         buildConfig true
         aidl true

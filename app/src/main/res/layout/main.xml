@@ -29,16 +29,8 @@
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content" />
 		</TableRow>
-		<TableRow>
-			<Button android:text="Start Thor deck"
-				android:id="@+id/main_thor_btn_start"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content" />
-			<Button android:text="Stop Thor deck"
-				android:id="@+id/main_thor_btn_stop"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content" />
-		</TableRow>
+		<!-- Filled in by the product flavor's DeviceIntegration; empty on generic builds. -->
+		<TableRow android:id="@+id/main_device_extras" />
 		<TableRow>
 			<EditText android:text="@string/main_setup_test"
 				android:id="@+id/main_setup_edit_test"

@@ -200,7 +200,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mLanguageSwitcher!!.loadLocales(prefs)
         mKeyboardSwitcher = KeyboardSwitcher.instance
         mKeyboardSwitcher.setLanguageSwitcher(mLanguageSwitcher)
-        vn.vhn.pckeyboard.thor.ThorController.ime = this
+        vn.vhn.pckeyboard.device.DeviceIntegration.attachIme(this)
         mSystemLocale = conf.locale.toString()
         mLanguageSwitcher!!.setSystemLocale(conf.locale)
         var inputLanguage = mLanguageSwitcher!!.getInputLanguage()
@@ -434,9 +434,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         private get() = mOrientation == Configuration.ORIENTATION_PORTRAIT
 
     override fun onDestroy() {
-        if (vn.vhn.pckeyboard.thor.ThorController.ime === this) {
-            vn.vhn.pckeyboard.thor.ThorController.ime = null
-        }
+        vn.vhn.pckeyboard.device.DeviceIntegration.detachIme(this)
         if (surfaceDuoPaneManager != null) {
             surfaceDuoPaneManager!!.disconnect()
             surfaceDuoPaneManager = null
@@ -764,7 +762,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     override fun onFinishInput() {
         super.onFinishInput()
-        vn.vhn.pckeyboard.thor.ThorController.onEditorFocus(false)
+        vn.vhn.pckeyboard.device.DeviceIntegration.onEditorFocus(false)
         mKeyboardSwitcher.inputView?.closing()
     }
 
@@ -784,18 +782,16 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     override fun onDisplayCompletions(completions: Array<CompletionInfo?>?) {}
 
     override fun onEvaluateInputViewShown(): Boolean {
-        // While Thor mode is active (the second-screen deck service is running),
-        // never show a keyboard on the main screen -- the deck handles input on the
-        // second screen. With INTERNAL_SYSTEM_WINDOW held, the deck is a system
-        // overlay and shows even over Settings, so no main-screen fallback is needed.
-        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) return false
+        // Some flavors (AYN Thor) put the keyboard on a second screen; while that
+        // surface owns input, the main screen must never show one.
+        if (vn.vhn.pckeyboard.device.DeviceIntegration.suppressMainScreenKeyboard) return false
         val parent = super.onEvaluateInputViewShown()
         return mForceKeyboardOn || mStick || parent
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
-        vn.vhn.pckeyboard.thor.ThorController.onEditorFocus(true)
+        vn.vhn.pckeyboard.device.DeviceIntegration.onEditorFocus(true)
     }
 
     override fun onComputeInsets(outInsets: Insets) {
@@ -806,9 +802,9 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     }
 
     override fun onEvaluateFullscreenMode(): Boolean {
-        // While the Thor deck is active we act like an external hardware keyboard:
-        // never take over the field with the landscape fullscreen extract editor.
-        if (vn.vhn.pckeyboard.thor.ThorController.serviceRunning) return false
+        // While a device-specific surface owns input we act like an external hardware
+        // keyboard: never take over the field with the fullscreen extract editor.
+        if (vn.vhn.pckeyboard.device.DeviceIntegration.suppressMainScreenKeyboard) return false
         val dm = resources.displayMetrics
         val displayHeight = dm.heightPixels.toFloat()
         // If the display is more than X inches high, don't go to fullscreen

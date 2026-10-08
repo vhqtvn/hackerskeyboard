@@ -56,8 +56,10 @@ Launched via `su -c <path>`; app talks to it over its stdin (or a unix socket). 
 
 ## Build notes (important)
 
-- **JDK**: system `java` is 26; Gradle 8.5 needs ≤21. Build with
-  `JAVA_HOME=/opt/android-studio/jbr ./gradlew ...` (JBR 21).
+- **JDK**: Gradle 8.9 needs a JDK ≤21, and both the system JDK and Android Studio's
+  bundled JBR have since moved past that. Point `JAVA_HOME` at any JDK 21 you have.
+- **Flavors**: Thor is now the `thor` product flavor -- build `assembleThorDebug`,
+  not `assembleDebug`. See `docs/flavors.md`.
 - **NDK** pinned to `25.1.8937393` in `app/build.gradle` (`ndkVersion`).
 - The old `jni_pckeyboard` CMake target referenced dictionary `.cpp` files that were
   deleted in the Kotlin migration (nothing loads that lib) — `CMakeLists.txt` now builds
