@@ -54,7 +54,8 @@ extra components or permissions.
 
 ## Toolchain
 
-AGP 9.4.1 / Gradle 9.8.1 / Kotlin 2.4.21, compileSdk 36, built on JDK 25.
+AGP 9.4.1 / Gradle 9.8.1 / Kotlin 2.4.21, compileSdk 36, built on **JDK 25**
+(Android Studio's bundled JBR works: `JAVA_HOME=/opt/android-studio/jbr`).
 
 A few things that upgrade forced, worth knowing before touching the build files:
 
@@ -73,3 +74,39 @@ A few things that upgrade forced, worth knowing before touching the build files:
   small in-repo uncaught-exception screen with no dependencies.
 - **Jetifier is no longer needed** and has been removed from `gradle.properties`;
   `com.microsoft.device.display:display-mask` builds fine without it.
+
+### Still on targetSdk 28
+
+`targetSdkVersion` is 28 while `compileSdk` is 36. That is deliberate for now:
+raising it is not a number change, it is a behaviour change with several
+specific consequences to handle first.
+
+- **targetSdk 33+** makes `POST_NOTIFICATIONS` a runtime permission. The keyboard
+  posts an ongoing notification (`PREF_KEYBOARD_NOTIFICATION`), which would
+  silently stop appearing until something requests the permission.
+- **targetSdk 34+** requires every foreground service to declare a
+  `foregroundServiceType` and hold the matching permission. The Thor deck
+  (`OverlayKeyboardService`) is a foreground service and would fail to start.
+- **targetSdk 30+** changes window-insets behaviour, which this IME already
+  works around by hand in `LatinIME.onCreate` (`setDecorFitsSystemWindows`).
+- **targetSdk 35** enforces edge-to-edge for activities, affecting the settings
+  screens.
+
+None of that can be checked without a device, so it is left as a deliberate
+to-do rather than a blind bump.
+
+### Dependencies
+
+Every dependency is checked against actual source usage; several were carried
+for years without a single import (`androidx.window`, `constraintlayout`,
+`kotlinx-coroutines`, a 2011 `voiceimeutils.jar`) and have been dropped.
+
+Two constraints worth remembering:
+
+- `core-ktx` stops at **1.18.0**; 1.19.x requires compileSdk 37.
+- `display-mask` stays at **0.3.0** -- Microsoft never published a newer one.
+  Jetifier used to be kept on for its sake, but the artifact turns out to be a
+  single class with no `android.support` references at all, so Jetifier is gone.
+- JCenter is fully shut down (it redirects to Maven Central, which 404s). Nothing
+  may depend on it; anything that still resolves from it is only working out of a
+  stale local Gradle cache.
