@@ -15,6 +15,17 @@
         android:selectable="false"
         android:summary="@string/profile_explain" />
 
+    <vn.vhn.pckeyboard.SeekBarPreferenceString
+        android:key="pref_large_screen_dp"
+        android:title="@string/title_large_screen_dp"
+        android:summary="@string/summary_large_screen_dp"
+        android:defaultValue="600"
+        hk:minValue="320"
+        hk:maxValue="960"
+        hk:step="10"
+        hk:displayFormat="%.0fdp"
+        android:persistent="true" />
+
     <PreferenceCategory
         android:key="profile_sp"
         android:title="@string/profile_small_portrait" >

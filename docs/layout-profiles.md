@@ -17,10 +17,31 @@ pair of portrait/landscape settings cannot express that.
 | **small** | `sp` | `sl` |
 | **large** | `lp` | `ll` |
 
-"Large" is `Configuration.smallestScreenWidthDp >= 600` -- Android's own
-tablet-sized-pane line, and the one a foldable crosses when it opens.
-`smallestScreenWidthDp` is the right signal because it ignores rotation: it
-describes the panel in use, so folding changes it and rotating does not.
+"Large" is `Configuration.smallestScreenWidthDp >= 600` by default -- Android's
+own tablet-sized-pane line, and the one a foldable crosses when it opens. A Fold's
+cover screen is around 411dp and its inner screen around 673dp, so the threshold
+sits with a comfortable margin either side. It is a preference, because panel
+sizes vary and nobody should rebuild the app to move a number.
+
+Why `smallestScreenWidthDp` and not `screenWidthDp`: the size half of a profile
+has to be independent of the orientation half, or a cover screen held in landscape
+(around 912dp wide) would be classed as a large screen. `smallestScreenWidthDp` is
+the smaller of the two dimensions, so folding changes it and rotating does not.
+
+**Unverified caveat.** For an Activity, `Configuration` reflects the *window* in
+multi-window mode rather than the display. Whether an `InputMethodService` sees the
+same has not been confirmed on a device; if it does, using the keyboard beside a
+split-screen app on the inner screen could classify it as small. The purpose-built
+API for fold state is `androidx.window`'s `FoldingFeature` -- the library was
+dropped during the dependency audit because nothing imported it, and it is where to
+go if `smallestScreenWidthDp` turns out not to be enough.
+
+Because this is the one thing that can look plainly broken -- a screen classed
+wrongly silently applies the wrong layout -- the profiles screen reports what was
+detected and the numbers behind it. It prefers the values the *keyboard* resolved
+over the settings activity's own, since in multi-window the two Configurations need
+not agree, and when they disagree that is exactly what is worth seeing. The same
+line goes to logcat as `Layout profile: ...` on every resolve.
 
 ### How a setting resolves
 

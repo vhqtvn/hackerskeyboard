@@ -25,18 +25,29 @@ enum class KeyboardProfile(val suffix: String, val isLarge: Boolean, val isPortr
 
     companion object {
         /**
-         * Android's own "this pane is tablet-sized" line, and the line a book-style
-         * foldable crosses when it opens: a Fold's cover screen is around 390dp, its
-         * inner screen comfortably past 600dp.
-         *
-         * [Configuration.smallestScreenWidthDp] is the right signal because it ignores
-         * the current rotation -- it describes the physical panel in use, so folding
-         * changes it but rotating does not.
+         * Default for the small/large line: Android's own "this pane is tablet-sized"
+         * threshold, and the one a book-style foldable crosses when it opens. A Fold's
+         * cover screen is around 411dp and its inner screen around 673dp, so 600 sits
+         * with a comfortable margin either side. Adjustable, because panel sizes vary
+         * and nobody should have to rebuild the app to move a number.
          */
-        const val LARGE_SMALLEST_WIDTH_DP = 600
+        const val DEFAULT_LARGE_SMALLEST_WIDTH_DP = 600
 
-        fun of(conf: Configuration): KeyboardProfile {
-            val large = conf.smallestScreenWidthDp >= LARGE_SMALLEST_WIDTH_DP
+        /**
+         * Why [Configuration.smallestScreenWidthDp] and not `screenWidthDp`: the size
+         * half of a profile has to be independent of the orientation half, or a cover
+         * screen held in landscape (around 912dp wide) would be classed as a large
+         * screen. `smallestScreenWidthDp` is the smaller of the two dimensions, so
+         * folding changes it and rotating does not.
+         *
+         * Caveat worth knowing: for an Activity this reflects the *window* in
+         * multi-window mode rather than the display. Whether an InputMethodService sees
+         * the same is not something this code assumes -- the settings screen reports
+         * the value the keyboard actually resolved, so the device can answer it.
+         */
+        fun of(conf: Configuration, largeThresholdDp: Int = DEFAULT_LARGE_SMALLEST_WIDTH_DP):
+                KeyboardProfile {
+            val large = conf.smallestScreenWidthDp >= largeThresholdDp
             val portrait = conf.orientation != Configuration.ORIENTATION_LANDSCAPE
             return when {
                 large && portrait -> LARGE_PORTRAIT

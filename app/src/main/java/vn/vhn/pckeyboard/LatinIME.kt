@@ -272,7 +272,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // Folding a device changes the profile without changing the orientation, so the
         // profile is checked separately -- otherwise unfolding would keep the cover
         // screen's layout.
-        val profileChanged = KeyboardProfile.of(conf) != mProfile
+        val profileChanged = KeyboardProfile.of(conf, largeScreenThresholdDp()) != mProfile
         if (profileChanged) loadProfileSettings(conf = conf)
         if (!supportDualScreen()) {
             if (conf.orientation != mOrientation) {
@@ -328,7 +328,14 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         res: Resources = resources,
         conf: Configuration = resources.configuration,
     ) {
-        mProfile = KeyboardProfile.of(conf)
+        val largeThreshold = prefs.getString(PREF_LARGE_SCREEN_DP, null)?.trim()?.toIntOrNull()
+            ?: KeyboardProfile.DEFAULT_LARGE_SMALLEST_WIDTH_DP
+        mProfile = KeyboardProfile.of(conf, largeThreshold)
+        sKeyboardSettings.activeProfile = mProfile
+        sKeyboardSettings.activeProfileReport =
+            "sw${conf.smallestScreenWidthDp}dp, now ${conf.screenWidthDp}x${conf.screenHeightDp}dp" +
+            ", large at >=${largeThreshold}dp"
+        Log.i(TAG, "Layout profile: $mProfile (${sKeyboardSettings.activeProfileReport})")
         mHeightPortrait =
             getHeight(prefs, PREF_HEIGHT_PORTRAIT, res.getString(R.string.default_height_portrait))
         mHeightLandscape = getHeight(prefs,
@@ -361,6 +368,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
                 ProfilePrefs.getInt(prefs, PREF_KEYBOARD_MODE, mProfile, default = -1)
             else -1
     }
+
+    private fun largeScreenThresholdDp(): Int =
+        PreferenceManager.getDefaultSharedPreferences(this)
+            .getString(PREF_LARGE_SCREEN_DP, null)?.trim()?.toIntOrNull()
+            ?: KeyboardProfile.DEFAULT_LARGE_SMALLEST_WIDTH_DP
 
     /**
      * Keyboard mode for the active profile: its own override if it has one, otherwise
@@ -1682,7 +1694,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // A per-profile override ("settings_height@ll" etc). Only the active profile's
         // keys can change what is on screen, but re-reading is cheap and keeps the
         // resolution rules in one place -- loadSettings().
-        if (key.contains(PROFILE_KEY_SEPARATOR)) {
+        if (key.contains(PROFILE_KEY_SEPARATOR) || key == PREF_LARGE_SCREEN_DP) {
             loadProfileSettings()
             updateKeyboardOptions()
             mKeyboardSwitcher.makeKeyboards(true)
@@ -2338,6 +2350,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         const val PREF_KEYBOARD_MODE = "pref_keyboard_mode"
         const val PREF_SPLIT_GAP = "pref_split_gap"
         const val PREF_EXTENSION_ROW = "pref_extension_row"
+        const val PREF_LARGE_SCREEN_DP = "pref_large_screen_dp"
         const val PROFILE_KEY_SEPARATOR = "@"
 
         const val MIN_HEIGHT_PERCENT = 15

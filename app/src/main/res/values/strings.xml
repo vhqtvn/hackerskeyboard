@@ -519,6 +519,10 @@
     <string name="profile_small_landscape">Small screen, landscape</string>
     <string name="profile_large_portrait">Large screen, portrait</string>
     <string name="profile_large_landscape">Large screen, landscape</string>
+    <string name="profile_detected">Detected now: %1$s (%2$s)</string>
+    <string name="profile_detected_here">Detected now: %1$s (sw%2$ddp). The keyboard has not run yet, so this is measured from this screen.</string>
+    <string name="title_large_screen_dp">Large screen starts at</string>
+    <string name="summary_large_screen_dp">Screens at least this wide count as large. Measured as the smaller of the two screen dimensions, so folding changes it and rotating does not.</string>
     <string name="profile_inherited_note">(from the global setting)</string>
     <string name="profile_active_marker">%1$s \u2014 in use now</string>
     <string name="profile_explain">A screen counts as large from 600dp wide \u2014 a foldable\u0027s inner screen, or a tablet. Settings left untouched here follow the global ones.</string>

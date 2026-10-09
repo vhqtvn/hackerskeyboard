@@ -27,6 +27,7 @@ class PrefScreenProfiles : PreferenceActivity(), OnSharedPreferenceChangeListene
         preferenceManager.sharedPreferences.registerOnSharedPreferenceChangeListener(this)
         markActiveProfile()
         showInheritedHeights()
+        reportDetection()
     }
 
     override fun onDestroy() {
@@ -39,8 +40,45 @@ class PrefScreenProfiles : PreferenceActivity(), OnSharedPreferenceChangeListene
         BackupManager(this).dataChanged()
     }
 
+    /**
+     * Spells out what the detection actually saw. Profile detection is the one thing
+     * here that can look simply broken -- a screen classed as the wrong size silently
+     * applies the wrong layout -- and the numbers behind it are invisible otherwise.
+     *
+     * Prefers the values the *keyboard* resolved over this activity's own: in
+     * multi-window the two Configurations need not agree, and when they disagree that
+     * is precisely the thing worth seeing.
+     */
+    private fun reportDetection() {
+        val pref = findPreference("profile_explain") ?: return
+        val profile = LatinIME.sKeyboardSettings.activeProfile
+        val report = LatinIME.sKeyboardSettings.activeProfileReport
+        val detail = if (profile != null && report != null) {
+            getString(R.string.profile_detected, profileName(profile), report)
+        } else {
+            val conf = resources.configuration
+            getString(R.string.profile_detected_here,
+                profileName(activeProfile()), conf.smallestScreenWidthDp)
+        }
+        pref.summary = "${getString(R.string.profile_explain)}\n\n$detail"
+    }
+
+    private fun profileName(p: KeyboardProfile) = getString(when (p) {
+        KeyboardProfile.SMALL_PORTRAIT -> R.string.profile_small_portrait
+        KeyboardProfile.SMALL_LANDSCAPE -> R.string.profile_small_landscape
+        KeyboardProfile.LARGE_PORTRAIT -> R.string.profile_large_portrait
+        KeyboardProfile.LARGE_LANDSCAPE -> R.string.profile_large_landscape
+    })
+
+    private fun activeProfile(): KeyboardProfile {
+        val threshold = preferenceManager.sharedPreferences
+            .getString(LatinIME.PREF_LARGE_SCREEN_DP, null)?.trim()?.toIntOrNull()
+            ?: KeyboardProfile.DEFAULT_LARGE_SMALLEST_WIDTH_DP
+        return KeyboardProfile.of(resources.configuration, threshold)
+    }
+
     private fun markActiveProfile() {
-        val active = KeyboardProfile.of(resources.configuration)
+        val active = LatinIME.sKeyboardSettings.activeProfile ?: activeProfile()
         val category = findPreference("profile_${active.suffix}") as? PreferenceCategory ?: return
         category.title = getString(R.string.profile_active_marker, category.title)
     }

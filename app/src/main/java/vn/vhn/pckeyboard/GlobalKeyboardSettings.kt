@@ -46,6 +46,15 @@ class GlobalKeyboardSettings {
     var capsLock = true
     var shiftLockModifiers = false
 
+    /**
+     * What the keyboard itself last resolved for the layout profile, so the settings
+     * screen can report it rather than re-deriving it from its own Configuration --
+     * which is not necessarily the same one, and that difference is the whole question
+     * when profile detection looks wrong. Null until the IME has run in this process.
+     */
+    var activeProfile: KeyboardProfile? = null
+    var activeProfileReport: String? = null
+
     // Vietnamese (Unikey) composing. vnMethod holds a Unikey.TELEX/VNI/VIQR constant.
     var vnEnabled = false
     var vnMethod = Unikey.TELEX
