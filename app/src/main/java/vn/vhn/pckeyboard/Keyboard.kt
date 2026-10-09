@@ -590,9 +590,18 @@ open class Keyboard @JvmOverloads constructor(
             if (isFN2 && fn2codes != null && fn2codes!!.size > 0) {
                 return fn2codes!![0]
             }
-            if (isDistinctUppercase && isShift) {
-                return capsLabel!![0].toInt()
-            }
+            // Shift gives the shift legend. There used to be a branch here returning
+            // capsLabel whenever isDistinctUppercase and shift were both set, which meant
+            // every key whose shift legend is not simply the uppercase of its label -- so
+            // every digit and punctuation key -- reported its *unshifted* character while
+            // Shift was held: Shift+2 came back as '2', not '@'.
+            //
+            // capsLabel exists for Caps Lock, which this fork never implements: Key.locked
+            // is written nowhere and sKeyboardSettings.capsLock is read nowhere. Nothing
+            // noticed because the ordinary typing path does not use this character when a
+            // modifier is held -- it sends a key event and lets the app apply the shift
+            // meta state. Only a path that takes the character literally sees the wrong
+            // one, which is what Vietnamese composing does.
             //Log.i(TAG, "getPrimaryCode(), shifted=" + shifted);
             return if (isShift && shiftLabel != null) {
                 if (shiftLabel!![0] == DEAD_KEY_PLACEHOLDER && shiftLabel!!.length >= 2) {
