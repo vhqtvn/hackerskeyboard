@@ -52,6 +52,10 @@
     </declare-styleable>
 
     <declare-styleable name="Keyboard_Key">
+        <!-- Marks the first key of the right-hand half when the keyboard is split. Needed
+             because which hand a key belongs to is a touch-typing fact, not a geometric
+             one: y and h sit either side of the centre line but are both right-hand keys. -->
+        <attr name="splitBefore" format="boolean" />
         <!-- The unicode value or comma-separated values that this key outputs. -->
         <attr name="codes" format="integer|string" />
         <attr name="fn1Codes" format="integer|string" />

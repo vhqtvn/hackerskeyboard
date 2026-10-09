@@ -290,6 +290,17 @@ open class Keyboard @JvmOverloads constructor(
          * being the most important.
          */
         var codes: IntArray? = null
+        /** First key of the right-hand half when split; see [Keyboard.applySplit]. */
+        var splitBefore = false
+
+        /**
+         * This key's Fn label names a mode that is either on or off, so the label is
+         * drawn solid when on and faded when off. Shown this way rather than with the
+         * pressed/"on" key background that modifiers use, because that reads as "held
+         * down" -- wrong for something that stays on while you type.
+         */
+        var isToggle = false
+        var toggleOn = false
         var fn1codes: IntArray? = null
         var fn2codes: IntArray? = null
 
@@ -512,6 +523,7 @@ open class Keyboard @JvmOverloads constructor(
             capsLabel = a.getText(R.styleable.Keyboard_Key_capsLabel)
             if (capsLabel != null && capsLabel!!.length == 0) capsLabel = null
             text = a.getText(R.styleable.Keyboard_Key_keyOutputText)
+            splitBefore = a.getBoolean(R.styleable.Keyboard_Key_splitBefore, false)
             fn1Label = a.getText(R.styleable.Keyboard_Key_fn1Label)
             fn2Label = a.getText(R.styleable.Keyboard_Key_fn2Label)
             if (codes == null && !TextUtils.isEmpty(label)) {
@@ -1161,7 +1173,7 @@ open class Keyboard @JvmOverloads constructor(
     }
 
     fun setVnIndicator(active: Boolean): Key? {
-        if (mVnKey != null) mVnKey!!.on = active
+        mVnKey?.toggleOn = active
         return mVnKey
     }
 
@@ -1369,6 +1381,7 @@ open class Keyboard @JvmOverloads constructor(
                                     key.fn2codes?.contains(LatinKeyboardView.Companion.KEYCODE_TOGGLE_VN) == true
                                 ) {
                                     mVnKey = key
+                                    key.isToggle = true
                                 }
                             }
                         }
@@ -1433,10 +1446,16 @@ open class Keyboard @JvmOverloads constructor(
         for ((_, rowKeys) in allKeys.groupBy { it.y }) {
             val widths = rowKeys.map { it.realWidth }.sorted()
             val medianWidth = widths[widths.size / 2]
+            // A layout can say where its halves divide. Geometry cannot work this out:
+            // which hand a key belongs to is a touch-typing fact. On a full keyboard y
+            // and h are right-hand keys even though they sit left of centre, and left to
+            // itself the split lands between t|y and g|h, splitting the right hand.
+            val declared = rowKeys.firstOrNull { it.splitBefore }
             val straddler = rowKeys.firstOrNull {
                 it.realX < middle - epsilon && it.realX + it.realWidth > middle + epsilon
             }
             val boundary = when {
+                declared != null -> declared.realX
                 // No key spans the middle: the row already has a boundary there.
                 straddler == null -> middle
                 // A wide central key stays whole and bridges the gap.

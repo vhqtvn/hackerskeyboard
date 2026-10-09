@@ -1,0 +1,3 @@
+kotlin version: 2.4.21
+error message: java.nio.file.FileSystemException: /home/vhnvn/.local/share/kotlin/daemon/kotlin-daemon-client-tsmarker1999880103209152556.tmp: Read-only file system
+

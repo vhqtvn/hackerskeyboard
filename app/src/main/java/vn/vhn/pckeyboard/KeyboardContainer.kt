@@ -33,17 +33,18 @@ class KeyboardContainer : FrameLayout {
         // inset would still be applied as bottom padding, leaving the gap it was meant to
         // fill. Drop it so the window actually shrinks and the app above gets the space.
         val applied = if (LatinIME.sKeyboardSettings.hideImeNavBar) {
-            // Not flush to the edge: the bottom strip is where a swipe up means Home, so
-            // a key row sitting in it still takes taps but loses every slide gesture.
-            // Stop above that strip -- which is still a good deal smaller than the
-            // navigation bar we just removed.
-            val gestureBottom = WindowInsetsCompat.toWindowInsetsCompat(insets)
-                .getInsets(WindowInsetsCompat.Type.mandatorySystemGestures()).bottom
+            // Leave room for the system's gesture bar and nothing else. Measured on a
+            // Fold 7, the insets this window reports are: systemWindow 114, navigationBars
+            // 31, mandatorySystemGestures 114, systemGestures 114, tappableElement 114 --
+            // everything except navigationBars counts the IME navigation bar we just
+            // hid, which is exactly the space we are trying to reclaim.
+            val gestureBar = WindowInsetsCompat.toWindowInsetsCompat(insets)
+                .getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
             @Suppress("DEPRECATION")
             insets.replaceSystemWindowInsets(
                 insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
                 insets.systemWindowInsetRight,
-                minOf(gestureBottom, insets.systemWindowInsetBottom))
+                minOf(gestureBar, insets.systemWindowInsetBottom))
         } else {
             insets
         }

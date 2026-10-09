@@ -1594,11 +1594,16 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         get() = sKeyboardSettings.vnEnabled && !mNoIME && !mVnSuspended && vnReady()
 
     /**
-     * True while the focused field is one where Vietnamese composing would do harm
-     * rather than good: a password, a URL, an email address, a number or a phone
-     * number, or a field that has asked for no suggestions at all. Typing "aa" into a
-     * password and getting "â" is the kind of thing you only notice after the
-     * login fails.
+     * True while the focused field is one where Vietnamese composing can only do harm:
+     * a password, or a field that is not text at all. Typing "aa" into a password and
+     * getting "â" is the kind of thing you only notice after the login fails.
+     *
+     * Deliberately narrow. This used to also cover URL and email fields and anything
+     * asking for no suggestions, which was wrong in the most common case there is: a
+     * mobile browser's address bar is also its search box. Firefox's reports
+     * inputType=0x200011 -- TYPE_CLASS_TEXT with TYPE_TEXT_VARIATION_URI -- so searching
+     * in Vietnamese from it was impossible. A field being a URI says nothing about
+     * whether a person is typing a URI into it.
      */
     private var mVnSuspended = false
 
@@ -1610,13 +1615,9 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE
                 || cls == InputType.TYPE_CLASS_DATETIME -> true
             cls != InputType.TYPE_CLASS_TEXT -> false
-            variation == InputType.TYPE_TEXT_VARIATION_PASSWORD
+            else -> variation == InputType.TYPE_TEXT_VARIATION_PASSWORD
                 || variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
                 || variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
-                || variation == InputType.TYPE_TEXT_VARIATION_URI
-                || variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-                || variation == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS -> true
-            else -> type and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS != 0
         }
     }
 

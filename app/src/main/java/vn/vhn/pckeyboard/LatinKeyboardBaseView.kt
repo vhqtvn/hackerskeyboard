@@ -441,6 +441,9 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
     }
 
     companion object {
+        /** Fn label opacity for a mode that is currently off. */
+        private const val TOGGLE_OFF_ALPHA = 70
+
         private const val TAG = "HK/LatinKbdBaseView"
         private const val DEBUG = false
         const val NOT_A_TOUCH_COORDINATE = -1
@@ -535,6 +538,13 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
             }
         }
     }
+
+    /**
+     * Opacity for a key's Fn label: solid when the mode it names is on, faded when off,
+     * and solid for every key that does not name a mode at all.
+     */
+    private fun toggleAlpha(key: Keyboard.Key): Int =
+        if (key.isToggle && !key.toggleOn) TOGGLE_OFF_ALPHA else 255
 
     private fun showHints7Bit(): Boolean {
         // The Thor deck always shows the shift sub-char (ASCII), independent of the
@@ -1009,6 +1019,7 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                     if (fn1 != "") {
                         val hintTextSize = (mKeyTextSize * 0.3 * mLabelScale).toInt()
                         paintFn1.textSize = hintTextSize.toFloat()
+                        paintFn1.alpha = toggleAlpha(key)
 
 //                        final int fnLabelHeight = getLabelHeight(paintFn1, hintTextSize);
                         val x = padding.left
@@ -1025,6 +1036,7 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                     if (fn2 != "") {
                         val hintTextSize = (mKeyTextSize * 0.3 * mLabelScale).toInt()
                         paintFn2.textSize = hintTextSize.toFloat()
+                        paintFn2.alpha = toggleAlpha(key)
 
 //                        final int fnLabelHeight = getLabelHeight(paintFn2, hintTextSize);
                         val x = key.width - padding.right

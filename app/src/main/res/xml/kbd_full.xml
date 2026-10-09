@@ -196,6 +196,7 @@
             android:shiftLabel="@string/key_ad05_shift" />
         <Key
             android:keyLabel="@string/key_ad06_main"
+            android:splitBefore="true"
             android:isRepeatable="true"
             android:shiftLabel="@string/key_ad06_shift" />
         <Key
@@ -265,6 +266,7 @@
             android:shiftLabel="@string/key_ac05_shift" />
         <Key
             android:keyLabel="@string/key_ac06_main"
+            android:splitBefore="true"
             android:isRepeatable="true"
             android:shiftLabel="@string/key_ac06_shift" />
         <Key
