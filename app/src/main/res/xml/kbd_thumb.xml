@@ -114,13 +114,15 @@
              android:isModifier="true" android:isSticky="true"
              android:keyEdgeFlags="left" />
         <Key android:keyLabel="z" />
-        <Key android:keyLabel="x" />
+        <Key android:keyLabel="x"
+             android:fn2Codes="@integer/key_hide_keyboard" android:fn2Label="Hide" />
         <Key android:keyLabel="c" />
         <Key android:keyLabel="v"
              android:fn2Codes="@integer/key_clipboard" android:fn2Label="Clip" />
         <Key android:keyLabel="b" />
         <Key android:keyLabel="n" />
-        <Key android:keyLabel="m" />
+        <Key android:keyLabel="m"
+             android:fn2Codes="@integer/key_ime_picker" android:fn2Label="Kbd" />
         <Key android:keyLabel="," android:shiftLabel="&lt;" />
         <Key android:keyLabel="." android:shiftLabel="&gt;" android:keyEdgeFlags="right" />
     </Row>

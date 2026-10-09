@@ -316,6 +316,8 @@
         <Key
             android:keyLabel="@string/key_ab02_main"
             android:isRepeatable="true"
+            android:fn1Codes="@integer/key_hide_keyboard"
+            android:fn1Label="Hide"
             android:shiftLabel="@string/key_ab02_shift" />
         <Key
             android:keyLabel="@string/key_ab03_main"
@@ -338,6 +340,8 @@
         <Key
             android:keyLabel="@string/key_ab07_main"
             android:isRepeatable="true"
+            android:fn1Codes="@integer/key_ime_picker"
+            android:fn1Label="Kbd"
             android:shiftLabel="@string/key_ab07_shift" />
         <Key
             android:keyLabel="@string/key_ab08_main"

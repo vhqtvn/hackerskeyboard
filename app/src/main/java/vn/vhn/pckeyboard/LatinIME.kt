@@ -1049,9 +1049,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     private fun onOptionKeyPressed() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            // Input method selector is available as a button in the soft key area, so just launch
-            // HK settings directly. This also works around the alert dialog being clipped
-            // in Android O.
+            // Goes straight to settings rather than offering a menu, and works around the
+            // alert dialog being clipped in Android O. This used to lean on the system's
+            // soft-key input-method selector being there; with that bar hidable now, the
+            // picker is reachable from the keyboard itself on Fn + k.
             val intent = Intent(this, LatinIMESettings::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
@@ -1345,6 +1346,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             LatinKeyboardView.KEYCODE_CLIPBOARD -> {
                 handleFNModifierKeysUp(false)
                 if (!isShowingOptionDialog) showClipboardHistory()
+            }
+            LatinKeyboardView.KEYCODE_IME_PICKER -> {
+                handleFNModifierKeysUp(false)
+                (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
+                    .showInputMethodPicker()
             }
             Keyboard.KEYCODE_CANCEL -> if (!isShowingOptionDialog) {
                 handleClose()

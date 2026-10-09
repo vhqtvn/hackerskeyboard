@@ -276,8 +276,12 @@ inset too, so the window genuinely shrinks and the app above gets the space back
 Off by default. Verified on a Galaxy Z Fold 7 (Android 17): the strip disappears, the
 keyboard sits flush to the bottom edge, and the app above gains the 114px.
 
-**Worth knowing before switching it on.** The bottom key row then sits inside the
-system's `mandatorySystemGestures` zone (the bottom 65px). Taps still arrive -- tapping
-the space bar at y=1787 was checked on the device and types normally -- but a *swipe*
-starting there is the system's home gesture, not the keyboard's. That matters if you
-use the sliding-key feature on the bottom row.
+The keyboard stops above the `mandatorySystemGestures` inset rather than going flush
+to the edge. Sitting in that strip, the bottom row still takes taps -- checked on the
+device -- but a *swipe* starting there is the system's home gesture, so the
+sliding-key feature would be lost on that row. The remaining margin is still far
+smaller than the navigation bar it replaced.
+
+The two buttons that bar provided are on the green Fn layer instead, in the same
+place on both layouts: **Fn + x** hides the keyboard, **Fn + m** opens the
+input-method picker.
