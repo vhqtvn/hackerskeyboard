@@ -56,7 +56,7 @@ class PrefScreenProfiles : PreferenceActivity(), OnSharedPreferenceChangeListene
         val detail = if (profile != null && report != null) {
             getString(R.string.profile_detected, profileName(profile), report)
         } else {
-            val threshold = thresholdMm()
+            val threshold = thresholdDp()
             val metrics = ScreenMetrics.of(this)
             getString(R.string.profile_detected_here,
                 profileName(KeyboardProfile.of(metrics, threshold)), metrics.report(threshold))
@@ -71,12 +71,12 @@ class PrefScreenProfiles : PreferenceActivity(), OnSharedPreferenceChangeListene
         KeyboardProfile.LARGE_LANDSCAPE -> R.string.profile_large_landscape
     })
 
-    private fun thresholdMm(): Int = preferenceManager.sharedPreferences
-        .getString(LatinIME.PREF_LARGE_SCREEN_MM, null)?.trim()?.toFloatOrNull()?.toInt()
-        ?: KeyboardProfile.DEFAULT_LARGE_WIDTH_MM
+    private fun thresholdDp(): Int = preferenceManager.sharedPreferences
+        .getString(LatinIME.PREF_LARGE_SCREEN_DP, null)?.trim()?.toFloatOrNull()?.toInt()
+        ?: KeyboardProfile.DEFAULT_LARGE_WIDTH_DP
 
     private fun activeProfile(): KeyboardProfile =
-        KeyboardProfile.of(ScreenMetrics.of(this), thresholdMm())
+        KeyboardProfile.of(ScreenMetrics.of(this), thresholdDp())
 
     private fun markActiveProfile() {
         val active = LatinIME.sKeyboardSettings.activeProfile ?: activeProfile()

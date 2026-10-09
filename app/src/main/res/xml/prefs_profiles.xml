@@ -16,14 +16,14 @@
         android:summary="@string/profile_explain" />
 
     <vn.vhn.pckeyboard.SeekBarPreferenceString
-        android:key="pref_large_screen_mm"
-        android:title="@string/title_large_screen_mm"
-        android:summary="@string/summary_large_screen_mm"
-        android:defaultValue="100"
-        hk:minValue="40"
-        hk:maxValue="200"
-        hk:step="5"
-        hk:displayFormat="%.0fmm"
+        android:key="pref_large_screen_dp"
+        android:title="@string/title_large_screen_dp"
+        android:summary="@string/summary_large_screen_dp"
+        android:defaultValue="600"
+        hk:minValue="320"
+        hk:maxValue="1200"
+        hk:step="10"
+        hk:displayFormat="%.0fdp"
         android:persistent="true" />
 
     <PreferenceCategory
