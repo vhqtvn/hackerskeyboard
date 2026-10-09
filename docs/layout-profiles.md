@@ -247,3 +247,37 @@ field; a profile can keep it up permanently instead.
 Worth knowing: this row only exists in `kbd_compact.xml`. `kbd_full` already has an
 F-key row and a number row, and `kbd_thumb` already carries Esc and punctuation on
 its top row, so the setting has no effect on either.
+
+## Hiding the system IME navigation bar
+
+Below the keyboard the framework draws a strip holding a keyboard-switcher button and
+a back button. On a Fold's inner screen that is 114px -- roughly two thirds of a key
+row -- spent on two buttons that a swipe down and the IME-switcher notification
+already cover.
+
+There is no API to turn it off, but on a device where `imeDrawsNavBar` is true (check
+with `adb shell dumpsys input_method | grep imeDrawsNavBar`) the framework builds it
+inside *our* window. Dumping the IME window's decor tree shows:
+
+    DecorView (y=996, h=852)
+      ... inputArea
+          KeyboardContainer   h=852  paddingBottom=114
+            LatinKeyboardView h=738
+      View  id=navigationBarBackground            y=1734 h=114
+      NavigationBarFrame                          y=1734 h=114
+        NavigationBarView -> ime_switcher, back
+
+Both of those are children of our own decor view, so `LatinIME.applyImeNavBarPreference()`
+can simply hide them. Hiding alone is not enough: the matching window inset is still
+applied as `KeyboardContainer`'s bottom padding, which would leave exactly the gap the
+bar was filling. `KeyboardContainer.onApplyWindowInsets` therefore drops the bottom
+inset too, so the window genuinely shrinks and the app above gets the space back.
+
+Off by default. Verified on a Galaxy Z Fold 7 (Android 17): the strip disappears, the
+keyboard sits flush to the bottom edge, and the app above gains the 114px.
+
+**Worth knowing before switching it on.** The bottom key row then sits inside the
+system's `mandatorySystemGestures` zone (the bottom 65px). Taps still arrive -- tapping
+the space bar at y=1787 was checked on the device and types normally -- but a *swipe*
+starting there is the system's home gesture, not the keyboard's. That matters if you
+use the sliding-key feature on the bottom row.

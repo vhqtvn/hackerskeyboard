@@ -28,18 +28,29 @@ class KeyboardContainer : FrameLayout {
     }
 
     override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        // With the IME navigation bar hidden (see LatinIME.applyImeNavBarPreference) its
+        // inset would still be applied as bottom padding, leaving the gap it was meant to
+        // fill. Drop it so the window actually shrinks and the app above gets the space.
+        val applied = if (LatinIME.sKeyboardSettings.hideImeNavBar) {
+            @Suppress("DEPRECATION")
+            insets.replaceSystemWindowInsets(
+                insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                insets.systemWindowInsetRight, 0)
+        } else {
+            insets
+        }
         var i = 0
         val ie = childCount
         while (i < ie) {
             val v = getChildAt(i)
             if (v is LatinKeyboardBaseView) {
                 v.applyInset(
-                    insets.systemWindowInsetBottom,
-                    insets.systemWindowInsetRight
+                    applied.systemWindowInsetBottom,
+                    applied.systemWindowInsetRight
                 )
             }
             i++
         }
-        return super.onApplyWindowInsets(insets)
+        return super.onApplyWindowInsets(applied)
     }
 }

@@ -582,11 +582,41 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mConfigurationChanging = false
     }
 
+    /**
+     * Hides the system's IME navigation bar -- the strip with the keyboard-switcher and
+     * back buttons that the framework puts below the keyboard.
+     *
+     * On a device where `imeDrawsNavBar` is true the framework builds that strip inside
+     * *our* window: `NavigationBarFrame` and `navigationBarBackground` are children of
+     * this window's decor view, and the matching inset is applied to the keyboard as
+     * bottom padding. On a Fold's inner screen that is 114px, roughly two thirds of a key
+     * row, spent on two buttons that a swipe down and the IME switcher notification
+     * already cover.
+     *
+     * There is no API to turn it off, but the views are ours to hide, and
+     * [KeyboardContainer] drops the matching inset so the space is actually returned --
+     * the window shrinks and the app above gets the room back.
+     */
+    private fun applyImeNavBarPreference() {
+        if (!sKeyboardSettings.hideImeNavBar) return
+        mDefaultHandler.post {
+            val decor = window?.window?.decorView as? android.view.ViewGroup ?: return@post
+            for (i in 0 until decor.childCount) {
+                val child = decor.getChildAt(i)
+                val isNavBar = child.javaClass.simpleName == "NavigationBarFrame" ||
+                        child.id == resources.getIdentifier(
+                            "navigationBarBackground", "id", "android")
+                if (isNavBar && child.visibility != View.GONE) child.visibility = View.GONE
+            }
+        }
+    }
+
     override fun onCreateInputView(): View {
         setCandidatesViewShown(false) // Workaround for "already has a parent" when reconfiguring
         mKeyboardSwitcher.recreateInputView()
         mKeyboardSwitcher.makeKeyboards(true)
         mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_TEXT, 0, false)
+        applyImeNavBarPreference()
         return mKeyboardSwitcher.rootView as View
     }
 
@@ -770,6 +800,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // re-applied rather than assumed to have survived.
         updateVnSuspended(attribute)
         updateVnIndicator()
+        applyImeNavBarPreference()
         // An IME is not told about copies made elsewhere, so sample the clipboard at the
         // one moment it is allowed to read it: now, while it has focus.
         ClipboardHistory.capture(this)

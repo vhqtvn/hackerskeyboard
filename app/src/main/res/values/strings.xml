@@ -275,6 +275,9 @@
     <string name="summary_keyboard_notification_true">Activate the keyboard by tapping the notification</string>
     <string name="summary_keyboard_notification_false">No notification</string>
 
+    <string name="title_hide_ime_nav_bar">Hide the system keyboard bar</string>
+    <string name="summary_hide_ime_nav_bar">Removes the strip below the keyboard holding the keyboard-switcher and back buttons, and gives the space back to the app above.</string>
+
     <string name="title_hint_mode">Labeled alternate keys</string>
     <string-array name="hint_modes">
         <item>Hide hint labels</item>

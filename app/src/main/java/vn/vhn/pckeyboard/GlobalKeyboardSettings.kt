@@ -81,6 +81,11 @@ class GlobalKeyboardSettings {
     var keyboardHeightPercent = 40.0f // percent of screen height
 
     //
+    // Read by KeyboardContainer and LatinIME: hide the framework's IME navigation bar
+    // and reclaim the space it occupies below the keyboard.
+    var hideImeNavBar = false
+
+    //
     // Read by Keyboard. Width of the gap down the middle of a split keyboard, as a
     // percentage of the keyboard width; 0 means not split. Set per layout profile.
     var splitGapPercent = 0.0f
@@ -293,6 +298,19 @@ class GlobalKeyboardSettings {
 
             override fun getFlags(): Int {
                 return FLAG_PREF_NONE
+            }
+        })
+        addBooleanPref("pref_hide_ime_nav_bar", object : BooleanPref {
+            override fun set(`val`: Boolean) {
+                hideImeNavBar = `val`
+            }
+
+            override fun getDefault(): Boolean {
+                return false
+            }
+
+            override fun getFlags(): Int {
+                return FLAG_PREF_RECREATE_INPUT_VIEW
             }
         })
         addBooleanPref("pref_vn_enabled", object : BooleanPref {
