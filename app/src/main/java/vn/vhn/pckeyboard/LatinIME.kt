@@ -2409,7 +2409,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
         const val MIN_HEIGHT_PERCENT = 15
         const val MAX_HEIGHT_PERCENT = 75
-        const val MAX_SPLIT_GAP_PERCENT = 40
+        const val MAX_SPLIT_GAP_PERCENT = 60
         private const val CLIPBOARD_SUMMARY_LENGTH = 60
 
         // How many continuous deletes at which to start deleting at a higher speed.

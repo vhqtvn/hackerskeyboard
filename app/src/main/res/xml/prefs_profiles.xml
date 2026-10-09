@@ -68,7 +68,7 @@
             android:summary="@string/summary_profile_split_gap"
             android:defaultValue="0"
             hk:minValue="0"
-            hk:maxValue="40"
+            hk:maxValue="60"
             hk:step="1"
             hk:displayFormat="%.0f%%"
             android:persistent="true" />
@@ -124,7 +124,7 @@
             android:summary="@string/summary_profile_split_gap"
             android:defaultValue="0"
             hk:minValue="0"
-            hk:maxValue="40"
+            hk:maxValue="60"
             hk:step="1"
             hk:displayFormat="%.0f%%"
             android:persistent="true" />
@@ -180,7 +180,7 @@
             android:summary="@string/summary_profile_split_gap"
             android:defaultValue="0"
             hk:minValue="0"
-            hk:maxValue="40"
+            hk:maxValue="60"
             hk:step="1"
             hk:displayFormat="%.0f%%"
             android:persistent="true" />
@@ -236,7 +236,7 @@
             android:summary="@string/summary_profile_split_gap"
             android:defaultValue="0"
             hk:minValue="0"
-            hk:maxValue="40"
+            hk:maxValue="60"
             hk:step="1"
             hk:displayFormat="%.0f%%"
             android:persistent="true" />
