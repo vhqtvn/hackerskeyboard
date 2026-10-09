@@ -256,8 +256,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // register to receive ringer mode changes for silent mode
         val filter = IntentFilter(
             AudioManager.RINGER_MODE_CHANGED_ACTION)
+        // Ringer mode changes come from the system, so this must be EXPORTED --
+        // NOT_EXPORTED restricts delivery to broadcasts this app sends itself.
         ContextCompat.registerReceiver(this, mReceiver, filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED)
+            ContextCompat.RECEIVER_EXPORTED)
         prefs.registerOnSharedPreferenceChangeListener(this)
         setNotification(mKeyboardNotification)
         if (supportDualScreen()) {
@@ -451,6 +453,8 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             mNotificationReceiver = NotificationReceiver(this)
             val pFilter = IntentFilter(NotificationReceiver.ACTION_SHOW)
             pFilter.addAction(NotificationReceiver.ACTION_SETTINGS)
+            // These two actions are ours, fired by our own PendingIntent, so they really
+            // are app-internal and NOT_EXPORTED is right here.
             ContextCompat.registerReceiver(this, mNotificationReceiver, pFilter,
                 ContextCompat.RECEIVER_NOT_EXPORTED)
             val notificationIntent = Intent(NotificationReceiver.ACTION_SHOW)

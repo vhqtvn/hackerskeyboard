@@ -117,12 +117,16 @@ class OverlayKeyboardService : Service() {
         ThorScroller.fallbackY = mainDisplayHeight / 2f
         ThorController.expandRequest = { expand() }
         ThorController.setServiceRunning(true)
+        // EXPORTED, not NOT_EXPORTED: these come from the system, and NOT_EXPORTED means
+        // "only broadcasts this app sends itself". Flagged NOT_EXPORTED, the unlock never
+        // arrived, so a deck started while the device was locked stayed in keyboard-only
+        // mode after unlocking -- no language toggle, no trackpad, no recents.
         androidx.core.content.ContextCompat.registerReceiver(this, lockReceiver,
             IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_ON)      // woke to lock screen
                 addAction(Intent.ACTION_USER_PRESENT)   // unlocked
             },
-            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED)
         expand()
     }
 
