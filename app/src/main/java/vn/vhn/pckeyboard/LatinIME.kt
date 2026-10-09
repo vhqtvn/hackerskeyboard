@@ -1694,6 +1694,12 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             commitTyped(currentInputConnection, true) // sets mPredicting=false
         }
         if (handleVnCharacter(primaryCode)) {
+            // The normal path releases one-shot modifiers inside sendModifiedKeyDownUp.
+            // Composing commits text directly and returns here, so without this Shift
+            // stays latched invisibly: the next Shift press toggles it *off*, and
+            // Shift+2 produces 2 rather than @. Clear without emitting key events --
+            // none were sent. Chorded (held) modifiers are left alone.
+            handleModifierKeysUp(false)
             updateShiftKeyState(currentInputEditorInfo)
             return
         }
