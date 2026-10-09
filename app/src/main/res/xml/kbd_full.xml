@@ -82,6 +82,7 @@
             android:isRepeatable="true"
             android:fn2Codes="@integer/key_escape"
             android:fn2Label="Esc"
+            android:promoteFn2WhenFkeysHidden="true"
             android:shiftLabel="@string/key_tlde_shift" />
         <Key
             android:keyLabel="@string/key_ae01_main"

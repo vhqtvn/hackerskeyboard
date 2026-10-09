@@ -285,3 +285,20 @@ smaller than the navigation bar it replaced.
 The two buttons that bar provided are on the green Fn layer instead, in the same
 place on both layouts: **Fn + x** hides the keyboard, **Fn + m** opens the
 input-method picker.
+
+## Display cutouts and the keyboard's width
+
+`Keyboard` takes its width from `display.mode`, which is the panel. The window an IME
+is actually given is narrower than that wherever a display cutout sits beside it: an
+IME window defaults to `LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT`, so the system keeps it
+clear of the cutout's strip.
+
+On a Fold's cover screen in landscape the camera is on what is then the right edge and
+takes 104px of 1972: the window came back `[0,533][1868,1248]` while the keyboard laid
+itself out to 1972, and the last key of every row was sliced in half. The keyboard now
+subtracts the cutout's horizontal safe insets. Only horizontal: it is bottom-anchored
+and full width, so a cutout above or below does not shrink the window.
+
+Worth knowing when something looks clipped: `adb shell dumpsys window windows` gives
+the IME window's `frame=`, and comparing it with `wm size` says immediately whether the
+window or the layout is the odd one out.

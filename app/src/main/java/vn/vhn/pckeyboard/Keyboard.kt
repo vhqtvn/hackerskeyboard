@@ -560,6 +560,21 @@ open class Keyboard @JvmOverloads constructor(
                     repeatable = true
                 }
             }
+            if (a.getBoolean(R.styleable.Keyboard_Key_promoteFn2WhenFkeysHidden, false) &&
+                !LatinIME.Companion.sKeyboardSettings.showFKeyRow
+            ) {
+                // With no function-key row there is no Esc on the surface, so the key that
+                // carries it on Fn2 trades places with it -- Esc becomes the primary and
+                // the backtick moves to the Fn layer, as on any 60% keyboard.
+                val primaryCodes = codes
+                val primaryLabel = label
+                codes = fn2codes
+                label = fn2Label
+                fn2codes = primaryCodes
+                fn2Label = primaryLabel
+                // The shift legend belonged to the old primary (~), not to Esc.
+                shiftLabel = null
+            }
             //Log.i(TAG, "added key definition: " + this);
             a.recycle()
         }
@@ -1666,6 +1681,23 @@ open class Keyboard @JvmOverloads constructor(
         } else {
             mDisplayWidth = mode.physicalWidth
             screenHeight = mode.physicalHeight
+        }
+        // The width so far is the panel's, from display.mode. The window we are actually
+        // given is narrower than that wherever a display cutout sits beside it: an IME
+        // window defaults to LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT, so the system keeps it
+        // out of the cutout's strip. Laying out to the panel width and being handed a
+        // narrower window is how the last key of every row ended up sliced in half on a
+        // Fold's cover screen in landscape, where the camera sits on what is then the
+        // right edge and takes 104px of 1972.
+        //
+        // Only the horizontal insets matter: the keyboard is bottom-anchored and full
+        // width, so a cutout above or below it does not shrink the window.
+        if (!SurfaceDuoUtils.isDeviceSurfaceDuo(context.packageManager)) {
+            val cutout = display.cutout
+            if (cutout != null) {
+                val sides = cutout.safeInsetLeft + cutout.safeInsetRight
+                if (sides > 0) mDisplayWidth = Math.max(1, mDisplayWidth - sides)
+            }
         }
         Log.v(TAG,
             "keyboard's display metrics:" + mode + ", mDisplayWidth=" + mDisplayWidth + "; rotation=" + display.rotation + ", dual enabled=" + LatinIME.Companion.isDualEnabled)

@@ -3,6 +3,7 @@ package vn.vhn.pckeyboard
 import android.content.Context
 import android.util.AttributeSet
 import android.view.WindowInsets
+import com.vhn.SurfaceDuoUtils
 import androidx.core.view.WindowInsetsCompat
 import android.widget.FrameLayout
 
@@ -29,6 +30,15 @@ class KeyboardContainer : FrameLayout {
     }
 
     override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        // Side insets: only a Surface Duo wants them. There, Keyboard narrows itself to
+        // avoid the hinge (mShouldApplyInset is true only on that device) and the padding
+        // here matches, so view and layout agree.
+        //
+        // Everywhere else nothing narrows the keyboard, so letting fitsSystemWindows pad
+        // the sides made the view narrower than the layout it holds and the right-hand
+        // keys were clipped -- visible on the cover screen in landscape, where the system
+        // reports a side inset and the last key of every row was cut in half.
+        val keepSides = SurfaceDuoUtils.isDeviceSurfaceDuo(context.packageManager)
         // With the IME navigation bar hidden (see LatinIME.applyImeNavBarPreference) its
         // inset would still be applied as bottom padding, leaving the gap it was meant to
         // fill. Drop it so the window actually shrinks and the app above gets the space.
@@ -40,13 +50,9 @@ class KeyboardContainer : FrameLayout {
             // hid, which is exactly the space we are trying to reclaim.
             val gestureBar = WindowInsetsCompat.toWindowInsetsCompat(insets)
                 .getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            @Suppress("DEPRECATION")
-            insets.replaceSystemWindowInsets(
-                insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
-                insets.systemWindowInsetRight,
-                minOf(gestureBar, insets.systemWindowInsetBottom))
+            sideAdjusted(insets, keepSides, minOf(gestureBar, insets.systemWindowInsetBottom))
         } else {
-            insets
+            sideAdjusted(insets, keepSides, insets.systemWindowInsetBottom)
         }
         var i = 0
         val ie = childCount
@@ -61,5 +67,15 @@ class KeyboardContainer : FrameLayout {
             i++
         }
         return super.onApplyWindowInsets(applied)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun sideAdjusted(insets: WindowInsets, keepSides: Boolean, bottom: Int): WindowInsets {
+        val left = if (keepSides) insets.systemWindowInsetLeft else 0
+        val right = if (keepSides) insets.systemWindowInsetRight else 0
+        if (left == insets.systemWindowInsetLeft && right == insets.systemWindowInsetRight &&
+            bottom == insets.systemWindowInsetBottom
+        ) return insets
+        return insets.replaceSystemWindowInsets(left, insets.systemWindowInsetTop, right, bottom)
     }
 }

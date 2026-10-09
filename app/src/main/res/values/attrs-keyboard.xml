@@ -52,6 +52,11 @@
     </declare-styleable>
 
     <declare-styleable name="Keyboard_Key">
+        <!-- Swap this key's primary binding with its Fn2 one while the function-key row
+             is hidden. How a 60% keyboard behaves: with no F-row, the top-left key is Esc
+             and the backtick moves to the Fn layer; with the F-row present, Esc is already
+             up there and the key stays a backtick. -->
+        <attr name="promoteFn2WhenFkeysHidden" format="boolean" />
         <!-- Marks the first key of the right-hand half when the keyboard is split. Needed
              because which hand a key belongs to is a touch-typing fact, not a geometric
              one: y and h sit either side of the centre line but are both right-hand keys. -->
