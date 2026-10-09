@@ -146,6 +146,14 @@ open class Keyboard @JvmOverloads constructor(
      */
     private var mKeyboardMode = 0
     private var mUseExtension = false
+
+    /**
+     * Rows that will be skipped on this pass. Counted before the first row is parsed,
+     * because the per-row height is derived from [mLayoutRows] at that point: without
+     * this, switching the function-key row off would leave the keyboard a row short of
+     * its configured height rather than letting the remaining rows share the space.
+     */
+    private var mSkippedRows = 0
     var mLayoutRows = 0
     var mLayoutColumns = 0
     var mRowCount = 1
@@ -211,6 +219,9 @@ open class Keyboard @JvmOverloads constructor(
          */
         var mode = 0
         var extension = false
+
+        /** The function-key row, which can be switched off; see [Keyboard.mSkippedRows]. */
+        var fkeyRow = false
         var parent: Keyboard
 
         constructor(parent: Keyboard) {
@@ -239,6 +250,7 @@ open class Keyboard @JvmOverloads constructor(
             mode = a.getResourceId(R.styleable.Keyboard_Row_keyboardMode,
                 0)
             extension = a.getBoolean(R.styleable.Keyboard_Row_extension, false)
+            fkeyRow = a.getBoolean(R.styleable.Keyboard_Row_fkeyRow, false)
             if (parent.mLayoutRows >= 5 || extension) {
                 // Apply optional scale factor to top (5th) row and/or extension row. If extension
                 // row is visible on a 5-row keyboard, both use the smaller size.
@@ -1226,7 +1238,34 @@ open class Keyboard @JvmOverloads constructor(
         return Key(res, parent, x, y, parser)
     }
 
+    /**
+     * Counts rows this pass will skip, by scanning the layout before parsing it. Done
+     * from the XML rather than tracked as a separate number so the `fkeyRow` flag on the
+     * row stays the only place that decides what the function-key row is.
+     */
+    private fun countSkippedRows(context: Context?): Int {
+        if (LatinIME.Companion.sKeyboardSettings.showFKeyRow) return 0
+        val res = context?.resources ?: return 0
+        var count = 0
+        try {
+            val scan = res.getXml(mXMLLayoutResId)
+            while (scan.next() != XmlResourceParser.END_DOCUMENT) {
+                if (scan.eventType == XmlResourceParser.START_TAG && TAG_ROW == scan.name) {
+                    val a = res.obtainAttributes(Xml.asAttributeSet(scan),
+                        R.styleable.Keyboard_Row)
+                    if (a.getBoolean(R.styleable.Keyboard_Row_fkeyRow, false)) count++
+                    a.recycle()
+                }
+            }
+            scan.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Counting function-key rows: $e")
+        }
+        return count
+    }
+
     private fun loadKeyboard(context: Context?, parser: XmlResourceParser) {
+        mSkippedRows = countSkippedRows(context)
         var inKey = false
         var inRow = false
         var skipKey = false
@@ -1256,6 +1295,10 @@ open class Keyboard @JvmOverloads constructor(
                             } else {
                                 skipRow = true
                             }
+                        }
+                        if (currentRow.fkeyRow &&
+                            !LatinIME.Companion.sKeyboardSettings.showFKeyRow) {
+                            skipRow = true
                         }
                         if (skipRow) {
                             skipToEndOfRow(parser)
@@ -1462,7 +1505,8 @@ open class Keyboard @JvmOverloads constructor(
         mVerticalPad = getDimensionOrFraction(a,
             R.styleable.Keyboard_verticalPad,
             screenHeight, res.getDimension(R.dimen.key_vertical_pad))
-        mLayoutRows = a.getInteger(R.styleable.Keyboard_layoutRows, DEFAULT_LAYOUT_ROWS)
+        mLayoutRows = Math.max(1,
+            a.getInteger(R.styleable.Keyboard_layoutRows, DEFAULT_LAYOUT_ROWS) - mSkippedRows)
         mLayoutColumns = a.getInteger(R.styleable.Keyboard_layoutColumns, DEFAULT_LAYOUT_COLUMNS)
         if (keyHeight == 0 && mKeyboardHeight > 0 && mLayoutRows > 0) {
             keyHeight = mKeyboardHeight / mLayoutRows

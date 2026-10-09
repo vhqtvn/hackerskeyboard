@@ -46,6 +46,9 @@
              requested keyboard mode, the row will be skipped. -->
         <attr name="keyboardMode" format="reference" />
         <attr name="extension" format="boolean" />
+        <!-- The row of function keys. Can be switched off, in which case the keys it
+             carries move to the Fn2 layer of the number row. -->
+        <attr name="fkeyRow" format="boolean" />
     </declare-styleable>
 
     <declare-styleable name="Keyboard_Key">

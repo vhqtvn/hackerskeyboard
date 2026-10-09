@@ -49,6 +49,13 @@
             android:persistent="true" />
 
         <CheckBoxPreference
+            android:key="pref_fkey_row@sp"
+            android:title="@string/title_profile_fkey_row"
+            android:summary="@string/summary_profile_fkey_row"
+            android:defaultValue="true"
+            android:persistent="true" />
+
+        <CheckBoxPreference
             android:key="pref_extension_row@sp"
             android:title="@string/title_profile_extension_row"
             android:summary="@string/summary_profile_extension_row"
@@ -95,6 +102,13 @@
             android:entries="@array/profile_keyboard_mode_entries"
             android:entryValues="@array/profile_keyboard_mode_values"
             android:defaultValue="-1"
+            android:persistent="true" />
+
+        <CheckBoxPreference
+            android:key="pref_fkey_row@sl"
+            android:title="@string/title_profile_fkey_row"
+            android:summary="@string/summary_profile_fkey_row"
+            android:defaultValue="true"
             android:persistent="true" />
 
         <CheckBoxPreference
@@ -147,6 +161,13 @@
             android:persistent="true" />
 
         <CheckBoxPreference
+            android:key="pref_fkey_row@lp"
+            android:title="@string/title_profile_fkey_row"
+            android:summary="@string/summary_profile_fkey_row"
+            android:defaultValue="true"
+            android:persistent="true" />
+
+        <CheckBoxPreference
             android:key="pref_extension_row@lp"
             android:title="@string/title_profile_extension_row"
             android:summary="@string/summary_profile_extension_row"
@@ -193,6 +214,13 @@
             android:entries="@array/profile_keyboard_mode_entries"
             android:entryValues="@array/profile_keyboard_mode_values"
             android:defaultValue="-1"
+            android:persistent="true" />
+
+        <CheckBoxPreference
+            android:key="pref_fkey_row@ll"
+            android:title="@string/title_profile_fkey_row"
+            android:summary="@string/summary_profile_fkey_row"
+            android:defaultValue="true"
             android:persistent="true" />
 
         <CheckBoxPreference

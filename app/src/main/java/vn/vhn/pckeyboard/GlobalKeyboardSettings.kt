@@ -81,6 +81,12 @@ class GlobalKeyboardSettings {
     var keyboardHeightPercent = 40.0f // percent of screen height
 
     //
+    // Read by Keyboard: show the top row of function keys. With it off, the keys it
+    // carries move to the Fn2 layer of the number row, and the remaining rows share out
+    // the height it was using.
+    var showFKeyRow = true
+
+    //
     // Read by KeyboardContainer and LatinIME: hide the framework's IME navigation bar
     // and reclaim the space it occupies below the keyboard.
     var hideImeNavBar = false

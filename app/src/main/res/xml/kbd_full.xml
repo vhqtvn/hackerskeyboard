@@ -23,7 +23,9 @@
     android:layoutColumns="14"
     android:layoutRows="6"
     android:verticalGap="@dimen/key_bottom_gap">
-    <Row android:rowEdgeFlags="top">
+    <!-- Function keys. Switchable: with the row off, these move to the Fn2
+         (yellow) layer of the number row below. -->
+    <Row android:rowEdgeFlags="top" android:fkeyRow="true">
         <Key
             android:codes="@integer/key_escape"
             android:isModifier="true"
@@ -78,57 +80,85 @@
             android:keyLabel="@string/key_tlde_main"
             android:keyWidth="4.5714285%p"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_escape"
+            android:fn2Label="Esc"
             android:shiftLabel="@string/key_tlde_shift" />
         <Key
             android:keyLabel="@string/key_ae01_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f1"
+            android:fn2Label="F1"
             android:shiftLabel="@string/key_ae01_shift" />
         <Key
             android:keyLabel="@string/key_ae02_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f2"
+            android:fn2Label="F2"
             android:shiftLabel="@string/key_ae02_shift" />
         <Key
             android:keyLabel="@string/key_ae03_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f3"
+            android:fn2Label="F3"
             android:shiftLabel="@string/key_ae03_shift" />
         <Key
             android:keyLabel="@string/key_ae04_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f4"
+            android:fn2Label="F4"
             android:shiftLabel="@string/key_ae04_shift" />
         <Key
             android:keyLabel="@string/key_ae05_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f5"
+            android:fn2Label="F5"
             android:shiftLabel="@string/key_ae05_shift" />
         <Key
             android:keyLabel="@string/key_ae06_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f6"
+            android:fn2Label="F6"
             android:shiftLabel="@string/key_ae06_shift" />
         <Key
             android:keyLabel="@string/key_ae07_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f7"
+            android:fn2Label="F7"
             android:shiftLabel="@string/key_ae07_shift" />
         <Key
             android:keyLabel="@string/key_ae08_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f8"
+            android:fn2Label="F8"
             android:shiftLabel="@string/key_ae08_shift" />
         <Key
             android:keyLabel="@string/key_ae09_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f9"
+            android:fn2Label="F9"
             android:shiftLabel="@string/key_ae09_shift" />
         <Key
             android:keyLabel="@string/key_ae10_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f10"
+            android:fn2Label="F10"
             android:shiftLabel="@string/key_ae10_shift" />
         <Key
             android:keyLabel="@string/key_ae11_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f11"
+            android:fn2Label="F11"
             android:shiftLabel="@string/key_ae11_shift" />
         <Key
             android:keyLabel="@string/key_ae12_main"
             android:isRepeatable="true"
+            android:fn2Codes="@integer/key_fkey_f12"
+            android:fn2Label="F12"
             android:shiftLabel="@string/key_ae12_shift" />
         <Key
             android:codes="@integer/key_delete"
+            android:fn2Codes="@integer/key_forward_del"
+            android:fn2Label="Del"
             android:iconPreview="@drawable/sym_keyboard_feedback_delete"
             android:isModifier="true"
             android:isRepeatable="true"

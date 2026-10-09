@@ -531,6 +531,8 @@
     <string name="profile_explain">A screen counts as large from 600dp wide \u2014 a foldable\u0027s inner screen, or a tablet. Settings left untouched here follow the global ones.</string>
     <string name="title_profile_height">Keyboard height</string>
     <string name="title_profile_keyboard_mode">Keyboard layout</string>
+    <string name="title_profile_fkey_row">Show the function-key row</string>
+    <string name="summary_profile_fkey_row">The top row of Esc and F1\u2013F12. With it off, those keys move to the Fn2 layer of the number row and the remaining rows share out its height.</string>
     <string name="title_profile_extension_row">Always show the extension row</string>
     <string name="summary_profile_extension_row">Keeps the extra punctuation and Home/End/Del row up instead of needing a swipe. Compact layout only.</string>
     <string name="title_profile_split_gap">Split keyboard</string>

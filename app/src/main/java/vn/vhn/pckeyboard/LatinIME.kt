@@ -356,6 +356,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // on every field. A profile can instead keep it up permanently.
         mExtensionRowProfile = ProfilePrefs.getBoolean(prefs, PREF_EXTENSION_ROW, mProfile,
             default = false)
+        // The function-key row is the first thing worth dropping on a short screen; the
+        // keys it carries stay reachable on the number row's Fn2 layer.
+        sKeyboardSettings.showFKeyRow =
+            ProfilePrefs.getBoolean(prefs, PREF_FKEY_ROW, mProfile, default = true)
         // Splitting only makes sense on a screen wide enough to reach across, so it is
         // off by default everywhere and switched on per profile.
         sKeyboardSettings.splitGapPercent =
@@ -2380,6 +2384,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         const val PREF_KEYBOARD_MODE = "pref_keyboard_mode"
         const val PREF_SPLIT_GAP = "pref_split_gap"
         const val PREF_EXTENSION_ROW = "pref_extension_row"
+        const val PREF_FKEY_ROW = "pref_fkey_row"
         const val PREF_LARGE_SCREEN_DP = "pref_large_screen_dp"
         const val PROFILE_KEY_SEPARATOR = "@"
 
