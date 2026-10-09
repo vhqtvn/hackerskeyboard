@@ -596,21 +596,34 @@ class LatinIME : InputMethodService(), ComposeSequencing,
      * row, spent on two buttons that a swipe down and the IME switcher notification
      * already cover.
      *
-     * There is no API to turn it off, but the views are ours to hide, and
-     * [KeyboardContainer] drops the matching inset so the space is actually returned --
-     * the window shrinks and the app above gets the room back.
+     * There is no API to turn it off, and hiding the views once is not enough: the
+     * framework shows them again whenever it re-evaluates the strip -- most visibly when
+     * the IME-switcher button comes and goes -- and with the inset no longer reserved it
+     * then sits on top of the bottom key row. So the hiding is reasserted on every layout
+     * pass of the decor, which is the one place every path the framework takes ends up.
      */
+    private var mNavBarWatchedDecor: View? = null
+
     private fun applyImeNavBarPreference() {
+        val decor = window?.window?.decorView as? ViewGroup ?: return
         if (!sKeyboardSettings.hideImeNavBar) return
-        mDefaultHandler.post {
-            val decor = window?.window?.decorView as? android.view.ViewGroup ?: return@post
-            for (i in 0 until decor.childCount) {
-                val child = decor.getChildAt(i)
-                val isNavBar = child.javaClass.simpleName == "NavigationBarFrame" ||
-                        child.id == resources.getIdentifier(
-                            "navigationBarBackground", "id", "android")
-                if (isNavBar && child.visibility != View.GONE) child.visibility = View.GONE
-            }
+        hideImeNavBar(decor)
+        if (mNavBarWatchedDecor !== decor) {
+            mNavBarWatchedDecor = decor
+            // Setting GONE triggers another layout pass, but by then it is already GONE,
+            // so this settles rather than looping.
+            decor.viewTreeObserver.addOnGlobalLayoutListener { hideImeNavBar(decor) }
+        }
+    }
+
+    private fun hideImeNavBar(decor: ViewGroup) {
+        if (!sKeyboardSettings.hideImeNavBar) return
+        val backgroundId = resources.getIdentifier("navigationBarBackground", "id", "android")
+        for (i in 0 until decor.childCount) {
+            val child = decor.getChildAt(i)
+            val isNavBar = child.javaClass.simpleName == "NavigationBarFrame" ||
+                    (backgroundId != 0 && child.id == backgroundId)
+            if (isNavBar && child.visibility != View.GONE) child.visibility = View.GONE
         }
     }
 

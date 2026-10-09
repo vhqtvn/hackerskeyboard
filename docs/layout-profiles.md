@@ -267,8 +267,13 @@ inside *our* window. Dumping the IME window's decor tree shows:
       NavigationBarFrame                          y=1734 h=114
         NavigationBarView -> ime_switcher, back
 
-Both of those are children of our own decor view, so `LatinIME.applyImeNavBarPreference()`
-can simply hide them. Hiding alone is not enough: the matching window inset is still
+Both of those are children of our own decor view, so `LatinIME` can hide them -- but
+not once. The framework shows them again whenever it re-evaluates the strip, most
+visibly when the IME-switcher button comes and goes, and with the inset no longer
+reserved the strip then sits *on top of* the bottom key row. The hiding is therefore
+reasserted from an `OnGlobalLayoutListener` on the decor, which every path the
+framework takes passes through. Setting GONE triggers another layout pass, but by then
+it is already GONE, so it settles rather than looping. Hiding alone is not enough: the matching window inset is still
 applied as `KeyboardContainer`'s bottom padding, which would leave exactly the gap the
 bar was filling. `KeyboardContainer.onApplyWindowInsets` therefore drops the bottom
 inset too, so the window genuinely shrinks and the app above gets the space back.
