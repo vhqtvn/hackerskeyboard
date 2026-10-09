@@ -11,58 +11,58 @@
 extern "C" {
 
 JNIEXPORT void JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativeSetup(JNIEnv*, jclass) {
+Java_vn_vhn_pckeyboard_Unikey_nativeSetup(JNIEnv*, jclass) {
     UnikeySetup();
     UnikeySetOutputCharset(CONV_CHARSET_XUTF8);
     UnikeySetInputMethod(UkTelex);
 }
 
 JNIEXPORT void JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativeSetInputMethod(JNIEnv*, jclass, jint im) {
+Java_vn_vhn_pckeyboard_Unikey_nativeSetInputMethod(JNIEnv*, jclass, jint im) {
     UnikeySetInputMethod((UkInputMethod) im);
 }
 
 JNIEXPORT void JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativeReset(JNIEnv*, jclass) {
+Java_vn_vhn_pckeyboard_Unikey_nativeReset(JNIEnv*, jclass) {
     UnikeyResetBuf();
 }
 
 JNIEXPORT void JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativeSetCaps(JNIEnv*, jclass, jint shift, jint caps) {
+Java_vn_vhn_pckeyboard_Unikey_nativeSetCaps(JNIEnv*, jclass, jint shift, jint caps) {
     UnikeySetCapsState(shift, caps);
 }
 
 JNIEXPORT jint JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativeFilter(JNIEnv*, jclass, jint ch) {
+Java_vn_vhn_pckeyboard_Unikey_nativeFilter(JNIEnv*, jclass, jint ch) {
     UnikeyFilter((unsigned int) ch);
     return UnikeyBackspaces;
 }
 
 JNIEXPORT jint JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativeBackspace(JNIEnv*, jclass) {
+Java_vn_vhn_pckeyboard_Unikey_nativeBackspace(JNIEnv*, jclass) {
     UnikeyBackspacePress();
     return UnikeyBackspaces;
 }
 
 JNIEXPORT jint JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativeRestore(JNIEnv*, jclass) {
+Java_vn_vhn_pckeyboard_Unikey_nativeRestore(JNIEnv*, jclass) {
     UnikeyRestoreKeyStrokes();
     return UnikeyBackspaces;
 }
 
 JNIEXPORT void JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativePutChar(JNIEnv*, jclass, jint ch) {
+Java_vn_vhn_pckeyboard_Unikey_nativePutChar(JNIEnv*, jclass, jint ch) {
     UnikeyPutChar((unsigned int) ch);
 }
 
 JNIEXPORT jboolean JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativeAtWordBeginning(JNIEnv*, jclass) {
+Java_vn_vhn_pckeyboard_Unikey_nativeAtWordBeginning(JNIEnv*, jclass) {
     return UnikeyAtWordBeginning() ? JNI_TRUE : JNI_FALSE;
 }
 
 // The UTF-8 output bytes produced by the last filter/backspace/restore call.
 JNIEXPORT jstring JNICALL
-Java_vn_vhn_pckeyboard_thor_Unikey_nativeOutput(JNIEnv* env, jclass) {
+Java_vn_vhn_pckeyboard_Unikey_nativeOutput(JNIEnv* env, jclass) {
     int n = UnikeyBufChars;
     if (n <= 0) return env->NewStringUTF("");
     char tmp[1200];

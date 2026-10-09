@@ -1,5 +1,7 @@
 package vn.vhn.pckeyboard
 
+import android.util.Log
+
 /**
  * Thin binding to the bundled Unikey engine (native, see cpp/ukengine + unikey_jni.cpp).
  * The engine is a global singleton driven from the UI thread; each [filter]/[backspace]
@@ -28,11 +30,29 @@ object Unikey {
     fun init(): Boolean {
         if (ready) return true
         if (!loaded) {
-            try { System.loadLibrary("unikey"); loaded = true }
-            catch (e: Throwable) { return false }
+            try {
+                System.loadLibrary("unikey")
+                loaded = true
+            } catch (e: Throwable) {
+                // Swallowing this silently once cost an afternoon: the JNI symbols are
+                // named after this class's package, so moving the class renames every
+                // one of them, and the only symptom is Vietnamese quietly not working.
+                Log.e(TAG, "Unikey: cannot load libunikey", e)
+                return false
+            }
         }
-        return try { nativeSetup(); ready = true; true } catch (e: Throwable) { false }
+        return try {
+            nativeSetup()
+            ready = true
+            true
+        } catch (e: Throwable) {
+            Log.e(TAG, "Unikey: native setup failed -- do the JNI symbols in " +
+                    "unikey_jni.cpp still match this class's package?", e)
+            false
+        }
     }
+
+    private const val TAG = "PCKeyboardIME"
 
     val isReady: Boolean get() = ready
 
