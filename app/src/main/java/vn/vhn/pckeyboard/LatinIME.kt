@@ -332,9 +332,8 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         val largeThresholdDp = largeScreenThresholdDp()
         val metrics = ScreenMetrics.of(this)
         mProfile = KeyboardProfile.of(metrics, largeThresholdDp)
-        sKeyboardSettings.activeProfile = mProfile
-        sKeyboardSettings.activeProfileReport = metrics.report(largeThresholdDp)
-        Log.i(TAG, "Layout profile: $mProfile (${sKeyboardSettings.activeProfileReport})")
+        sKeyboardSettings.activeMetrics = metrics
+        Log.i(TAG, "Layout profile: $mProfile (${metrics.report(largeThresholdDp)})")
         mHeightPortrait =
             getHeight(prefs, PREF_HEIGHT_PORTRAIT, res.getString(R.string.default_height_portrait))
         mHeightLandscape = getHeight(prefs,

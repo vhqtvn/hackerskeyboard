@@ -528,7 +528,7 @@
     <string name="summary_large_screen_dp">Screens at least this wide count as large. Measured across the screen\u0027s short side, so folding changes it and rotating does not. This is the scaled width, so the display size setting moves it \u2014 set the screen bigger and you get the denser keyboard.</string>
     <string name="profile_inherited_note">(from the global setting)</string>
     <string name="profile_active_marker">%1$s \u2014 in use now</string>
-    <string name="profile_explain">A screen counts as large from 600dp wide \u2014 a foldable\u0027s inner screen, or a tablet. Settings left untouched here follow the global ones.</string>
+    <string name="profile_explain">Screens at or above the width below count as large \u2014 a foldable\u0027s inner screen, or a tablet. Settings left untouched here follow the global ones.</string>
     <string name="title_profile_height">Keyboard height</string>
     <string name="title_profile_keyboard_mode">Keyboard layout</string>
     <string name="title_profile_fkey_row">Show the function-key row</string>

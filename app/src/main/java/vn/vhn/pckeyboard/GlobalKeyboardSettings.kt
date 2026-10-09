@@ -47,13 +47,17 @@ class GlobalKeyboardSettings {
     var shiftLockModifiers = false
 
     /**
-     * What the keyboard itself last resolved for the layout profile, so the settings
-     * screen can report it rather than re-deriving it from its own Configuration --
-     * which is not necessarily the same one, and that difference is the whole question
-     * when profile detection looks wrong. Null until the IME has run in this process.
+     * What the keyboard itself last measured, so the settings screen can report the
+     * numbers detection actually acted on rather than re-deriving them from its own
+     * Configuration -- not necessarily the same one, and that difference is the whole
+     * question when profile detection looks wrong. Null until the IME has run here.
+     *
+     * The measurements, not a formatted line: the screen classifies them against the
+     * threshold as it stands when it draws. Caching a formatted string instead meant the
+     * report kept quoting the old threshold after it was changed, which reads exactly
+     * like detection being broken.
      */
-    var activeProfile: KeyboardProfile? = null
-    var activeProfileReport: String? = null
+    var activeMetrics: ScreenMetrics? = null
 
     // Vietnamese (Unikey) composing. vnMethod holds a Unikey.TELEX/VNI/VIQR constant.
     var vnEnabled = false

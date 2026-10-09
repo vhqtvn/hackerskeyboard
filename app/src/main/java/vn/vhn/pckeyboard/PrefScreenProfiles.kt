@@ -36,8 +36,16 @@ class PrefScreenProfiles : PreferenceActivity(), OnSharedPreferenceChangeListene
         super.onDestroy()
     }
 
+    override fun onResume() {
+        super.onResume()
+        reportDetection()
+    }
+
     override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String?) {
         BackupManager(this).dataChanged()
+        // The keyboard re-measures on its own listener; whichever of us runs first, the
+        // report formats from the threshold as it stands, so it cannot go stale.
+        reportDetection()
     }
 
     /**
@@ -51,17 +59,15 @@ class PrefScreenProfiles : PreferenceActivity(), OnSharedPreferenceChangeListene
      */
     private fun reportDetection() {
         val pref = findPreference("profile_explain") ?: return
-        val profile = LatinIME.sKeyboardSettings.activeProfile
-        val report = LatinIME.sKeyboardSettings.activeProfileReport
-        val detail = if (profile != null && report != null) {
-            getString(R.string.profile_detected, profileName(profile), report)
+        val threshold = thresholdDp()
+        val fromKeyboard = LatinIME.sKeyboardSettings.activeMetrics
+        val metrics = fromKeyboard ?: ScreenMetrics.of(this)
+        val name = profileName(KeyboardProfile.of(metrics, threshold))
+        pref.summary = getString(R.string.profile_explain) + "\n\n" + if (fromKeyboard != null) {
+            getString(R.string.profile_detected, name, metrics.report(threshold))
         } else {
-            val threshold = thresholdDp()
-            val metrics = ScreenMetrics.of(this)
-            getString(R.string.profile_detected_here,
-                profileName(KeyboardProfile.of(metrics, threshold)), metrics.report(threshold))
+            getString(R.string.profile_detected_here, name, metrics.report(threshold))
         }
-        pref.summary = "${getString(R.string.profile_explain)}\n\n$detail"
     }
 
     private fun profileName(p: KeyboardProfile) = getString(when (p) {
@@ -75,11 +81,11 @@ class PrefScreenProfiles : PreferenceActivity(), OnSharedPreferenceChangeListene
         .getString(LatinIME.PREF_LARGE_SCREEN_DP, null)?.trim()?.toFloatOrNull()?.toInt()
         ?: KeyboardProfile.DEFAULT_LARGE_WIDTH_DP
 
-    private fun activeProfile(): KeyboardProfile =
-        KeyboardProfile.of(ScreenMetrics.of(this), thresholdDp())
+    private fun activeProfile(): KeyboardProfile = KeyboardProfile.of(
+        LatinIME.sKeyboardSettings.activeMetrics ?: ScreenMetrics.of(this), thresholdDp())
 
     private fun markActiveProfile() {
-        val active = LatinIME.sKeyboardSettings.activeProfile ?: activeProfile()
+        val active = activeProfile()
         val category = findPreference("profile_${active.suffix}") as? PreferenceCategory ?: return
         category.title = getString(R.string.profile_active_marker, category.title)
     }
