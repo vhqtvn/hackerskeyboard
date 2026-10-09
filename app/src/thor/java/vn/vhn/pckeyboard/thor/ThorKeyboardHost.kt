@@ -47,6 +47,13 @@ class ThorKeyboardHost(
     var onHideRequested: (() -> Unit)? = null
 
     /**
+     * Asks the service to flip Vietnamese. Routed back rather than toggled here so the
+     * deck's En/Vi button and the stored preference move with it -- the key and the
+     * button are two ways to the same switch, not two switches.
+     */
+    var onToggleVnRequested: (() -> Unit)? = null
+
+    /**
      * One modifier key's state: held (finger down), latched (sticky), used (in a
      * chord), and the exact evdev code it injects. Left and right variants are
      * tracked independently and inject their own code, so e.g. right-Alt reaches
@@ -206,6 +213,7 @@ class ThorKeyboardHost(
     /** Action keys perform a one-shot side effect (no evdev key to hold). */
     private fun isActionCode(c: Int): Boolean = when (c) {
         LatinKeyboardView.KEYCODE_CAPS_LOCK, Keyboard.KEYCODE_CANCEL,
+        LatinKeyboardView.KEYCODE_TOGGLE_VN,
         Keyboard.KEYCODE_MODE_CHANGE, Keyboard.KEYCODE_STICK, Keyboard.KEYCODE_NOIME,
         LatinKeyboardView.KEYCODE_ORIENTATION_LOCK, LatinKeyboardView.KEYCODE_OPTIONS,
         LatinKeyboardView.KEYCODE_OPTIONS_LONGPRESS, LatinKeyboardView.KEYCODE_FULLSCREEN_DUAL -> true
@@ -247,6 +255,8 @@ class ThorKeyboardHost(
 
     fun setVnMode(on: Boolean) {
         vnMode = on
+        // Light the key carrying the toggle, as on the main-screen keyboard.
+        inputView.setVnIndicator(on)
         if (!on) vnComposer.reset(currentIc())
     }
 
@@ -414,6 +424,7 @@ class ThorKeyboardHost(
         // Only one-shot action keys act here (they fire once per press).
         when (primaryCode) {
             LatinKeyboardView.KEYCODE_CAPS_LOCK -> { caps = !caps; updateIndicators() }
+            LatinKeyboardView.KEYCODE_TOGGLE_VN -> onToggleVnRequested?.invoke()
             Keyboard.KEYCODE_CANCEL -> onHideRequested?.invoke()
             else -> {}
         }

@@ -247,6 +247,7 @@ class OverlayKeyboardService : Service() {
         if (host == null) {
             host = ThorKeyboardHost(ctx, KEYBOARD_HEIGHT_PERCENT).apply {
                 onHideRequested = { minimize() }
+                onToggleVnRequested = { toggleVn() }
                 setVnMethod(Unikey.TELEX)
                 setVnMode(vnOn)
             }
