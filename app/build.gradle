@@ -56,6 +56,22 @@ android {
             useLegacyPackaging = true
         }
     }
+    signingConfigs {
+        debug {
+            // AGP finds ~/.android/debug.keystore on its own, but it looks for it under
+            // ANDROID_USER_HOME -- and a build run with that pointed elsewhere mints a
+            // *different* debug key, producing an APK that refuses to install over one
+            // built from Android Studio. Pin the standard location so every debug build
+            // of this project is signature-compatible with every other.
+            def standard = new File(System.getProperty('user.home'), '.android/debug.keystore')
+            if (standard.exists()) {
+                storeFile = standard
+                storePassword = 'android'
+                keyAlias = 'androiddebugkey'
+                keyPassword = 'android'
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled = false
