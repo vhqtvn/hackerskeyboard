@@ -1,5 +1,6 @@
 package vn.vhn.pckeyboard
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
 
@@ -13,6 +14,9 @@ import android.content.res.Configuration
  * other. Android's single pair of portrait/landscape settings cannot express that,
  * so every layout-shaped preference can be overridden per profile.
  *
+ * Which profile is in effect is decided by [ScreenMetrics], which measures the panel
+ * physically rather than in dp -- see [DEFAULT_LARGE_WIDTH_MM] for why.
+ *
  * Overrides are stored under `"<base key>@<suffix>"`. A profile that has never been
  * touched has no such keys, and [ProfilePrefs] falls back to the global preference --
  * so a device that only ever sees one profile behaves exactly as it did before.
@@ -25,40 +29,91 @@ enum class KeyboardProfile(val suffix: String, val isLarge: Boolean, val isPortr
 
     companion object {
         /**
-         * Default for the small/large line: Android's own "this pane is tablet-sized"
-         * threshold, and the one a book-style foldable crosses when it opens. A Fold's
-         * cover screen is around 411dp and its inner screen around 673dp, so 600 sits
-         * with a comfortable margin either side. Adjustable, because panel sizes vary
-         * and nobody should have to rebuild the app to move a number.
-         */
-        const val DEFAULT_LARGE_SMALLEST_WIDTH_DP = 600
-
-        /**
-         * Why [Configuration.smallestScreenWidthDp] and not `screenWidthDp`: the size
-         * half of a profile has to be independent of the orientation half, or a cover
-         * screen held in landscape (around 912dp wide) would be classed as a large
-         * screen. `smallestScreenWidthDp` is the smaller of the two dimensions, so
-         * folding changes it and rotating does not.
+         * Default small/large line, as the physical width of the panel.
          *
-         * Caveat worth knowing: for an Activity this reflects the *window* in
-         * multi-window mode rather than the display. Whether an InputMethodService sees
-         * the same is not something this code assumes -- the settings screen reports
-         * the value the keyboard actually resolved, so the device can answer it.
+         * Millimetres rather than dp, because the keys are laid out as percentages of
+         * the keyboard width (`keyWidth="7.14%p"`), not in dp. A key's physical size is
+         * therefore the panel's physical width divided by the column count, and the
+         * display density has nothing to do with it. Classifying by dp would also drift
+         * every time the display-size / minimum-width setting is changed, which is a
+         * thing people do.
+         *
+         * 100mm separates the cases with room to spare: a Fold's cover screen is around
+         * 64mm wide folded, its inner screen around 130mm. Below the line, 14 columns
+         * means 4.6mm keys; above it, 9mm and up.
          */
-        fun of(conf: Configuration, largeThresholdDp: Int = DEFAULT_LARGE_SMALLEST_WIDTH_DP):
+        const val DEFAULT_LARGE_WIDTH_MM = 100
+
+        /** 1dp is 1/160 inch, so the dp fallback threshold tracks the mm one. */
+        fun mmToDp(mm: Int): Int = Math.round(mm / 25.4f * 160f)
+
+        fun of(metrics: ScreenMetrics, largeThresholdMm: Int = DEFAULT_LARGE_WIDTH_MM):
                 KeyboardProfile {
-            val large = conf.smallestScreenWidthDp >= largeThresholdDp
-            val portrait = conf.orientation != Configuration.ORIENTATION_LANDSCAPE
+            val large = metrics.isLarge(largeThresholdMm)
             return when {
-                large && portrait -> LARGE_PORTRAIT
+                large && metrics.portrait -> LARGE_PORTRAIT
                 large -> LARGE_LANDSCAPE
-                portrait -> SMALL_PORTRAIT
+                metrics.portrait -> SMALL_PORTRAIT
                 else -> SMALL_LANDSCAPE
             }
         }
 
         fun ofSuffix(suffix: String?): KeyboardProfile =
             entries.firstOrNull { it.suffix == suffix } ?: SMALL_PORTRAIT
+    }
+}
+
+/**
+ * What the screen measures right now, in all three units that matter, so the choice of
+ * unit stays a decision rather than an assumption.
+ *
+ * [widthMm] is null when the panel reports an implausible physical dpi. Most do report
+ * a real one -- `xdpi` is documented as the exact physical pixels per inch and is not
+ * supposed to move when the display-size setting does -- but some OEMs just echo the
+ * density there, and a silently wrong answer is worse than falling back to dp.
+ */
+class ScreenMetrics(
+    val smallestWidthDp: Int,
+    val smallestWidthPx: Int,
+    val widthMm: Float?,
+    val portrait: Boolean,
+) {
+    fun isLarge(thresholdMm: Int): Boolean {
+        widthMm?.let { return it >= thresholdMm }
+        return smallestWidthDp >= KeyboardProfile.mmToDp(thresholdMm)
+    }
+
+    /** One line for the settings screen and logcat; the numbers detection acted on. */
+    fun report(thresholdMm: Int): String {
+        val mm = widthMm
+        val basis = if (mm != null) "%.0fmm".format(mm)
+        else "panel dpi implausible, using ${smallestWidthDp}dp"
+        return "$basis (sw${smallestWidthDp}dp, ${smallestWidthPx}px); " +
+                "large at >=${thresholdMm}mm"
+    }
+
+    companion object {
+        // Below a phone's ~160dpi or above a dense panel's ~900dpi, the value is junk.
+        private const val MIN_PLAUSIBLE_DPI = 80f
+        private const val MAX_PLAUSIBLE_DPI = 1200f
+
+        fun of(context: Context): ScreenMetrics {
+            val conf = context.resources.configuration
+            val dm = context.resources.displayMetrics
+            val widthPx = minOf(dm.widthPixels, dm.heightPixels)
+            // Measure the panel's short side: the same side smallestScreenWidthDp names,
+            // so the size half of a profile stays independent of the orientation half.
+            val shortIsX = dm.widthPixels <= dm.heightPixels
+            val px = if (shortIsX) dm.widthPixels else dm.heightPixels
+            val dpi = if (shortIsX) dm.xdpi else dm.ydpi
+            val mm = if (dpi in MIN_PLAUSIBLE_DPI..MAX_PLAUSIBLE_DPI) px / dpi * 25.4f else null
+            return ScreenMetrics(
+                smallestWidthDp = conf.smallestScreenWidthDp,
+                smallestWidthPx = widthPx,
+                widthMm = mm,
+                portrait = conf.orientation != Configuration.ORIENTATION_LANDSCAPE,
+            )
+        }
     }
 }
 

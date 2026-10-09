@@ -17,31 +17,57 @@ pair of portrait/landscape settings cannot express that.
 | **small** | `sp` | `sl` |
 | **large** | `lp` | `ll` |
 
-"Large" is `Configuration.smallestScreenWidthDp >= 600` by default -- Android's
-own tablet-sized-pane line, and the one a foldable crosses when it opens. A Fold's
-cover screen is around 411dp and its inner screen around 673dp, so the threshold
-sits with a comfortable margin either side. It is a preference, because panel
-sizes vary and nobody should rebuild the app to move a number.
+"Large" is a **physical** measurement: the panel's short side, at least 100mm by
+default.
 
-Why `smallestScreenWidthDp` and not `screenWidthDp`: the size half of a profile
-has to be independent of the orientation half, or a cover screen held in landscape
-(around 912dp wide) would be classed as a large screen. `smallestScreenWidthDp` is
-the smaller of the two dimensions, so folding changes it and rotating does not.
+Millimetres rather than dp, for two reasons. The first is correctness: the keys are
+laid out as percentages of the keyboard width (`keyWidth="7.14%p"`), not in dp, so a
+key's physical size is the panel's physical width divided by the column count and
+the display density has nothing to do with it. The second is that a dp threshold
+drifts every time the display-size / minimum-width setting is changed, which is a
+thing people do on purpose to fit more on screen -- and it would silently reclassify
+the screen when they did.
+
+Measuring the panel's *short* side keeps the size half of a profile independent of
+the orientation half; otherwise a cover screen held in landscape would be classed as
+a large screen. Folding changes it, rotating does not.
+
+100mm separates the cases with room to spare, and the figures explain the layout
+recommendations below. Physical key width is panel width / columns:
+
+| | cover, folded (~64mm) | inner, portrait (~130mm) | inner, landscape (~143mm) |
+|---|---|---|---|
+| `kbd_full` (14 col) | **4.6mm** | 9.3mm | 10.2mm |
+| `kbd_compact` (11 col) | **5.8mm** | 11.8mm | 13.0mm |
+| `kbd_thumb` (10 col) | 6.4mm | 13.0mm | 14.3mm |
+
+A fingertip pad is around 8-10mm wide; Material's 48dp minimum is about 7.6mm at
+baseline density. Nothing fits comfortably on the folded cover screen, which is why
+the thumb layout matters there -- but the gap between 4.6mm and 6.4mm is the gap
+between unusable and workable.
+
+The threshold is a preference, since panel sizes vary.
+
+**Fallback.** `widthMm` comes from `DisplayMetrics.xdpi`, documented as the exact
+physical pixels per inch and not supposed to move when the display-size setting
+does. Some OEMs just echo the density there, so an implausible value (outside
+80-1200 dpi) is rejected and the classification falls back to `smallestScreenWidthDp`
+against the same threshold converted at 160dpi -- 100mm is 630dp. The report says
+which path was taken.
 
 **Unverified caveat.** For an Activity, `Configuration` reflects the *window* in
 multi-window mode rather than the display. Whether an `InputMethodService` sees the
-same has not been confirmed on a device; if it does, using the keyboard beside a
-split-screen app on the inner screen could classify it as small. The purpose-built
-API for fold state is `androidx.window`'s `FoldingFeature` -- the library was
-dropped during the dependency audit because nothing imported it, and it is where to
-go if `smallestScreenWidthDp` turns out not to be enough.
+same has not been confirmed on a device. The purpose-built API for fold state is
+`androidx.window`'s `FoldingFeature` -- the library was dropped during the dependency
+audit because nothing imported it, and it is where to go if the physical measurement
+turns out not to be enough.
 
 Because this is the one thing that can look plainly broken -- a screen classed
 wrongly silently applies the wrong layout -- the profiles screen reports what was
-detected and the numbers behind it. It prefers the values the *keyboard* resolved
-over the settings activity's own, since in multi-window the two Configurations need
-not agree, and when they disagree that is exactly what is worth seeing. The same
-line goes to logcat as `Layout profile: ...` on every resolve.
+detected and every number behind it (mm, dp and px), and prefers the values the
+*keyboard* resolved over the settings activity's own, since in multi-window the two
+Configurations need not agree. The same line goes to logcat as `Layout profile: ...`
+on every resolve.
 
 ### How a setting resolves
 
@@ -63,20 +89,11 @@ gap, and whether the extension row stays up.
 ## What to put in each profile
 
 The layouts differ mainly in how many columns they pack into the width, which is
-what decides whether a key is thumbable. Typical letter-key widths, for a Galaxy
-Z Fold (cover screen 411dp wide; inner screen roughly 673dp portrait / 762dp
-landscape), against Material's 48dp minimum touch target:
+what decides whether a key is thumbable. The physical key-width table above is most
+of the answer:
 
-| layout | columns | cover portrait | cover landscape | inner portrait | inner landscape |
-|---|---|---|---|---|---|
-| `kbd_full`    | 14 | **29dp** | 65dp | 48dp | 54dp |
-| `kbd_compact` | 11 | **37dp** | 83dp | 61dp | 69dp |
-| `kbd_thumb`   | 10 | 41dp | 91dp | 67dp | 76dp |
-
-That table is most of the answer:
-
-**Small portrait (cover screen).** `kbd_full` gives 29dp keys here, which is not a
-thumb target, it is a dare. `kbd_thumb` is the only layout that clears a usable
+**Small portrait (cover screen).** `kbd_full` gives 4.6mm keys here, against a
+fingertip pad of 8-10mm. That is not a thumb target, it is a dare. `kbd_thumb` is the only layout that clears a usable
 width, and it was built for exactly this shape -- a short panel typed on with
 thumbs -- with symbols on the surface so there is no page to flip to, and F-keys
 and arrows on the inline Fn2 layer. Height around 40-45%: the cover screen is very
@@ -87,8 +104,8 @@ becomes one: the panel is only about 411dp tall, so a six-row keyboard at 55%
 leaves roughly 37dp per row. `kbd_full` fits comfortably across the width. Keep
 the split off unless reaching the middle one-handed bothers you.
 
-**Large portrait (inner screen).** `kbd_full` lands exactly on 48dp, so the full
-layout is finally comfortable. Height around 38-42%. This is the first profile
+**Large portrait (inner screen).** `kbd_full` reaches 9.3mm, so the full layout is
+finally comfortable. Height around 38-42%. This is the first profile
 where a small split (10-12%) earns its keep: holding both halves open, the centre
 of the keyboard is past where either thumb reaches.
 
