@@ -458,13 +458,26 @@ class ThorKeyboardHost(
     override fun onKey(primaryCode: Int, keyCodes: IntArray?, x: Int, y: Int) {
         // Modifiers / Fn / injectable keys are handled by onPress + onRelease.
         // Only one-shot action keys act here (they fire once per press).
+        var acted = true
         when (primaryCode) {
             LatinKeyboardView.KEYCODE_CAPS_LOCK -> { caps = !caps; updateIndicators() }
             LatinKeyboardView.KEYCODE_TOGGLE_VN -> onToggleVnRequested?.invoke()
             LatinKeyboardView.KEYCODE_EMOJI -> toggleEmoji()
             Keyboard.KEYCODE_CANCEL -> onHideRequested?.invoke()
-            else -> {}
+            else -> acted = false
         }
+        // These are reached through Fn and do their work once. The Fn lock exists so
+        // Fn+hjkl can repeat without holding the layer down; it is not meant to leave
+        // you on the Fn layer after opening a panel, with the next letter you type
+        // coming out as something else.
+        if (acted) releaseFnLatch()
+    }
+
+    /** Drops a tapped-on Fn layer. A held (finger-down) Fn is momentary and unaffected. */
+    private fun releaseFnLatch() {
+        var changed = false
+        for (m in arrayOf(fn1, fn2)) if (m.latched) { m.latched = false; changed = true }
+        if (changed) syncFn()
     }
 
     override fun onText(text: CharSequence?) {
