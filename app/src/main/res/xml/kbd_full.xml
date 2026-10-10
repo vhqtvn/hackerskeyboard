@@ -78,7 +78,7 @@
         <Key
             android:keyEdgeFlags="left"
             android:keyLabel="@string/key_tlde_main"
-            android:keyWidth="4.5714285%p"
+            android:keyWidth="7.1428571%p"
             android:isRepeatable="true"
             android:fn2Codes="@integer/key_escape"
             android:fn2Label="Esc"
@@ -167,10 +167,11 @@
             android:isRepeatable="true"
             android:keyEdgeFlags="right"
             android:keyLabel="⌫"
-            android:keyWidth="9.7142855%p" />
+            android:keyWidth="7.1428571%p" />
     </Row>
     <Row>
         <Key
+            android:keyWidth="8.9285714%p"
             android:codes="@integer/key_tab"
             android:isRepeatable="true"
             android:iconPreview="@drawable/sym_keyboard_feedback_tab"
@@ -235,6 +236,7 @@
             android:shiftLabel="@string/key_ad12_shift" />
         <Key
             android:keyEdgeFlags="right"
+            android:keyWidth="5.3571429%p"
             android:keyLabel="@string/key_bksl_main"
             android:isRepeatable="true"
             android:shiftLabel="@string/key_bksl_shift" />
@@ -309,15 +311,13 @@
     </Row>
     <Row>
         <Key
+            android:keyWidth="12.5000000%p"
             android:codes="@integer/key_shift_left"
             android:iconPreview="@drawable/sym_keyboard_feedback_shift"
             android:isModifier="true"
             android:isSticky="true"
             android:keyEdgeFlags="left"
             android:keyIcon="@drawable/sym_keyboard_shift" />
-        <Key
-            android:keyLabel="@string/key_lsgt_main"
-            android:shiftLabel="@string/key_lsgt_shift" />
         <Key
             android:keyLabel="@string/key_ab01_main"
             android:isRepeatable="true"
@@ -378,6 +378,7 @@
             android:isRepeatable="true"
             android:keyLabel="&#x25b3;" />
         <Key
+            android:keyWidth="8.9285714%p"
             android:codes="@integer/key_shift_right"
             android:isModifier="true"
             android:isSticky="true"
