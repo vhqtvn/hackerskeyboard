@@ -60,12 +60,13 @@ class ToolPanelView(context: Context, val compact: Boolean) : LinearLayout(conte
         addState(intArrayOf(), ColorDrawable(Color.TRANSPARENT))
     }
 
-    private fun stripButton(label: String, action: () -> Unit) = TextView(context).apply {
+    /** [emoji] buttons carry a glyph, so they need the size a glyph needs to be read. */
+    private fun stripButton(label: String, action: () -> Unit, emoji: Boolean = false) = TextView(context).apply {
         text = label
         gravity = Gravity.CENTER
         setPadding(dp(14f), dp(6f), dp(14f), dp(6f))
         setTextColor(0xFFDDDDDD.toInt())
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, if (emoji) 24f else 16f)
         background = pressable()
         isClickable = true
         setOnClickListener { action() }
@@ -74,16 +75,16 @@ class ToolPanelView(context: Context, val compact: Boolean) : LinearLayout(conte
     private fun buildStrip() {
         strip.removeAllViews()
         tools.forEachIndexed { i, t ->
-            strip.addView(stripButton(t.label) { select(i) }.apply { tag = i })
+            strip.addView(stripButton(t.label, { select(i) }, emoji = true).apply { tag = i })
         }
         // Pushes what follows to the far edge, so the way out is always in the same corner.
         strip.addView(View(context), LayoutParams(0, 1, 1f))
         // With the keys hidden the dock has to offer the two of them it took away.
         if (!compact) {
-            strip.addView(stripButton("⌫") { onBackspace?.invoke() })
-            strip.addView(stripButton("ABC") { onClose?.invoke() })
+            strip.addView(stripButton("⌫", { onBackspace?.invoke() }))
+            strip.addView(stripButton("ABC", { onClose?.invoke() }))
         } else {
-            strip.addView(stripButton("✕") { onClose?.invoke() })
+            strip.addView(stripButton("✕", { onClose?.invoke() }))
         }
     }
 

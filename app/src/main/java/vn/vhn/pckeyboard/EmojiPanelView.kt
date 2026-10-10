@@ -81,8 +81,8 @@ class EmojiPanelView(context: Context, val compact: Boolean) : LinearLayout(cont
     private fun tabView(label: String, index: Int) = TextView(context).apply {
         text = label
         gravity = Gravity.CENTER
-        setPadding(dp(if (compact) 6f else 12f), dp(6f), dp(if (compact) 6f else 12f), dp(6f))
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, if (compact) 14f else 18f)
+        setPadding(dp(if (compact) 8f else 12f), dp(6f), dp(if (compact) 8f else 12f), dp(6f))
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, if (compact) 24f else 28f)
         background = cellBackground()
         isClickable = true
         tag = index
