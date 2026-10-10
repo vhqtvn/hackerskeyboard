@@ -24,7 +24,7 @@ import android.widget.TextView
  * people touch -- see [EmojiRecents].
  */
 @SuppressLint("ViewConstructor")
-class EmojiPanelView(context: Context) : LinearLayout(context) {
+class EmojiPanelView(context: Context, val compact: Boolean) : LinearLayout(context) {
 
     /** Commit this emoji into the field. */
     var onEmoji: ((String) -> Unit)? = null
@@ -55,7 +55,7 @@ class EmojiPanelView(context: Context) : LinearLayout(context) {
 
         grid = GridView(context).apply {
             numColumns = GridView.AUTO_FIT
-            columnWidth = dp(44f)
+            columnWidth = dp(if (compact) 38f else 44f)
             stretchMode = GridView.STRETCH_COLUMN_WIDTH
             verticalSpacing = 0
             horizontalSpacing = 0
@@ -66,7 +66,11 @@ class EmojiPanelView(context: Context) : LinearLayout(context) {
         // so the panel always fills exactly the keyboard's height.
         addView(grid, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
-        addView(bottomBar(), LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        // In the gap the keys are still there beside it, so its own ABC and backspace
+        // would only be repeating what the keyboard already offers two centimetres away.
+        if (!compact) {
+            addView(bottomBar(), LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        }
         buildTabs()
         // Recents is the right tab to land on -- except the first time, when it is empty
         // and the panel would open on a blank grid.
@@ -88,8 +92,8 @@ class EmojiPanelView(context: Context) : LinearLayout(context) {
     private fun tabView(label: String, index: Int) = TextView(context).apply {
         text = label
         gravity = Gravity.CENTER
-        setPadding(dp(12f), dp(8f), dp(12f), dp(8f))
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+        setPadding(dp(if (compact) 6f else 12f), dp(6f), dp(if (compact) 6f else 12f), dp(6f))
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, if (compact) 14f else 18f)
         background = cellBackground()
         isClickable = true
         tag = index
@@ -139,8 +143,8 @@ class EmojiPanelView(context: Context) : LinearLayout(context) {
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             val tv = convertView as? TextView ?: TextView(context).apply {
                 gravity = Gravity.CENTER
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
-                height = dp(44f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, if (compact) 20f else 24f)
+                height = dp(if (compact) 38f else 44f)
                 background = cellBackground()
                 isClickable = true
             }

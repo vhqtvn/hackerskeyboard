@@ -1559,6 +1559,51 @@ open class Keyboard @JvmOverloads constructor(
         }
     }
 
+    /**
+     * The rectangle of empty panel left down the middle by the split, in key coordinates,
+     * or null when there is no usable one.
+     *
+     * Each row opens at its own boundary, so the halves are ragged and the rectangle
+     * common to every row is narrower than any single row's gap. Rows whose gap is too
+     * small to be the split are skipped rather than allowed to veto it: the bottom row
+     * has none at all, because a key wide enough to span the middle is stretched across
+     * it instead (the space bar), and the padding around the letter block opens gaps of
+     * its own that are an order of magnitude smaller.
+     */
+    fun splitGapRect(): android.graphics.Rect? {
+        val allKeys = mKeys?.filterNotNull() ?: return null
+        if (allKeys.isEmpty()) return null
+        // Comfortably wider than the padding around the letter block (5% at most) and
+        // narrower than a split worth putting anything in.
+        val minGap = (mDefaultWidth * 3).toInt()
+        var left = Int.MIN_VALUE
+        var right = Int.MAX_VALUE
+        var top = Int.MAX_VALUE
+        var bottom = Int.MIN_VALUE
+        var rows = 0
+        for ((_, rowKeys) in allKeys.groupBy { it.y }) {
+            val sorted = rowKeys.sortedBy { it.x }
+            var best = 0
+            var bestLeft = 0
+            var bestRight = 0
+            for (i in 0 until sorted.size - 1) {
+                val gapLeft = sorted[i].x + sorted[i].width
+                val gapRight = sorted[i + 1].x
+                if (gapRight - gapLeft > best) {
+                    best = gapRight - gapLeft; bestLeft = gapLeft; bestRight = gapRight
+                }
+            }
+            if (best < minGap) continue
+            left = Math.max(left, bestLeft)
+            right = Math.min(right, bestRight)
+            top = Math.min(top, sorted[0].y)
+            bottom = Math.max(bottom, sorted[0].y + sorted[0].height)
+            rows++
+        }
+        if (rows < 2 || right - left < minGap) return null
+        return android.graphics.Rect(left, top, right, bottom)
+    }
+
     fun setKeyboardWidth(newWidth: Int) {
         Log.i(TAG, "setKeyboardWidth newWidth=" + newWidth + ", mTotalWidth=" + minWidth)
         if (newWidth <= 0) return  // view not initialized?

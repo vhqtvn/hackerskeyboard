@@ -1369,7 +1369,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             }
             LatinKeyboardView.KEYCODE_EMOJI -> {
                 handleFNModifierKeysUp(false)
-                showEmojiPanel()
+                if (isEmojiPanelShowing) hideEmojiPanel() else showEmojiPanel()
             }
             LatinKeyboardView.KEYCODE_IME_PICKER -> {
                 handleFNModifierKeysUp(false)
@@ -2321,9 +2321,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     private var mEmojiPanel: EmojiPanelView? = null
 
     /**
-     * Swaps the keys for the emoji picker inside the same window, so the app above does
-     * not reflow: the panel is given the key view's exact height and the key view is
-     * hidden behind it rather than removed.
+     * Opens the emoji picker, preferring the empty panel a split keyboard leaves down the
+     * middle: there it sits beside the keys instead of replacing them, so a word can be
+     * finished without closing it. Where that gap is missing or too small -- an unsplit
+     * keyboard, a narrow screen -- it falls back to taking the keys' place, given their
+     * exact height so the app above never reflows.
      */
     private fun showEmojiPanel() {
         val container = mKeyboardSwitcher.rootView ?: return
@@ -2331,24 +2333,52 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         if (keys.height <= 0) return     // not laid out yet; nothing to match
         // A Vietnamese word still being composed would otherwise swallow the emoji.
         vnFinishWord()
-        val panel = mEmojiPanel ?: EmojiPanelView(this).also {
+        val gap = usableSplitGap(keys)
+        val panel = emojiPanel(gap != null)
+        if (panel.parent !== container) {
+            (panel.parent as? android.view.ViewGroup)?.removeView(panel)
+            container.addView(panel, android.widget.FrameLayout.LayoutParams(0, 0))
+        }
+        val lp = panel.layoutParams as android.widget.FrameLayout.LayoutParams
+        if (gap != null) {
+            lp.width = gap.width(); lp.height = gap.height()
+            lp.leftMargin = gap.left; lp.topMargin = gap.top
+            keys.visibility = View.VISIBLE
+        } else {
+            lp.width = android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+            lp.height = keys.height
+            lp.leftMargin = 0; lp.topMargin = 0
+            keys.visibility = View.INVISIBLE
+        }
+        panel.layoutParams = lp
+        panel.visibility = View.VISIBLE
+    }
+
+    /**
+     * The split's gap in container coordinates, or null if it cannot hold a picker worth
+     * opening. The keys' own rectangle is in keyboard coordinates, so it has to be moved
+     * by the view's padding and by where the view sits in the container.
+     */
+    private fun usableSplitGap(keys: LatinKeyboardView): android.graphics.Rect? {
+        val rect = keys.getKeyboard()?.splitGapRect() ?: return null
+        rect.offset(keys.paddingLeft + keys.left, keys.paddingTop + keys.top)
+        val cell = (38 * resources.displayMetrics.density).toInt()
+        // Five across and three down, plus the tab strip: below that the grid holds too
+        // little to be quicker than the full panel.
+        if (rect.width() < cell * 5 || rect.height() < cell * 4) return null
+        return rect
+    }
+
+    /** The panel for a given mode; the two differ enough in layout to be separate views. */
+    private fun emojiPanel(compact: Boolean): EmojiPanelView {
+        mEmojiPanel?.let { if (it.compact == compact) return it
+            (it.parent as? android.view.ViewGroup)?.removeView(it) }
+        return EmojiPanelView(this, compact).also {
             it.onEmoji = { e -> currentInputConnection?.commitText(e, 1) }
             it.onBackspace = { handleBackspace() }
             it.onClose = { hideEmojiPanel() }
             mEmojiPanel = it
         }
-        // The input view is rebuilt on rotation and on a settings change, which leaves
-        // the panel attached to a container that is no longer on screen.
-        if (panel.parent !== container) {
-            (panel.parent as? android.view.ViewGroup)?.removeView(panel)
-            container.addView(panel, android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT, keys.height))
-        } else {
-            panel.layoutParams.height = keys.height
-            panel.requestLayout()
-        }
-        panel.visibility = View.VISIBLE
-        keys.visibility = View.INVISIBLE
     }
 
     private fun hideEmojiPanel() {
@@ -2356,8 +2386,16 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mKeyboardSwitcher.inputView?.visibility = View.VISIBLE
     }
 
+    /**
+     * Attached as well as visible: rotating or changing a setting rebuilds the input view,
+     * which leaves the old panel visible but orphaned on a container that is off screen.
+     * Without the parent check the key would report it as open and take two presses to
+     * bring back.
+     */
     private val isEmojiPanelShowing: Boolean
-        get() = mEmojiPanel?.visibility == View.VISIBLE
+        get() = mEmojiPanel?.let {
+            it.visibility == View.VISIBLE && it.parent === mKeyboardSwitcher.rootView
+        } ?: false
 
     /**
      * Shows the clipboard history and pastes whatever is picked.
