@@ -19,6 +19,7 @@ import vn.vhn.pckeyboard.LatinKeyboardView
 import vn.vhn.pckeyboard.R
 import vn.vhn.pckeyboard.Unikey
 import vn.vhn.pckeyboard.ToolPanelView
+import vn.vhn.pckeyboard.ClipboardPanelView
 import vn.vhn.pckeyboard.EmojiPanelView
 import vn.vhn.pckeyboard.VnComposer
 
@@ -216,6 +217,7 @@ class ThorKeyboardHost(
     private fun isActionCode(c: Int): Boolean = when (c) {
         LatinKeyboardView.KEYCODE_CAPS_LOCK, Keyboard.KEYCODE_CANCEL,
         LatinKeyboardView.KEYCODE_TOGGLE_VN, LatinKeyboardView.KEYCODE_EMOJI,
+        LatinKeyboardView.KEYCODE_CLIPBOARD,
         Keyboard.KEYCODE_MODE_CHANGE, Keyboard.KEYCODE_STICK, Keyboard.KEYCODE_NOIME,
         LatinKeyboardView.KEYCODE_ORIENTATION_LOCK, LatinKeyboardView.KEYCODE_OPTIONS,
         LatinKeyboardView.KEYCODE_OPTIONS_LONGPRESS, LatinKeyboardView.KEYCODE_FULLSCREEN_DUAL -> true
@@ -271,26 +273,46 @@ class ThorKeyboardHost(
     // so the dock stays shut rather than opening onto a dead end.
     private var toolPanel: ToolPanelView? = null
 
-    private fun toggleEmoji() {
-        if (toolPanel?.visibility == View.VISIBLE) { hideTools(); return }
+    /**
+     * The key for a tool opens the dock on it, switches to it when the dock is open on
+     * the other, and closes the dock when it is already the one showing.
+     */
+    private fun toggleTool(tool: Int) {
+        if (toolPanel?.visibility == View.VISIBLE) {
+            if (toolPanel?.active == tool) hideTools() else toolPanel?.select(tool)
+            return
+        }
         if (currentIc() == null) return
-        vnComposer.reset(currentIc())   // a half-composed word would swallow the emoji
+        vnComposer.reset(currentIc())   // a half-composed word would swallow what follows
         val panel = toolPanel ?: ToolPanelView(rootView.context, compact = false).also {
             it.onClose = { hideTools() }
             it.onBackspace = { InputInjector.injectAndroidKey(KeyEvent.KEYCODE_DEL, 0) }
-            it.setTools(listOf(ToolPanelView.Tool("\uD83D\uDE00") { ctx ->
-                EmojiPanelView(ctx, compact = false).also { grid ->
-                    grid.onEmoji = { e -> currentIc()?.commitText(e, 1) }
+            it.setTools(listOf(
+                ToolPanelView.Tool("\uD83D\uDE00") { ctx ->
+                    EmojiPanelView(ctx, compact = false).also { grid ->
+                        grid.onEmoji = { e -> currentIc()?.commitText(e, 1) }
+                    }
+                },
+                ToolPanelView.Tool("\uD83D\uDCCB") { ctx ->
+                    ClipboardPanelView(ctx).also { clips ->
+                        clips.onPaste = { text -> currentIc()?.commitText(text, 1) }
+                    }
                 }
-            }))
+            ))
             rootView.addView(it, android.widget.FrameLayout.LayoutParams(
                 android.widget.FrameLayout.LayoutParams.MATCH_PARENT, inputView.height))
             toolPanel = it
         }
         panel.layoutParams.height = inputView.height
         panel.requestLayout()
+        panel.select(tool)
         panel.visibility = View.VISIBLE
         inputView.visibility = View.INVISIBLE
+    }
+
+    private companion object {
+        const val TOOL_EMOJI = 0
+        const val TOOL_CLIPBOARD = 1
     }
 
     private fun hideTools() {
@@ -462,7 +484,8 @@ class ThorKeyboardHost(
         when (primaryCode) {
             LatinKeyboardView.KEYCODE_CAPS_LOCK -> { caps = !caps; updateIndicators() }
             LatinKeyboardView.KEYCODE_TOGGLE_VN -> onToggleVnRequested?.invoke()
-            LatinKeyboardView.KEYCODE_EMOJI -> toggleEmoji()
+            LatinKeyboardView.KEYCODE_EMOJI -> toggleTool(TOOL_EMOJI)
+            LatinKeyboardView.KEYCODE_CLIPBOARD -> toggleTool(TOOL_CLIPBOARD)
             Keyboard.KEYCODE_CANCEL -> onHideRequested?.invoke()
             else -> acted = false
         }
