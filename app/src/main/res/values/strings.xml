@@ -278,6 +278,8 @@
     <string name="title_hide_ime_nav_bar">Hide the system keyboard bar</string>
     <string name="summary_hide_ime_nav_bar">Removes the strip below the keyboard holding the keyboard-switcher and back buttons, and gives the space back to the app above.</string>
 
+    <string name="title_color_code_keys">Outlined keys</string>
+    <string name="summary_color_code_keys">Draw each key as an unlit body with a rounded, coloured outline instead of a filled block — modifiers blue, edit and navigation gold, digits and symbols cool grey, letters plain. The AYN Thor deck always looks like this.</string>
     <string name="title_hint_mode">Labeled alternate keys</string>
     <string-array name="hint_modes">
         <item>Hide hint labels</item>

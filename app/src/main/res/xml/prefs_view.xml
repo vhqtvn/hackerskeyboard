@@ -29,6 +29,13 @@
             android:defaultValue="false"
             android:persistent="true" />
 
+        <CheckBoxPreference
+            android:key="pref_color_code_keys"
+            android:title="@string/title_color_code_keys"
+            android:summary="@string/summary_color_code_keys"
+            android:defaultValue="false"
+            android:persistent="true" />
+
         <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:defaultValue="@string/default_hint_mode"
             android:entries="@array/hint_modes"

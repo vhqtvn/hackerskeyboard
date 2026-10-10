@@ -155,7 +155,9 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
     // group-coloured rounded border, so they read as separate blocks without any
     // lit background. The active-modifier indicator is a faint body + brighter
     // border (subtle, not a full-button flood).
-    var colorCodeKeys = false
+    // The Thor deck turns this on explicitly after inflating; everywhere else it
+    // follows the preference, and the view is recreated when that changes.
+    var colorCodeKeys = LatinIME.Companion.sKeyboardSettings.colorCodeKeys
     private val mKeyFillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         style = android.graphics.Paint.Style.FILL
     }

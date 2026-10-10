@@ -109,6 +109,10 @@ class GlobalKeyboardSettings {
     var hintMode = 0
     var renderMode = 1
 
+    // Draw keys the way the Thor deck does: a true-black body with a rounded,
+    // group-coloured border instead of a filled key background.
+    var colorCodeKeys = false
+
     //
     // Read by PointerTracker
     var longpressTimeout = 400
@@ -317,6 +321,19 @@ class GlobalKeyboardSettings {
         addBooleanPref("pref_hide_ime_nav_bar", object : BooleanPref {
             override fun set(`val`: Boolean) {
                 hideImeNavBar = `val`
+            }
+
+            override fun getDefault(): Boolean {
+                return false
+            }
+
+            override fun getFlags(): Int {
+                return FLAG_PREF_RECREATE_INPUT_VIEW
+            }
+        })
+        addBooleanPref("pref_color_code_keys", object : BooleanPref {
+            override fun set(`val`: Boolean) {
+                colorCodeKeys = `val`
             }
 
             override fun getDefault(): Boolean {
