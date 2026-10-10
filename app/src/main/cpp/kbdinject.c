@@ -361,9 +361,15 @@ static void gamepad_session(void) {
         usleep(1500000); return;
     }
 
+    /* The tick only runs while a stick is off centre. Left free-running it woke the CPU
+     * 63 times a second for as long as gamepad mode was on -- measured on the device, and
+     * all but a handful of those ticks found both sticks at rest and did nothing. A stick
+     * that moves wakes us through the pad's own fd, which is what arms the clock again. */
     int tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
-    struct itimerspec its = {.it_interval = {0, TICK_MS * 1000000}, .it_value = {0, TICK_MS * 1000000}};
-    timerfd_settime(tfd, 0, &its, NULL);
+    const struct itimerspec tick_on = {
+        .it_interval = {0, TICK_MS * 1000000}, .it_value = {0, TICK_MS * 1000000} };
+    const struct itimerspec tick_off = { .it_interval = {0, 0}, .it_value = {0, 0} };
+    int ticking = 0;
     int ep = epoll_create(2);
     struct epoll_event ev;
     ev.events = EPOLLIN; ev.data.fd = gp; epoll_ctl(ep, EPOLL_CTL_ADD, gp, &ev);
@@ -382,10 +388,20 @@ static void gamepad_session(void) {
                 if (read(gp, &ie, sizeof(ie)) != sizeof(ie)) { disc = 1; break; }
                 if (ie.type == EV_ABS) {
                     switch (ie.code) {
-                        case ABS_X:  left_x = ie.value;  emit(proxy, EV_ABS, ABS_X, 0);  break;
-                        case ABS_Y:  left_y = ie.value;  emit(proxy, EV_ABS, ABS_Y, 0);  break;
-                        case ABS_Z:  right_x = ie.value; emit(proxy, EV_ABS, ABS_Z, 0);  break;
-                        case ABS_RZ: right_y = ie.value; emit(proxy, EV_ABS, ABS_RZ, 0); break;
+                        /* Any stick movement starts the clock; the tick itself decides when
+                         * to stop, so that the last one still reports the sticks at rest. */
+                        case ABS_X:  left_x = ie.value;  emit(proxy, EV_ABS, ABS_X, 0);
+                                     if (!ticking) { timerfd_settime(tfd, 0, &tick_on, NULL); ticking = 1; }
+                                     break;
+                        case ABS_Y:  left_y = ie.value;  emit(proxy, EV_ABS, ABS_Y, 0);
+                                     if (!ticking) { timerfd_settime(tfd, 0, &tick_on, NULL); ticking = 1; }
+                                     break;
+                        case ABS_Z:  right_x = ie.value; emit(proxy, EV_ABS, ABS_Z, 0);
+                                     if (!ticking) { timerfd_settime(tfd, 0, &tick_on, NULL); ticking = 1; }
+                                     break;
+                        case ABS_RZ: right_y = ie.value; emit(proxy, EV_ABS, ABS_RZ, 0);
+                                     if (!ticking) { timerfd_settime(tfd, 0, &tick_on, NULL); ticking = 1; }
+                                     break;
                         /* D-pad -> arrow keys routed through the app (so deck modifiers
                          * apply, e.g. Shift + D-pad = select). Not forwarded to proxy. */
                         case ABS_HAT0X:
@@ -429,6 +445,13 @@ static void gamepad_session(void) {
                     last_vlevel = vlevel; last_hlevel = hlevel;
                     printf("GS %d %d\n", vlevel, hlevel);
                     fflush(stdout);
+                }
+                /* Everything back at rest, and the zero levels above have been reported:
+                 * stop the clock. Stopping on the tick rather than when the stick centres
+                 * is what guarantees that last "GS 0 0" goes out. */
+                if (!dx && !dy && !vlevel && !hlevel) {
+                    timerfd_settime(tfd, 0, &tick_off, NULL);
+                    ticking = 0;
                 }
             }
         }
