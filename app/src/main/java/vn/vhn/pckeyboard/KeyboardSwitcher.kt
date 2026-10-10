@@ -16,6 +16,7 @@
 package vn.vhn.pckeyboard
 
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.preference.PreferenceManager
 import android.util.*
@@ -407,6 +408,15 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
                 setExtensionLayoutResId(THEMES[newLayout])
                 setOnKeyboardActionListener(mInputMethodService)
                 setPadding(0, 0, 0, 0)
+            }
+            // Outlined keys draw an unlit body, which only pays off against an unlit
+            // backdrop. The "black" theme's background is #2B2B2B, so without this the
+            // keys are the only part of the panel an OLED actually turns off. Both
+            // layers carry the drawable -- the container was given one so its gesture
+            // inset would not show the app through -- so both have to go black.
+            if (LatinIME.Companion.sKeyboardSettings.colorCodeKeys) {
+                rootView!!.setBackgroundColor(Color.BLACK)
+                inputView!!.setBackgroundColor(Color.BLACK)
             }
             mLayoutId = newLayout
         }
