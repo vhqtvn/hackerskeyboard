@@ -1365,11 +1365,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             }
             LatinKeyboardView.KEYCODE_CLIPBOARD -> {
                 handleFNModifierKeysUp(false)
-                if (!isShowingOptionDialog) showClipboardHistory()
+                toggleTool(TOOL_CLIPBOARD)
             }
             LatinKeyboardView.KEYCODE_EMOJI -> {
                 handleFNModifierKeysUp(false)
-                if (isEmojiPanelShowing) hideEmojiPanel() else showEmojiPanel()
+                toggleTool(TOOL_EMOJI)
             }
             LatinKeyboardView.KEYCODE_IME_PICKER -> {
                 handleFNModifierKeysUp(false)
@@ -2329,8 +2329,19 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             EmojiPanelView(ctx, compact).also { panel ->
                 panel.onEmoji = { e -> currentInputConnection?.commitText(e, 1) }
             }
+        },
+        ToolPanelView.Tool("\uD83D\uDCCB") { ctx ->
+            ClipboardPanelView(ctx).also { panel ->
+                panel.onPaste = { text ->
+                    // Ends any Vietnamese word first, so the pasted text is not swallowed
+                    // into the composing region.
+                    vnFinishWord()
+                    currentInputConnection?.commitText(text, 1)
+                }
+            }
         }
     )
+
 
     /**
      * Opens the emoji picker, preferring the empty panel a split keyboard leaves down the
@@ -2339,7 +2350,20 @@ class LatinIME : InputMethodService(), ComposeSequencing,
      * keyboard, a narrow screen -- it falls back to taking the keys' place, given their
      * exact height so the app above never reflows.
      */
-    private fun showEmojiPanel() {
+    /**
+     * The key for a tool opens the dock on it, switches to it if the dock is already
+     * open on something else, and closes the dock if it is the one showing.
+     */
+    private fun toggleTool(tool: Int) {
+        if (isEmojiPanelShowing) {
+            if (mToolPanel?.active == tool) { hideEmojiPanel(); return }
+            mToolPanel?.select(tool)
+            return
+        }
+        showEmojiPanel(tool)
+    }
+
+    private fun showEmojiPanel(tool: Int = TOOL_EMOJI) {
         val container = mKeyboardSwitcher.rootView ?: return
         val keys = mKeyboardSwitcher.inputView ?: return
         if (keys.height <= 0) return     // not laid out yet; nothing to match
@@ -2363,6 +2387,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             keys.visibility = View.INVISIBLE
         }
         panel.layoutParams = lp
+        panel.select(tool)
         panel.visibility = View.VISIBLE
     }
 
@@ -2408,56 +2433,6 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         get() = mToolPanel?.let {
             it.visibility == View.VISIBLE && it.parent === mKeyboardSwitcher.rootView
         } ?: false
-
-    /**
-     * Shows the clipboard history and pastes whatever is picked.
-     *
-     * Attached to the input view's window the same way as the options menu: an IME has
-     * no activity of its own, so a dialog has to borrow the keyboard's window token and
-     * stay out of the IME's own focus handling (FLAG_ALT_FOCUSABLE_IM).
-     */
-    private fun showClipboardHistory() {
-        // The clipboard may have changed since the keyboard opened on this field.
-        ClipboardHistory.capture(this)
-        val history = ClipboardHistory.entries(this)
-        if (history.isEmpty()) {
-            Toast.makeText(applicationContext, R.string.clipboard_empty, Toast.LENGTH_SHORT)
-                .show()
-            return
-        }
-        val labels = history.map { summarize(it) }.toMutableList<CharSequence>()
-        labels.add(getString(R.string.clipboard_clear))
-        val builder = AlertDialog.Builder(this)
-        builder.setCancelable(true)
-        builder.setTitle(R.string.clipboard_title)
-        builder.setNegativeButton(android.R.string.cancel, null)
-        builder.setItems(labels.toTypedArray()) { dialog, position ->
-            dialog.dismiss()
-            if (position == history.size) {
-                ClipboardHistory.clear(this)
-            } else {
-                // Ends any Vietnamese word first, so the pasted text is not swallowed
-                // into the composing region.
-                vnFinishWord()
-                currentInputConnection?.commitText(history[position], 1)
-            }
-        }
-        mOptionsDialog = builder.create()
-        val window = mOptionsDialog!!.window
-        val lp = window!!.attributes
-        lp.token = mKeyboardSwitcher.inputView!!.windowToken
-        lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
-        window.attributes = lp
-        window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
-        mOptionsDialog!!.show()
-    }
-
-    /** One line of a clipboard entry, with newlines flattened so rows stay even. */
-    private fun summarize(text: String): CharSequence {
-        val flat = text.replace(Regex("\\s+"), " ").trim()
-        return if (flat.length <= CLIPBOARD_SUMMARY_LENGTH) flat
-        else flat.substring(0, CLIPBOARD_SUMMARY_LENGTH) + "\u2026"
-    }
 
     private fun showOptionsMenu() {
         val builder = AlertDialog.Builder(this)
@@ -2533,6 +2508,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         const val PREF_VOL_DOWN = "pref_vol_down"
         const val PREF_VN_ENABLED = "pref_vn_enabled"
 
+        /** Index into the list ToolPanelView is given; see LatinIME.toolsFor. */
+        const val TOOL_EMOJI = 0
+        const val TOOL_CLIPBOARD = 1
+
         // Base keys for the per-profile overrides; see KeyboardProfile.
         const val PREF_HEIGHT = "settings_height"
         const val PREF_KEYBOARD_MODE = "pref_keyboard_mode"
@@ -2549,7 +2528,6 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         const val MIN_HEIGHT_PERCENT = 15
         const val MAX_HEIGHT_PERCENT = 75
         const val MAX_SPLIT_GAP_PERCENT = 60
-        private const val CLIPBOARD_SUMMARY_LENGTH = 60
 
         // How many continuous deletes at which to start deleting at a higher speed.
         private const val DELETE_ACCELERATE_AT = 20

@@ -37,7 +37,10 @@ class ToolPanelView(context: Context, val compact: Boolean) : LinearLayout(conte
     private val content = FrameLayout(context)
     private val built = HashMap<Int, View>()
     private var tools: List<Tool> = emptyList()
-    private var active = -1
+
+    /** Which tool is showing, so the key that opened it knows whether to close it. */
+    var active = -1
+        private set
 
     private fun dp(v: Float) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP, v, resources.displayMetrics).toInt()
@@ -88,7 +91,8 @@ class ToolPanelView(context: Context, val compact: Boolean) : LinearLayout(conte
         }
     }
 
-    private fun select(index: Int) {
+    /** Shows a tool, building it if this is the first time. */
+    fun select(index: Int) {
         if (index !in tools.indices) return
         active = index
         for (i in 0 until strip.childCount) {
@@ -96,6 +100,9 @@ class ToolPanelView(context: Context, val compact: Boolean) : LinearLayout(conte
             if (child.tag is Int) child.alpha = if (child.tag == index) 1f else 0.45f
         }
         val view = built.getOrPut(index) { tools[index].create(context) }
+        // The clipboard can only be read while the keyboard has focus, so a tool that
+        // samples something has to be told it is back on screen, not just built once.
+        (view as? ClipboardPanelView)?.refresh()
         content.removeAllViews()
         content.addView(view, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
