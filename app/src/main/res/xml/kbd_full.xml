@@ -423,11 +423,17 @@
             android:isModifier="true"
             android:isSticky="true"
             android:keyLabel="Alt" />
+        <!-- Fn2 on the right half as well. Split in two, the left-hand Fn2 is unreachable
+             while the same thumb has to press a left-hand key, which is most of what Fn2
+             is for. It takes Meta's place rather than Ctrl's or Alt's: those two are the
+             ones whose chords land on left-hand letters (Ctrl+A/S/Z/X/C/V, Alt+Tab),
+             so a right-hand copy of them earns its keycap, while Meta's shortcuts do not
+             need one and the left-hand Meta is still there. -->
         <Key
-            android:codes="@integer/key_meta_right"
+            android:codes="@integer/key_fn_2"
             android:isModifier="true"
             android:isSticky="true"
-            android:keyLabel="&#x2756;" />
+            android:keyLabel="Fn" />
         <Key
             android:codes="@integer/key_ctrl_right"
             android:isModifier="true"
