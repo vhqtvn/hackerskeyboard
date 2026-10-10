@@ -2317,8 +2317,20 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mDeadKeysActive = mLanguageSwitcher!!.allowDeadKeys()
     }
 
-    // --- emoji -----------------------------------------------------------------
-    private var mEmojiPanel: EmojiPanelView? = null
+    // --- tool dock (emoji today, more later) -------------------------------------
+    private var mToolPanel: ToolPanelView? = null
+
+    /**
+     * What the dock can show. One entry per tool; its view is built the first time the
+     * tool is picked and kept for as long as the dock lives.
+     */
+    private fun toolsFor(compact: Boolean) = listOf(
+        ToolPanelView.Tool("\uD83D\uDE00") { ctx ->
+            EmojiPanelView(ctx, compact).also { panel ->
+                panel.onEmoji = { e -> currentInputConnection?.commitText(e, 1) }
+            }
+        }
+    )
 
     /**
      * Opens the emoji picker, preferring the empty panel a split keyboard leaves down the
@@ -2334,7 +2346,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         // A Vietnamese word still being composed would otherwise swallow the emoji.
         vnFinishWord()
         val gap = usableSplitGap(keys)
-        val panel = emojiPanel(gap != null)
+        val panel = toolPanel(gap != null)
         if (panel.parent !== container) {
             (panel.parent as? android.view.ViewGroup)?.removeView(panel)
             container.addView(panel, android.widget.FrameLayout.LayoutParams(0, 0))
@@ -2369,20 +2381,20 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         return rect
     }
 
-    /** The panel for a given mode; the two differ enough in layout to be separate views. */
-    private fun emojiPanel(compact: Boolean): EmojiPanelView {
-        mEmojiPanel?.let { if (it.compact == compact) return it
+    /** The dock for a given mode; the two differ enough in layout to be separate views. */
+    private fun toolPanel(compact: Boolean): ToolPanelView {
+        mToolPanel?.let { if (it.compact == compact) return it
             (it.parent as? android.view.ViewGroup)?.removeView(it) }
-        return EmojiPanelView(this, compact).also {
-            it.onEmoji = { e -> currentInputConnection?.commitText(e, 1) }
+        return ToolPanelView(this, compact).also {
             it.onBackspace = { handleBackspace() }
             it.onClose = { hideEmojiPanel() }
-            mEmojiPanel = it
+            it.setTools(toolsFor(compact))
+            mToolPanel = it
         }
     }
 
     private fun hideEmojiPanel() {
-        mEmojiPanel?.visibility = View.GONE
+        mToolPanel?.visibility = View.GONE
         mKeyboardSwitcher.inputView?.visibility = View.VISIBLE
     }
 
@@ -2393,7 +2405,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
      * bring back.
      */
     private val isEmojiPanelShowing: Boolean
-        get() = mEmojiPanel?.let {
+        get() = mToolPanel?.let {
             it.visibility == View.VISIBLE && it.parent === mKeyboardSwitcher.rootView
         } ?: false
 

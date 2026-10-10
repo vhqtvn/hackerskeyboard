@@ -29,12 +29,6 @@ class EmojiPanelView(context: Context, val compact: Boolean) : LinearLayout(cont
     /** Commit this emoji into the field. */
     var onEmoji: ((String) -> Unit)? = null
 
-    /** Delete backwards, same as the keyboard's own backspace. */
-    var onBackspace: (() -> Unit)? = null
-
-    /** Dismiss the panel and bring the letters back. */
-    var onClose: (() -> Unit)? = null
-
     private val grid: GridView
     private val tabStrip: LinearLayout
     private val groups = EmojiData.groups(context)
@@ -55,7 +49,7 @@ class EmojiPanelView(context: Context, val compact: Boolean) : LinearLayout(cont
 
         grid = GridView(context).apply {
             numColumns = GridView.AUTO_FIT
-            columnWidth = dp(if (compact) 38f else 44f)
+            columnWidth = dp(if (compact) 52f else 58f)
             stretchMode = GridView.STRETCH_COLUMN_WIDTH
             verticalSpacing = 0
             horizontalSpacing = 0
@@ -66,11 +60,6 @@ class EmojiPanelView(context: Context, val compact: Boolean) : LinearLayout(cont
         // so the panel always fills exactly the keyboard's height.
         addView(grid, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
-        // In the gap the keys are still there beside it, so its own ABC and backspace
-        // would only be repeating what the keyboard already offers two centimetres away.
-        if (!compact) {
-            addView(bottomBar(), LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
-        }
         buildTabs()
         // Recents is the right tab to land on -- except the first time, when it is empty
         // and the panel would open on a blank grid.
@@ -100,25 +89,6 @@ class EmojiPanelView(context: Context, val compact: Boolean) : LinearLayout(cont
         setOnClickListener { select(index) }
     }
 
-    private fun bottomBar() = LinearLayout(context).apply {
-        orientation = HORIZONTAL
-        addView(barButton("ABC") { onClose?.invoke() },
-            LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        addView(barButton("⌫") { onBackspace?.invoke() },
-            LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-    }
-
-    private fun barButton(label: String, action: () -> Unit) = TextView(context).apply {
-        text = label
-        gravity = Gravity.CENTER
-        setPadding(0, dp(10f), 0, dp(10f))
-        setTextColor(0xFFDDDDDD.toInt())
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-        background = cellBackground()
-        isClickable = true
-        setOnClickListener { action() }
-    }
-
     private fun select(index: Int) {
         current = index
         for (i in 0 until tabStrip.childCount) {
@@ -143,8 +113,8 @@ class EmojiPanelView(context: Context, val compact: Boolean) : LinearLayout(cont
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             val tv = convertView as? TextView ?: TextView(context).apply {
                 gravity = Gravity.CENTER
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, if (compact) 20f else 24f)
-                height = dp(if (compact) 38f else 44f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, if (compact) 28f else 32f)
+                height = dp(if (compact) 52f else 58f)
                 background = cellBackground()
                 isClickable = true
             }
