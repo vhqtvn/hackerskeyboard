@@ -53,4 +53,8 @@
     <color name="key_hint_letter_color_material_light">#B337474F</color>
     <color name="key_fn1_letter_color_material_light">#80FF0000</color>
     <color name="key_fn2_letter_color_material_light">#8000FF00</color>
+
+    <!-- Settings: near-black to sit beside the keyboard rather than glare next to it. -->
+    <color name="settings_background">#FF101010</color>
+    <color name="settings_accent">#FF7FD4FF</color>
 </resources>

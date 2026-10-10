@@ -45,41 +45,36 @@
             android:persistent="true"
             />
 
-    <PreferenceScreen
+    <Preference
+            android:fragment="vn.vhn.pckeyboard.PrefScreenView"
             android:title="@string/pref_screen_view_title"
-            android:summary="@string/pref_screen_view_title_summary">
-        <intent android:action="vn.vhn.pckeyboard.PREFS_VIEW"/>
-    </PreferenceScreen>
+            android:summary="@string/pref_screen_view_title_summary" />
 
-    <PreferenceScreen
+    <Preference
+            android:fragment="vn.vhn.pckeyboard.PrefScreenProfiles"
             android:title="@string/pref_screen_profiles_title"
-            android:summary="@string/pref_screen_profiles_summary">
-        <intent android:action="vn.vhn.pckeyboard.PREFS_PROFILES"/>
-    </PreferenceScreen>
+            android:summary="@string/pref_screen_profiles_summary" />
 
     </PreferenceCategory>
+
+    <!-- Voice input and the language picker are commented out rather than deleted: unused
+         here, but the code behind both is still in the tree, so either comes back by
+         uncommenting. The category that held them goes too, having nothing else in it.
 
     <PreferenceCategory
             android:title="@string/title_key_layout_options"
             android:key="layout_settings">
-
-    <ListPreference
-            android:key="voice_mode"
-            android:title="@string/voice_input"
-            android:persistent="true"
-            android:entryValues="@array/voice_input_modes_values"
-            android:entries="@array/voice_input_modes"
-            android:defaultValue="@string/voice_mode_symbols"
-            />
-
-    <PreferenceScreen
-            android:title="@string/language_selection_title"
-            android:summary="@string/language_selection_summary">
-        <intent
-                android:action="vn.vhn.pckeyboard.INPUT_LANGUAGE_SELECTION"/>
-    </PreferenceScreen>
+        <ListPreference
+                android:key="voice_mode"
+                android:title="@string/voice_input"
+                android:entries="@array/voice_input_modes"
+                android:entryValues="@array/voice_input_modes_values"
+                android:defaultValue="@string/voice_mode_symbols" />
+        <Preference
+                android:title="@string/language_selection_title"
+                android:summary="@string/language_selection_summary" />
     </PreferenceCategory>
-
+    -->
     <PreferenceCategory
             android:title="@string/title_vn_settings"
             android:key="vn_settings">
@@ -106,18 +101,15 @@
             android:title="@string/title_key_behavior_settings"
             android:key="key_settings">
 
-    <PreferenceScreen
+    <Preference
+            android:fragment="vn.vhn.pckeyboard.PrefScreenFeedback"
             android:title="@string/pref_screen_feedback_title"
-            android:summary="@string/pref_screen_feedback_title_summary">
-        <intent
-                android:action="vn.vhn.pckeyboard.PREFS_FEEDBACK"/>
-    </PreferenceScreen>
+            android:summary="@string/pref_screen_feedback_title_summary" />
 
-    <PreferenceScreen
+    <Preference
+            android:fragment="vn.vhn.pckeyboard.PrefScreenActions"
             android:title="@string/pref_screen_actions_title"
-            android:summary="@string/pref_screen_actions_title_summary">
-        <intent android:action="vn.vhn.pckeyboard.PREFS_ACTIONS"/>
-    </PreferenceScreen>
+            android:summary="@string/pref_screen_actions_title_summary" />
 
     <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_slide_keys_int"

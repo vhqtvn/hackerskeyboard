@@ -26,8 +26,7 @@ import android.content.res.Resources
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
 import android.os.*
-import android.preference.PreferenceActivity
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.text.InputType
 import android.text.TextUtils
 import android.util.Log
@@ -2290,7 +2289,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     }
 
     protected fun launchSettings(
-        settingsClass: Class<out PreferenceActivity?>? = LatinIMESettings::class.java,
+        settingsClass: Class<*>? = LatinIMESettings::class.java,
     ) {
         handleClose()
         val intent = Intent()

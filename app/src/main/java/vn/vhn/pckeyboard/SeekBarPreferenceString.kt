@@ -6,50 +6,41 @@ import android.util.AttributeSet
 import java.util.regex.Pattern
 
 /**
- * Variant of SeekBarPreference that stores values as string preferences.
+ * A [SeekBarPreference] stored as a string rather than a float.
  *
- * This is for compatibility with existing preferences, switching types
- * leads to runtime errors when upgrading or downgrading.
+ * Which is how these were always written, so the stored settings stay readable and keep
+ * working across the change; some of them were saved by old versions with a " ms" or "%"
+ * suffix, which the pattern below forgives.
  */
 open class SeekBarPreferenceString(context: Context, attrs: AttributeSet?) :
     SeekBarPreference(context, attrs) {
-    // Some saved preferences from old versions have " ms" or "%" suffix, remove that.
+
+    constructor(context: Context) : this(context, null)
+
     private fun floatFromString(pref: String?): Float {
-        val num = FLOAT_RE.matcher(pref)
-        return if (!num.matches()) 0.0f else java.lang.Float.valueOf(num.group(1))
+        val num = FLOAT_RE.matcher(pref ?: "")
+        return if (!num.matches()) 0.0f else num.group(1)!!.toFloat()
     }
 
-    override fun onGetDefaultValue(a: TypedArray, index: Int): Float {
-        return floatFromString(a.getString(index))
-    }
+    override fun onGetDefaultValue(a: TypedArray, index: Int): Any =
+        floatFromString(a.getString(index))
 
-    override fun onSetInitialValue(restorePersistedValue: Boolean, defaultValue: Any?) {
-        if (restorePersistedValue) {
-            setVal(floatFromString(getPersistedString("0.0")))
-        } else {
-            setVal(java.lang.Float.valueOf((defaultValue as Float)))
+    override fun onSetInitialValue(defaultValue: Any?) {
+        // A default can arrive as a float from code or as a string from XML -- and some of
+        // the strings carry the unit ("45%", "400 ms"), which is what floatFromString is for.
+        val fallback = when (defaultValue) {
+            is Float -> defaultValue
+            is String -> floatFromString(defaultValue)
+            else -> 0.0f
         }
+        setVal(if (shouldPersist()) floatFromString(getPersistedString(fallback.toString()))
+               else fallback)
         savePrevVal()
     }
 
-    override fun onDialogClosed(positiveResult: Boolean) {
-        if (!positiveResult) {
-            restoreVal()
-            return
-        }
-        if (shouldPersist()) {
-            savePrevVal()
-            persistString(getValString())
-            inheritedNote = null
-        }
-        notifyChanged()
-    }
+    override fun persistFloat(value: Float): Boolean = persistString(value.toString())
 
     companion object {
-        private val FLOAT_RE = Pattern.compile("(\\d+\\.?\\d*).*")
-    }
-
-    init {
-        init(context, attrs)
+        private val FLOAT_RE: Pattern = Pattern.compile("([\\d.]+).*")
     }
 }

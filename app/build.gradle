@@ -112,6 +112,9 @@ dependencies {
     implementation 'com.github.tiann:FreeReflection:3.2.2'
     implementation 'androidx.appcompat:appcompat:1.8.0'
     implementation 'androidx.core:core-ktx:1.18.0'
+    // Settings UI. The framework's android.preference has been deprecated since API 29
+    // and never followed the system's dark theme.
+    implementation 'androidx.preference:preference-ktx:1.2.1'
     // Surface Duo hinge cutout, used by Keyboard.kt.
     implementation 'com.microsoft.device.display:display-mask:0.3.0'
 

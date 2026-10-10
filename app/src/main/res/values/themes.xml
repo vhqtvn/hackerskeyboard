@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="appTheme" parent="ThemeOverlay.AppCompat">
+    <!-- The settings screens. Dark to match the keyboard, which draws itself black; the
+         activities declared no theme at all before, so they took the platform default and
+         came up white however the system was set. -->
+    <style name="Theme.VHKeyboard.Settings" parent="Theme.AppCompat">
+        <!-- The action bar takes colorPrimary, so that stays near-black; the accent is
+             for the controls, where a light touch of colour is the point. -->
+        <item name="colorPrimary">@color/settings_background</item>
+        <item name="colorPrimaryDark">@color/settings_background</item>
+        <item name="colorAccent">@color/settings_accent</item>
+        <item name="android:windowBackground">@color/settings_background</item>
+        <item name="android:colorBackground">@color/settings_background</item>
+        <item name="android:statusBarColor">@color/settings_background</item>
+        <item name="android:navigationBarColor">@color/settings_background</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
     </style>
 </resources>

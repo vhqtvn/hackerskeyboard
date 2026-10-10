@@ -18,7 +18,7 @@ package vn.vhn.pckeyboard
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.util.*
 import android.view.InflateException
 import android.view.ViewGroup
@@ -529,7 +529,9 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
         // Default is SETTINGS_KEY_MODE_AUTO.
         private val DEFAULT_SETTINGS_KEY_MODE = SETTINGS_KEY_MODE_AUTO
         val instance = KeyboardSwitcher()
-        fun init(ims: LatinIME?) {
+        // The parameter is nullable only because the old framework PreferenceManager took a
+        // nullable Context; nothing here can work without the service, so say so.
+        fun init(ims: LatinIME) {
             instance.mInputMethodService = ims
             val prefs = PreferenceManager
                 .getDefaultSharedPreferences(ims)

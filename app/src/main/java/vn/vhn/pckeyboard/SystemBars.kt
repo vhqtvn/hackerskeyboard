@@ -9,9 +9,8 @@ import androidx.core.view.WindowInsetsCompat
 /**
  * From API 35 Android draws activities edge to edge whether they asked for it or not,
  * so anything that used to sit below the status bar now sits *under* it. These screens
- * are plain framework [android.preference.PreferenceActivity] lists with no insets
- * handling of their own, so their first row would hide behind the status bar and their
- * last behind the navigation bar.
+ * are preference lists with no insets handling of their own, so their first row would
+ * hide behind the status bar and their last behind the navigation bar.
  *
  * Rather than opt out of edge-to-edge -- a flag Android is phasing out -- pad the
  * content by whatever the system bars actually occupy.
