@@ -898,6 +898,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     override fun onFinishInput() {
         super.onFinishInput()
+        hideEmojiPanel()
         vnFinishWord()
         vn.vhn.pckeyboard.device.DeviceIntegration.onEditorFocus(false)
         mKeyboardSwitcher.inputView?.closing()
@@ -1365,6 +1366,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             LatinKeyboardView.KEYCODE_CLIPBOARD -> {
                 handleFNModifierKeysUp(false)
                 if (!isShowingOptionDialog) showClipboardHistory()
+            }
+            LatinKeyboardView.KEYCODE_EMOJI -> {
+                handleFNModifierKeysUp(false)
+                showEmojiPanel()
             }
             LatinKeyboardView.KEYCODE_IME_PICKER -> {
                 handleFNModifierKeysUp(false)
@@ -2311,6 +2316,48 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         mLanguageSwitcher!!.loadLocales(sp)
         mDeadKeysActive = mLanguageSwitcher!!.allowDeadKeys()
     }
+
+    // --- emoji -----------------------------------------------------------------
+    private var mEmojiPanel: EmojiPanelView? = null
+
+    /**
+     * Swaps the keys for the emoji picker inside the same window, so the app above does
+     * not reflow: the panel is given the key view's exact height and the key view is
+     * hidden behind it rather than removed.
+     */
+    private fun showEmojiPanel() {
+        val container = mKeyboardSwitcher.rootView ?: return
+        val keys = mKeyboardSwitcher.inputView ?: return
+        if (keys.height <= 0) return     // not laid out yet; nothing to match
+        // A Vietnamese word still being composed would otherwise swallow the emoji.
+        vnFinishWord()
+        val panel = mEmojiPanel ?: EmojiPanelView(this).also {
+            it.onEmoji = { e -> currentInputConnection?.commitText(e, 1) }
+            it.onBackspace = { handleBackspace() }
+            it.onClose = { hideEmojiPanel() }
+            mEmojiPanel = it
+        }
+        // The input view is rebuilt on rotation and on a settings change, which leaves
+        // the panel attached to a container that is no longer on screen.
+        if (panel.parent !== container) {
+            (panel.parent as? android.view.ViewGroup)?.removeView(panel)
+            container.addView(panel, android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT, keys.height))
+        } else {
+            panel.layoutParams.height = keys.height
+            panel.requestLayout()
+        }
+        panel.visibility = View.VISIBLE
+        keys.visibility = View.INVISIBLE
+    }
+
+    private fun hideEmojiPanel() {
+        mEmojiPanel?.visibility = View.GONE
+        mKeyboardSwitcher.inputView?.visibility = View.VISIBLE
+    }
+
+    private val isEmojiPanelShowing: Boolean
+        get() = mEmojiPanel?.visibility == View.VISIBLE
 
     /**
      * Shows the clipboard history and pastes whatever is picked.

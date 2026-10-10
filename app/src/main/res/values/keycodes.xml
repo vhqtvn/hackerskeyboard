@@ -35,6 +35,7 @@
     <integer name="key_toggle_vn">-1004</integer>
     <!-- Opens the clipboard history. Bound to Fn + v -->
     <integer name="key_clipboard">-1005</integer>
+    <integer name="key_emoji">-1007</integer>
     <!-- Opens the system input-method picker. Bound to Fn + k -->
     <integer name="key_ime_picker">-1006</integer>
     <!-- Hides the keyboard (Keyboard.KEYCODE_CANCEL). Bound to Fn + h -->

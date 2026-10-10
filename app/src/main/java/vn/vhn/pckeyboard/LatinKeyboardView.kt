@@ -536,6 +536,7 @@ class LatinKeyboardView @JvmOverloads constructor(
         const val KEYCODE_TOGGLE_VN = -1004
         const val KEYCODE_CLIPBOARD = -1005
         const val KEYCODE_IME_PICKER = -1006
+        const val KEYCODE_EMOJI = -1007
 
         const val KEYCODE_OPTIONS = -100
         const val KEYCODE_OPTIONS_LONGPRESS = -101

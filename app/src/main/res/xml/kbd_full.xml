@@ -190,6 +190,8 @@
             android:isRepeatable="true"
             android:shiftLabel="@string/key_ad02_shift" />
         <Key
+            android:fn1Codes="@integer/key_emoji"
+            android:fn1Label="Emoji"
             android:keyLabel="@string/key_ad03_main"
             android:isRepeatable="true"
             android:shiftLabel="@string/key_ad03_shift" />
