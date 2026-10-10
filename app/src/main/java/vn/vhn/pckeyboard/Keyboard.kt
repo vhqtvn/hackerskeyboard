@@ -572,8 +572,11 @@ open class Keyboard @JvmOverloads constructor(
                 label = fn2Label
                 fn2codes = primaryCodes
                 fn2Label = primaryLabel
-                // The shift legend belonged to the old primary (~), not to Esc.
-                shiftLabel = null
+                // shiftLabel stays "~". Clearing it looked right -- the legend belonged to
+                // the backtick, not to Esc -- but it was the only ~ on the layout, so with
+                // the function-key row off the character could not be typed at all. Keeping
+                // it is also what a 60% keyboard does: this is QMK's grave-escape, where the
+                // key taps Esc, shifts to ~ and reaches ` through the Fn layer.
             }
             //Log.i(TAG, "added key definition: " + this);
             a.recycle()

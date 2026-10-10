@@ -63,7 +63,8 @@ Two layers, coloured to match their Fn key: **Fn1 green**, **Fn2 yellow**.
 
 With the function-key row switched off, Esc, F1–F12 and forward-delete are reachable on
 Fn2 exactly as above, and the top-left key becomes Esc outright — the way a 60% keyboard
-behaves, with the backtick moving to Fn2.
+behaves, with the backtick moving to Fn2. It is QMK's grave-escape: the key taps Esc,
+**Shift** still gives `~`, and `` ` `` is on Fn2.
 
 ## Layouts
 
