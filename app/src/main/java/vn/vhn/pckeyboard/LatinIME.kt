@@ -1534,7 +1534,12 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
     private fun handleBackspace() {
         val ic = currentInputConnection ?: return
-        if (vnActive && mVnComposer.composing && mVnComposer.onBackspace(ic)) return
+        // Backspacing against a word that is no longer composing re-opens it first, so the
+        // delete happens inside a live Unikey buffer and the tone keys still work on it.
+        if (vnActive) {
+            if (!mVnComposer.composing) mVnComposer.restoreFromField(ic)
+            if (mVnComposer.composing && mVnComposer.onBackspace(ic)) return
+        }
         ic.beginBatchEdit()
         if (mEnteredText != null
             && sameAsTextBeforeCursor(ic, mEnteredText!!)

@@ -23,6 +23,7 @@
 
 #include <iostream>
 #include "inputproc.h"
+#include "charset.h"   // UnicodeTable, for UnicodeToVnLexi (local modification)
 
 using namespace std;
 
@@ -61,7 +62,11 @@ _ascVnLexi AscVnLexiList[] = {
     {0xC0, vnl_A2},
     {0xC1, vnl_A1},
     {0xC2, vnl_Ar},
-    {0xC2, vnl_A4},
+    {0xC3, vnl_A4},   // LOCAL FIX (VHKeyboard): upstream repeats 0xC2 here, so the later
+                      // entry won and 'A' with a circumflex resolved to 'A' with a tilde,
+                      // while 0xC3 was left unmapped. Compare the lowercase rows below:
+                      // {0xE2, vnl_ar}, {0xE3, vnl_a4}. Only reachable through
+                      // UnikeyPutChar, which is why it stayed hidden.
     {0xC8, vnl_E2},
     {0xC9, vnl_E1},
     {0xCA, vnl_Er},
@@ -94,6 +99,32 @@ _ascVnLexi AscVnLexiList[] = {
 };
 
 VnLexiName IsoVnLexiMap[256];
+
+// LOCAL MODIFICATION (VHKeyboard): see IsoToVnLexi in inputproc.h.
+// UnicodeTable maps a VnLexi symbol to its Unicode character (the engine indexes it with
+// vnSym, cf. "stdChar = m_buffer[i].vnSym + VnStdCharOffset"), so inverting it answers the
+// other direction. Built once on first use; a linear search is fine because this is only
+// reached when a frontend re-seeds the buffer from text, never while typing.
+static VnLexiName *UniVnLexiMap = 0;      // indexed by Unicode, 0x1EF9 is the last Vn char
+static const unsigned int UniVnLexiMapSize = 0x1F00;
+
+VnLexiName UnicodeToVnLexi(unsigned int keyCode)
+{
+    if (keyCode >= UniVnLexiMapSize)
+        return vnl_nonVnChar;
+    if (UniVnLexiMap == 0) {
+        VnLexiName *map = new VnLexiName[UniVnLexiMapSize];
+        for (unsigned int i = 0; i < UniVnLexiMapSize; i++)
+            map[i] = vnl_nonVnChar;
+        for (int sym = 0; sym < vnl_lastChar; sym++) {
+            unsigned int uni = (unsigned int)UnicodeTable[sym];
+            if (uni < UniVnLexiMapSize && map[uni] == vnl_nonVnChar)
+                map[uni] = (VnLexiName)sym;
+        }
+        UniVnLexiMap = map;
+    }
+    return UniVnLexiMap[keyCode];
+}
 
 bool ClassifierTableInitialized = false;
 

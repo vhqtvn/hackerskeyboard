@@ -116,9 +116,19 @@ DllInterface extern UkKeyMapping VIQRMethodMapping[];
 DllInterface extern UkKeyMapping MsViMethodMapping[];
 
 extern VnLexiName IsoVnLexiMap[];
+
+// LOCAL MODIFICATION (VHKeyboard): resolve a Unicode code point to its VnLexi symbol.
+// IsoVnLexiMap only covers 0..255, so every vowel carrying both a mark and a tone --
+// the whole of e^', o^`, a('', u*? and friends -- came back as vnl_nonVnChar. That is
+// invisible while typing (the engine builds those from keystrokes) but it makes
+// UnikeyPutChar useless for restoring a word that is already composed, which is how a
+// frontend re-opens a committed word so its tone can still be changed. Implemented in
+// inputproc.cpp by inverting UnicodeTable, which the engine already carries.
+VnLexiName UnicodeToVnLexi(unsigned int keyCode);
+
 inline VnLexiName IsoToVnLexi(unsigned int keyCode)
 {
-    return (keyCode >= 256)? vnl_nonVnChar : IsoVnLexiMap[keyCode];
+    return (keyCode >= 256)? UnicodeToVnLexi(keyCode) : IsoVnLexiMap[keyCode];
 }
 
 #endif
