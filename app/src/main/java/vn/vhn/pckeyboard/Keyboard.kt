@@ -293,6 +293,9 @@ open class Keyboard @JvmOverloads constructor(
         /** First key of the right-hand half when split; see [Keyboard.applySplit]. */
         var splitBefore = false
 
+        /** First key outside the letter/number block; see [applyCorePadding]. */
+        var padBefore = false
+
         /**
          * This key's Fn label names a mode that is either on or off, so the label is
          * drawn solid when on and faded when off. Shown this way rather than with the
@@ -524,6 +527,7 @@ open class Keyboard @JvmOverloads constructor(
             if (capsLabel != null && capsLabel!!.length == 0) capsLabel = null
             text = a.getText(R.styleable.Keyboard_Key_keyOutputText)
             splitBefore = a.getBoolean(R.styleable.Keyboard_Key_splitBefore, false)
+            padBefore = a.getBoolean(R.styleable.Keyboard_Key_padBefore, false)
             fn1Label = a.getText(R.styleable.Keyboard_Key_fn1Label)
             fn2Label = a.getText(R.styleable.Keyboard_Key_fn2Label)
             if (codes == null && !TextUtils.isEmpty(label)) {
@@ -1440,7 +1444,56 @@ open class Keyboard @JvmOverloads constructor(
             e.printStackTrace()
         }
         height = y - verticalGap
+        // Before the split, so the split then scales these gaps along with everything else
+        // and the two do not fight over the same width.
+        applyCorePadding(LatinIME.Companion.sKeyboardSettings.corePaddingPercent / 100f)
         applySplit(LatinIME.Companion.sKeyboardSettings.splitGapPercent / 100f)
+    }
+
+    /**
+     * Separates the letter/number block from the keys around it -- Esc and the brackets,
+     * Tab, Shift, the punctuation down the right-hand side -- by opening a gap at each
+     * boundary the layout marks with `padBefore`.
+     *
+     * A wide screen gives the keyboard more room than the letters need, and the keys
+     * immediately outside the block end up catching presses meant for q, a, z, p, l, m,
+     * 1 and 0. Widening those boundaries costs the row a little width, taken the same way
+     * [applySplit] takes it: every key scales down by the total padding, and each key is
+     * then pushed right by the padding opened to its left.
+     */
+    private fun applyCorePadding(padFraction: Float) {
+        val allKeys = mKeys?.filterNotNull() ?: return
+        if (padFraction <= 0f || allKeys.isEmpty()) return
+        val total = minWidth.toFloat()
+        if (total <= 0f) return
+        val pad = total * padFraction
+
+        for ((_, rowKeys) in allKeys.groupBy { it.y }) {
+            // A key flush against the row's left edge has nothing to its left to separate
+            // it from, and padding there would only shift the whole row inwards.
+            val boundaries = rowKeys.filter { it.padBefore && it.realX > 0f }
+                .map { it.realX }.sorted()
+            if (boundaries.isEmpty()) continue
+            val scale = (total - pad * boundaries.size) / total
+            if (scale <= 0f) continue
+            // Shift by the padding opened at or left of the point being moved. The left
+            // edge of a key at a boundary moves with it; its right edge always does.
+            fun shiftFor(x: Float, inclusive: Boolean): Float {
+                val n = boundaries.count { if (inclusive) x >= it else x > it }
+                return n * pad
+            }
+            for (key in rowKeys) {
+                val left = key.realX
+                val right = key.realX + key.realWidth
+                key.realX = left * scale + shiftFor(left, inclusive = true)
+                val newRight = right * scale + shiftFor(right, inclusive = false)
+                key.realWidth = newRight - key.realX
+                key.realGap *= scale
+                key.x = Math.round(key.realX)
+                key.width = Math.round(key.realWidth)
+                key.gap = Math.round(key.realGap)
+            }
+        }
     }
 
     /**

@@ -61,6 +61,9 @@
              because which hand a key belongs to is a touch-typing fact, not a geometric
              one: y and h sit either side of the centre line but are both right-hand keys. -->
         <attr name="splitBefore" format="boolean" />
+        <!-- Marks a key that sits just outside the letter/number block, so the padding
+             that separates the block from the keys around it opens before this one. -->
+        <attr name="padBefore" format="boolean" />
         <!-- The unicode value or comma-separated values that this key outputs. -->
         <attr name="codes" format="integer|string" />
         <attr name="fn1Codes" format="integer|string" />

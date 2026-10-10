@@ -100,6 +100,10 @@ class GlobalKeyboardSettings {
     // percentage of the keyboard width; 0 means not split. Set per layout profile.
     var splitGapPercent = 0.0f
 
+    // Extra space at each edge of the letter/number block, as a percentage of the
+    // keyboard's width. See Keyboard.applyCorePadding.
+    var corePaddingPercent = 0.0f
+
     //
     // Read by LatinKeyboardBaseView
     var hintMode = 0

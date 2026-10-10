@@ -366,6 +366,9 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         sKeyboardSettings.splitGapPercent =
             ProfilePrefs.getInt(prefs, PREF_SPLIT_GAP, mProfile, default = 0)
                 .coerceIn(0, MAX_SPLIT_GAP_PERCENT).toFloat()
+        sKeyboardSettings.corePaddingPercent =
+            ProfilePrefs.getInt(prefs, PREF_CORE_PADDING, mProfile, default = 0)
+                .coerceIn(0, MAX_CORE_PADDING_PERCENT).toFloat()
         // -1 means "inherit": profileKeyboardMode() then falls back to the global setting.
         mKeyboardModeProfile =
             if (ProfilePrefs.hasOverride(prefs, PREF_KEYBOARD_MODE, mProfile))
@@ -2437,6 +2440,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         const val PREF_HEIGHT = "settings_height"
         const val PREF_KEYBOARD_MODE = "pref_keyboard_mode"
         const val PREF_SPLIT_GAP = "pref_split_gap"
+        const val PREF_CORE_PADDING = "pref_core_padding"
+
+        /** Each row opens two of these, so the letters keep most of the width. */
+        const val MAX_CORE_PADDING_PERCENT = 5
         const val PREF_EXTENSION_ROW = "pref_extension_row"
         const val PREF_FKEY_ROW = "pref_fkey_row"
         const val PREF_LARGE_SCREEN_DP = "pref_large_screen_dp"

@@ -89,7 +89,8 @@
             android:isRepeatable="true"
             android:fn2Codes="@integer/key_fkey_f1"
             android:fn2Label="F1"
-            android:shiftLabel="@string/key_ae01_shift" />
+            android:shiftLabel="@string/key_ae01_shift" 
+            android:padBefore="true" />
         <Key
             android:keyLabel="@string/key_ae02_main"
             android:isRepeatable="true"
@@ -149,7 +150,8 @@
             android:isRepeatable="true"
             android:fn2Codes="@integer/key_fkey_f11"
             android:fn2Label="F11"
-            android:shiftLabel="@string/key_ae11_shift" />
+            android:shiftLabel="@string/key_ae11_shift" 
+            android:padBefore="true" />
         <Key
             android:keyLabel="@string/key_ae12_main"
             android:isRepeatable="true"
@@ -178,7 +180,8 @@
         <Key
             android:keyLabel="@string/key_ad01_main"
             android:isRepeatable="true"
-            android:shiftLabel="@string/key_ad01_shift" />
+            android:shiftLabel="@string/key_ad01_shift" 
+            android:padBefore="true" />
         <Key
             android:keyLabel="@string/key_ad02_main"
             android:isRepeatable="true"
@@ -224,7 +227,8 @@
         <Key
             android:keyLabel="@string/key_ad11_main"
             android:isRepeatable="true"
-            android:shiftLabel="@string/key_ad11_shift" />
+            android:shiftLabel="@string/key_ad11_shift" 
+            android:padBefore="true" />
         <Key
             android:keyLabel="@string/key_ad12_main"
             android:isRepeatable="true"
@@ -246,7 +250,8 @@
         <Key
             android:keyLabel="@string/key_ac01_main"
             android:isRepeatable="true"
-            android:shiftLabel="@string/key_ac01_shift" />
+            android:shiftLabel="@string/key_ac01_shift" 
+            android:padBefore="true" />
         <Key
             android:fn1Codes="@integer/key_stick"
             android:isRepeatable="true"
@@ -287,7 +292,8 @@
             android:isRepeatable="true"
             android:fn1Codes="@integer/key_toggle_vn"
             android:fn1Label="VN"
-            android:shiftLabel="@string/key_ac10_shift" />
+            android:shiftLabel="@string/key_ac10_shift" 
+            android:padBefore="true" />
         <Key
             android:keyLabel="@string/key_ac11_main"
             android:isRepeatable="true"
@@ -315,7 +321,8 @@
         <Key
             android:keyLabel="@string/key_ab01_main"
             android:isRepeatable="true"
-            android:shiftLabel="@string/key_ab01_shift" />
+            android:shiftLabel="@string/key_ab01_shift" 
+            android:padBefore="true" />
         <Key
             android:keyLabel="@string/key_ab02_main"
             android:isRepeatable="true"
@@ -349,7 +356,8 @@
         <Key
             android:keyLabel="@string/key_ab08_main"
             android:isRepeatable="true"
-            android:shiftLabel="@string/key_ab08_shift" />
+            android:shiftLabel="@string/key_ab08_shift" 
+            android:padBefore="true" />
         <Key
             android:fn1Codes="@integer/key_settings"
             android:fn1Label="☸"

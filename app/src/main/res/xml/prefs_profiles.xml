@@ -73,6 +73,17 @@
             hk:displayFormat="%.0f%%"
             android:persistent="true" />
 
+        <vn.vhn.pckeyboard.SeekBarPreferenceString
+            android:key="pref_core_padding@sp"
+            android:title="@string/title_profile_core_padding"
+            android:summary="@string/summary_profile_core_padding"
+            android:defaultValue="0"
+            hk:minValue="0"
+            hk:maxValue="5"
+            hk:step="1"
+            hk:displayFormat="%.0f%%"
+            android:persistent="true" />
+
         <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_hint_mode@sp"
             android:title="@string/title_hint_mode"
@@ -125,6 +136,17 @@
             android:defaultValue="0"
             hk:minValue="0"
             hk:maxValue="60"
+            hk:step="1"
+            hk:displayFormat="%.0f%%"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.SeekBarPreferenceString
+            android:key="pref_core_padding@sl"
+            android:title="@string/title_profile_core_padding"
+            android:summary="@string/summary_profile_core_padding"
+            android:defaultValue="0"
+            hk:minValue="0"
+            hk:maxValue="5"
             hk:step="1"
             hk:displayFormat="%.0f%%"
             android:persistent="true" />
@@ -185,6 +207,17 @@
             hk:displayFormat="%.0f%%"
             android:persistent="true" />
 
+        <vn.vhn.pckeyboard.SeekBarPreferenceString
+            android:key="pref_core_padding@lp"
+            android:title="@string/title_profile_core_padding"
+            android:summary="@string/summary_profile_core_padding"
+            android:defaultValue="0"
+            hk:minValue="0"
+            hk:maxValue="5"
+            hk:step="1"
+            hk:displayFormat="%.0f%%"
+            android:persistent="true" />
+
         <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_hint_mode@lp"
             android:title="@string/title_hint_mode"
@@ -237,6 +270,17 @@
             android:defaultValue="0"
             hk:minValue="0"
             hk:maxValue="60"
+            hk:step="1"
+            hk:displayFormat="%.0f%%"
+            android:persistent="true" />
+
+        <vn.vhn.pckeyboard.SeekBarPreferenceString
+            android:key="pref_core_padding@ll"
+            android:title="@string/title_profile_core_padding"
+            android:summary="@string/summary_profile_core_padding"
+            android:defaultValue="0"
+            hk:minValue="0"
+            hk:maxValue="5"
             hk:step="1"
             hk:displayFormat="%.0f%%"
             android:persistent="true" />

@@ -539,6 +539,8 @@
     <string name="summary_profile_extension_row">Keeps the extra punctuation and Home/End/Del row up instead of needing a swipe. Compact layout only.</string>
     <string name="title_profile_split_gap">Split keyboard</string>
     <string name="summary_profile_split_gap">Width of the gap down the middle. 0% keeps the keyboard in one piece.</string>
+    <string name="title_profile_core_padding">Space around the letters</string>
+    <string name="summary_profile_core_padding">Separates the letter and number block from the keys around it — Esc, Tab, Shift, the brackets and punctuation — so they stop catching presses meant for the letters. 0% leaves them touching.</string>
     <string name="keyboard_mode_inherit">Use global setting</string>
     <string name="keyboard_mode_full_symbols">Full 5-row, symbols page</string>
     <string name="keyboard_mode_compact">Compact 5-row</string>
