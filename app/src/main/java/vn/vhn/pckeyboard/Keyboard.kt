@@ -1604,6 +1604,23 @@ open class Keyboard @JvmOverloads constructor(
         return android.graphics.Rect(left, top, right, bottom)
     }
 
+    /**
+     * Drops the Fn bindings for actions the host cannot carry out, label and all.
+     *
+     * The layouts are shared, but what sits behind a key is not: the Thor deck has no
+     * input-method picker to open, and nothing to hide -- it *is* the screen, and it
+     * already carries its own button for getting out of the way. Rather than keep a second
+     * near-identical layout in step for the sake of two keys, the host says what it does
+     * not offer and those legends go, so no key advertises something that will do nothing.
+     */
+    fun removeFnActions(codes: Set<Int>) {
+        for (key in mKeys ?: return) {
+            if (key == null) continue
+            if (key.fn1codes?.firstOrNull() in codes) { key.fn1codes = null; key.fn1Label = null }
+            if (key.fn2codes?.firstOrNull() in codes) { key.fn2codes = null; key.fn2Label = null }
+        }
+    }
+
     fun setKeyboardWidth(newWidth: Int) {
         Log.i(TAG, "setKeyboardWidth newWidth=" + newWidth + ", mTotalWidth=" + minWidth)
         if (newWidth <= 0) return  // view not initialized?

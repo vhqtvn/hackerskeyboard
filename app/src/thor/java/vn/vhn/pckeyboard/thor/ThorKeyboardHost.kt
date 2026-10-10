@@ -129,6 +129,12 @@ class ThorKeyboardHost(
         lang.loadLocales(prefs)
 
         val kb = LatinKeyboard(displayContext, R.xml.kbd_thumb, 0, keyboardHeightPercent)
+        // The deck shares kbd_thumb with the cover screen, where both of these earn their
+        // keycap. Here neither does: there is no input-method picker to open from a deck,
+        // and hiding is what the strip's own minimise button is for.
+        kb.removeFnActions(setOf(
+            LatinKeyboardView.KEYCODE_IME_PICKER,
+            Keyboard.KEYCODE_CANCEL))
         kb.setLanguageSwitcher(lang, false)
         inputView.setKeyboard(kb)
         ThorController.onEditorChanged = { inputView.post { updateEnterActionHint() } }
