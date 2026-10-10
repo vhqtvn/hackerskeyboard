@@ -484,6 +484,8 @@
     <!-- Vietnamese (Unikey) input -->
     <string name="vn_enabled">Vietnamese on</string>
     <string name="vn_disabled">Vietnamese off</string>
+    <string name="vn_blocked_noime">Vietnamese on, but the IME bypass (Fn + i) is holding it off</string>
+    <string name="vn_unavailable">Vietnamese unavailable: the Unikey engine did not load</string>
     <string name="title_vn_settings">Vietnamese input</string>
     <string name="title_vn_enabled">Vietnamese (Unikey)</string>
     <string name="summary_vn_enabled">Compose Vietnamese as you type. Toggle any time with Fn + ;</string>

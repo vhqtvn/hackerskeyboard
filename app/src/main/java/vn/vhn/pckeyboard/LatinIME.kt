@@ -1642,9 +1642,16 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         }
     }
 
-    /** Lights the key carrying the toggle while Vietnamese is actually composing. */
+    /**
+     * Lights the key carrying the toggle only while Vietnamese can actually compose --
+     * [vnActive], the same condition the keystroke path uses, rather than the preference
+     * alone. The two had drifted apart: with the IME bypass on (Fn + i, which is
+     * remembered across restarts) or the engine failing to load, the key stayed lit while
+     * nothing composed, and the keyboard otherwise behaved perfectly. The only way to tell
+     * why was to read the code.
+     */
     private fun updateVnIndicator() {
-        mKeyboardSwitcher.setVnIndicator(sKeyboardSettings.vnEnabled && !mVnSuspended)
+        mKeyboardSwitcher.setVnIndicator(vnActive)
     }
 
     private fun setVnEnabled(on: Boolean) {
@@ -1653,9 +1660,16 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             .putBoolean(PREF_VN_ENABLED, on).apply()
         if (mVnLoaded) mVnComposer.reset(currentInputConnection)
         updateVnIndicator()
-        Toast.makeText(applicationContext,
-            if (on) R.string.vn_enabled else R.string.vn_disabled,
-            Toast.LENGTH_SHORT).show()
+        // Say which of the two it is rather than claiming success the typing path will
+        // not honour: turning Vietnamese on while the IME bypass holds it off is a
+        // contradiction worth naming on the spot.
+        val msg = when {
+            !on -> getString(R.string.vn_disabled)
+            mNoIME -> getString(R.string.vn_blocked_noime)
+            !vnReady() -> getString(R.string.vn_unavailable)
+            else -> getString(R.string.vn_enabled)
+        }
+        Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT).show()
     }
 
     /** Commits whatever is being composed; call when the word ends for any reason. */
