@@ -73,7 +73,10 @@
     <Row>
         <Key android:keyLabel="q" android:keyEdgeFlags="left" />
         <Key android:keyLabel="w" />
-        <Key android:keyLabel="e" />
+        <Key
+            android:fn2Codes="@integer/key_emoji"
+            android:fn2Label="Emoji"
+            android:keyLabel="e" />
         <Key android:keyLabel="r" />
         <Key android:keyLabel="t" />
         <Key android:keyLabel="y" />

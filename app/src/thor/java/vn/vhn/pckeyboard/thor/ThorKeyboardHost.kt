@@ -18,6 +18,8 @@ import vn.vhn.pckeyboard.LatinKeyboardBaseView
 import vn.vhn.pckeyboard.LatinKeyboardView
 import vn.vhn.pckeyboard.R
 import vn.vhn.pckeyboard.Unikey
+import vn.vhn.pckeyboard.ToolPanelView
+import vn.vhn.pckeyboard.EmojiPanelView
 import vn.vhn.pckeyboard.VnComposer
 
 /**
@@ -213,7 +215,7 @@ class ThorKeyboardHost(
     /** Action keys perform a one-shot side effect (no evdev key to hold). */
     private fun isActionCode(c: Int): Boolean = when (c) {
         LatinKeyboardView.KEYCODE_CAPS_LOCK, Keyboard.KEYCODE_CANCEL,
-        LatinKeyboardView.KEYCODE_TOGGLE_VN,
+        LatinKeyboardView.KEYCODE_TOGGLE_VN, LatinKeyboardView.KEYCODE_EMOJI,
         Keyboard.KEYCODE_MODE_CHANGE, Keyboard.KEYCODE_STICK, Keyboard.KEYCODE_NOIME,
         LatinKeyboardView.KEYCODE_ORIENTATION_LOCK, LatinKeyboardView.KEYCODE_OPTIONS,
         LatinKeyboardView.KEYCODE_OPTIONS_LONGPRESS, LatinKeyboardView.KEYCODE_FULLSCREEN_DUAL -> true
@@ -261,6 +263,40 @@ class ThorKeyboardHost(
     }
 
     fun setVnMethod(method: Int) = vnComposer.setMethod(method)
+
+    // --- tool dock (emoji) -------------------------------------------------------
+    // Reaches the field the same way Vietnamese does: an emoji is Unicode, and the
+    // uinput path can only press keys that exist on a keyboard. With no editor focused
+    // -- a terminal that never opened an InputConnection -- there is nowhere to put it,
+    // so the dock stays shut rather than opening onto a dead end.
+    private var toolPanel: ToolPanelView? = null
+
+    private fun toggleEmoji() {
+        if (toolPanel?.visibility == View.VISIBLE) { hideTools(); return }
+        if (currentIc() == null) return
+        vnComposer.reset(currentIc())   // a half-composed word would swallow the emoji
+        val panel = toolPanel ?: ToolPanelView(rootView.context, compact = false).also {
+            it.onClose = { hideTools() }
+            it.onBackspace = { InputInjector.injectAndroidKey(KeyEvent.KEYCODE_DEL, 0) }
+            it.setTools(listOf(ToolPanelView.Tool("\uD83D\uDE00") { ctx ->
+                EmojiPanelView(ctx, compact = false).also { grid ->
+                    grid.onEmoji = { e -> currentIc()?.commitText(e, 1) }
+                }
+            }))
+            rootView.addView(it, android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT, inputView.height))
+            toolPanel = it
+        }
+        panel.layoutParams.height = inputView.height
+        panel.requestLayout()
+        panel.visibility = View.VISIBLE
+        inputView.visibility = View.INVISIBLE
+    }
+
+    private fun hideTools() {
+        toolPanel?.visibility = View.GONE
+        inputView.visibility = View.VISIBLE
+    }
 
     private fun currentIc() =
         if (ThorController.editorFocused) ThorController.ime?.currentInputConnection else null
@@ -425,6 +461,7 @@ class ThorKeyboardHost(
         when (primaryCode) {
             LatinKeyboardView.KEYCODE_CAPS_LOCK -> { caps = !caps; updateIndicators() }
             LatinKeyboardView.KEYCODE_TOGGLE_VN -> onToggleVnRequested?.invoke()
+            LatinKeyboardView.KEYCODE_EMOJI -> toggleEmoji()
             Keyboard.KEYCODE_CANCEL -> onHideRequested?.invoke()
             else -> {}
         }
