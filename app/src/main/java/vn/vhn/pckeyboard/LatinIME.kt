@@ -1461,6 +1461,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         if (enable == mNoIME) return
         mNoIME = enable
         mKeyboardSwitcher.setNoIME(mNoIME)
+        updateVnIndicator()   // vnActive depends on this, so the Vietnamese key changes too
         Toast.makeText(baseContext,
             if (mNoIME) R.string.noime_enabled else R.string.noime_disabled,
             Toast.LENGTH_SHORT).show()
@@ -1707,6 +1708,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             return false
         }
         val ic = currentInputConnection ?: return false
+        // Typing against a word that is no longer composing re-opens it, so a tone key
+        // still reaches it. Backspace alone was not enough: deleting the stray character
+        // that ended the word leaves the caret against the word without re-opening it,
+        // and the next tone key would land on an empty engine and type its own letter.
+        if (!mVnComposer.composing) mVnComposer.restoreFromField(ic)
         // primaryCode is already the shifted glyph; tell the engine the resulting case.
         val upper = Character.isUpperCase(primaryCode)
         return mVnComposer.onChar(primaryCode, upper, false, ic)
