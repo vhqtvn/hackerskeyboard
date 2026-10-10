@@ -32,6 +32,7 @@
             android:keyEdgeFlags="left"
             android:keyLabel="Esc" />
         <Key
+            android:padBefore="true"
             android:codes="@integer/key_fkey_f1"
             android:keyEdgeFlags="left"
             android:keyLabel="F1" />
@@ -72,6 +73,7 @@
             android:codes="@integer/key_forward_del"
             android:keyEdgeFlags="right"
             android:isRepeatable="true"
+            android:padBefore="true"
             android:keyLabel="Del" />
     </Row>
     <Row>
@@ -412,14 +414,16 @@
             android:isSticky="true"
             android:keyLabel="Alt" />
         <Key
+            android:padBefore="true"
             android:codes="@integer/key_space"
             android:isRepeatable="true"
             android:iconPreview="@drawable/sym_keyboard_feedback_space"
             android:isModifier="true"
             android:keyIcon="@drawable/sym_keyboard_space"
-            android:keyWidth="21.4285714286%p"
+            android:keyWidth="19.6428571%p"
             android:shiftLabel="@string/key_space_shift" />
         <Key
+            android:padBefore="true"
             android:codes="@integer/key_alt_right"
             android:isModifier="true"
             android:isSticky="true"
