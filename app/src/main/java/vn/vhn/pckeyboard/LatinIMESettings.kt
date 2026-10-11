@@ -59,11 +59,30 @@ class LatinIMESettings : AppCompatActivity(),
 
         override fun onResume() {
             super.onResume()
+            updateForgetApps()
             findPreference<Preference>("label_version")?.summary = version()
             findPreference<Preference>(INPUT_CONNECTION_INFO)?.summary = String.format(
                 "%s type=%s",
                 LatinIME.sKeyboardSettings.editorPackageName,
                 inputTypeDesc(LatinIME.sKeyboardSettings.editorInputType))
+        }
+
+        /** The clear button says how much there is to clear, and does nothing when empty. */
+        private fun updateForgetApps() {
+            val pref = findPreference<Preference>("pref_vn_forget_apps") ?: return
+            val ctx = context ?: return
+            val n = VnPerApp.count(ctx)
+            pref.summary =
+                if (n == 0) getString(R.string.summary_vn_forget_apps_empty)
+                else getString(R.string.summary_vn_forget_apps, n)
+            pref.isEnabled = n > 0
+            pref.setOnPreferenceClickListener {
+                VnPerApp.forget(ctx)
+                updateForgetApps()
+                android.widget.Toast.makeText(
+                    ctx, R.string.vn_forgot_apps, android.widget.Toast.LENGTH_SHORT).show()
+                true
+            }
         }
 
         private fun version(): String = try {

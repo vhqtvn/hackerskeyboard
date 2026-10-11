@@ -817,6 +817,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             mDefaultHandler.postDelayed({ updateSurfaceDuoKeyboardPanePosition() }, 50)
         }
         sKeyboardSettings.editorPackageName = attribute.packageName
+        applyVnForApp(attribute.packageName)
         sKeyboardSettings.editorFieldName = attribute.fieldName
         // The keyboard view is rebuilt per field, so key indicator state has to be
         // re-applied rather than assumed to have survived.
@@ -947,6 +948,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         super.onStartInput(attribute, restarting)
         // Drop any half-composed word from the previous field (do not commit it there).
         if (mVnLoaded) mVnComposer.reset(null)
+        applyVnForApp(attribute?.packageName)
         updateVnSuspended(attribute)
         vn.vhn.pckeyboard.device.DeviceIntegration.onEditorFocus(true)
     }
@@ -1360,7 +1362,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             }
             LatinKeyboardView.KEYCODE_TOGGLE_VN -> {
                 handleFNModifierKeysUp(false)
-                setVnEnabled(!sKeyboardSettings.vnEnabled)
+                // Toggles what this app is doing now, not the general default: with an
+                // app remembered as off while the default is on, flipping the default
+                // would have come out as "off" again and the key would look dead.
+                setVnEnabled(!mVnEnabledNow)
             }
             LatinKeyboardView.KEYCODE_CLIPBOARD -> {
                 handleFNModifierKeysUp(false)
@@ -1619,8 +1624,27 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         return true
     }
 
+    /**
+     * Whether Vietnamese is on *right now*, which is not the same thing as the preference:
+     * with per-app memory the preference is only the default for an app never toggled in.
+     * Kept apart from sKeyboardSettings.vnEnabled so the preference listener cannot
+     * overwrite the state the current app chose.
+     */
+    private var mVnEnabledNow = false
+
     private val vnActive: Boolean
-        get() = sKeyboardSettings.vnEnabled && !mNoIME && !mVnSuspended && vnReady()
+        get() = mVnEnabledNow && !mNoIME && !mVnSuspended && vnReady()
+
+    /** Current field's app, for [VnPerApp]. */
+    private val vnAppKey: String?
+        get() = currentInputEditorInfo?.packageName
+
+    /** Picks up what this app last used, or the general preference if it is new. */
+    private fun applyVnForApp(pkg: String?) {
+        mVnEnabledNow =
+            if (sKeyboardSettings.vnPerApp) VnPerApp.get(this, pkg) ?: sKeyboardSettings.vnEnabled
+            else sKeyboardSettings.vnEnabled
+    }
 
     /**
      * True while the focused field is one where Vietnamese composing can only do harm:
@@ -1663,6 +1687,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
     }
 
     private fun setVnEnabled(on: Boolean) {
+        mVnEnabledNow = on
+        if (sKeyboardSettings.vnPerApp) VnPerApp.set(this, vnAppKey, on)
+        // The general preference follows the last toggle too, so the next app you have
+        // never typed in starts where you just left off rather than somewhere older.
         sKeyboardSettings.vnEnabled = on
         PreferenceManager.getDefaultSharedPreferences(this).edit()
             .putBoolean(PREF_VN_ENABLED, on).apply()
@@ -1798,6 +1826,10 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 
         // Apply globally handled shared prefs
         sKeyboardSettings.sharedPreferenceChanged(sharedPreferences, key)
+        if (key == PREF_VN_ENABLED || key == PREF_VN_PER_APP) {
+            applyVnForApp(vnAppKey)
+            updateVnIndicator()
+        }
         if (sKeyboardSettings.hasFlag(GlobalKeyboardSettings.FLAG_PREF_NEED_RELOAD)) {
             needReload = true
         }
@@ -2506,6 +2538,7 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         const val PREF_VOL_UP = "pref_vol_up"
         const val PREF_VOL_DOWN = "pref_vol_down"
         const val PREF_VN_ENABLED = "pref_vn_enabled"
+        const val PREF_VN_PER_APP = "pref_vn_per_app"
 
         /** Index into the list ToolPanelView is given; see LatinIME.toolsFor. */
         const val TOOL_EMOJI = 0

@@ -87,6 +87,17 @@
             android:defaultValue="false"
             />
 
+    <CheckBoxPreference
+            android:key="pref_vn_per_app"
+            android:title="@string/title_vn_per_app"
+            android:summary="@string/summary_vn_per_app"
+            android:persistent="true"
+            android:defaultValue="true"
+            />
+    <Preference
+            android:key="pref_vn_forget_apps"
+            android:title="@string/title_vn_forget_apps"
+            />
     <vn.vhn.pckeyboard.AutoSummaryListPreference
             android:key="pref_vn_method"
             android:title="@string/title_vn_method"

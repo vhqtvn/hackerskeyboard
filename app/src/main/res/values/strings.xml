@@ -486,6 +486,12 @@
     <!-- Vietnamese (Unikey) input -->
     <string name="vn_enabled">Vietnamese on</string>
     <string name="vn_disabled">Vietnamese off</string>
+    <string name="title_vn_per_app">Remember per app</string>
+    <string name="summary_vn_per_app">Each app keeps whichever way you last left it — Vietnamese in a chat, off in a terminal. An app you have never toggled in starts from the setting above.</string>
+    <string name="title_vn_forget_apps">Forget what apps chose</string>
+    <string name="summary_vn_forget_apps">%d apps remembered. Clearing makes them all start from the setting above again.</string>
+    <string name="summary_vn_forget_apps_empty">No app has been toggled in yet.</string>
+    <string name="vn_forgot_apps">Cleared</string>
     <string name="vn_blocked_noime">Vietnamese on, but the IME bypass (Fn + i) is holding it off</string>
     <string name="vn_unavailable">Vietnamese unavailable: the Unikey engine did not load</string>
     <string name="title_vn_settings">Vietnamese input</string>

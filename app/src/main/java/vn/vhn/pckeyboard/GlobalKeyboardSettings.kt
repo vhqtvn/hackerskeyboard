@@ -63,6 +63,9 @@ class GlobalKeyboardSettings {
     var vnEnabled = false
     var vnMethod = Unikey.TELEX
 
+    // Remember Vietnamese on/off per app rather than one state for everything.
+    var vnPerApp = true
+
     //
     // Read by LatinKeyboardBaseView
     var labelScalePref = 1.0f
@@ -342,6 +345,19 @@ class GlobalKeyboardSettings {
 
             override fun getFlags(): Int {
                 return FLAG_PREF_RECREATE_INPUT_VIEW
+            }
+        })
+        addBooleanPref("pref_vn_per_app", object : BooleanPref {
+            override fun set(`val`: Boolean) {
+                vnPerApp = `val`
+            }
+
+            override fun getDefault(): Boolean {
+                return true
+            }
+
+            override fun getFlags(): Int {
+                return FLAG_PREF_NONE
             }
         })
         addBooleanPref("pref_vn_enabled", object : BooleanPref {
