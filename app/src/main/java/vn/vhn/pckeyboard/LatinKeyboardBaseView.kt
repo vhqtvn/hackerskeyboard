@@ -161,6 +161,11 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
     private val mKeyFillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         style = android.graphics.Paint.Style.FILL
     }
+    /** The faint "Vietnamese is on" legend on the space bar. */
+    private val mVnSpacePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0x66FFFFFF          // about 40% white: there, but quieter than any key label
+        textAlign = Paint.Align.CENTER
+    }
     private val mKeyBorderPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         style = android.graphics.Paint.Style.STROKE
         strokeWidth = 2f
@@ -697,9 +702,10 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
     }
 
     fun setVnIndicator(active: Boolean) {
-        if (mKeyboard != null) {
-            invalidateKey(mKeyboard!!.setVnIndicator(active))
-        }
+        val kb = mKeyboard ?: return
+        invalidateKey(kb.setVnIndicator(active))
+        // The space bar carries the state as well; it is a different key, so redraw it too.
+        invalidateKey(kb.spaceKey)
     }
 
     /**
@@ -1144,6 +1150,18 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
                     canvas.drawText(fn2, (key.width - padding.right).toFloat(),
                         (key.height - padding.bottom - 5).toFloat(), paintFn2)
                 }
+            }
+            // While Vietnamese is composing, the space bar says so, faintly: the one key every
+            // word ends on is where the eye already is, and the toggle legend on ; is too
+            // small to read in passing.
+            if (key === mKeyboard?.spaceKey && mKeyboard?.vnSpaceLabel == true) {
+                val text = context.getString(R.string.vn_space_label)
+                mVnSpacePaint.textSize = mLabelTextSize * mLabelScale * 0.85f
+                val x = (key.width + padding.left - padding.right) / 2f
+                // Centred on a third of the way down: at the middle, the descender of the g in
+                // "Tiếng" landed on the top of the bar's glyph, about 3px apart on the Fold.
+                val y = key.height * 0.33f - (mVnSpacePaint.ascent() + mVnSpacePaint.descent()) / 2f
+                canvas.drawText(text, x, y, mVnSpacePaint)
             }
             canvas.translate((-key.x - kbdPaddingLeft).toFloat(),
                 (-key.y - kbdPaddingTop).toFloat())

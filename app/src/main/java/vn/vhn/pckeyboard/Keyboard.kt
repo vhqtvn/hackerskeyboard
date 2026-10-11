@@ -100,6 +100,14 @@ open class Keyboard @JvmOverloads constructor(
     private var mFn1Key: Key? = null
     /** The key carrying the Vietnamese toggle, lit while Vietnamese is on. */
     private var mVnKey: Key? = null
+
+    /** The space bar, which says so when Vietnamese is composing. See [vnSpaceLabel]. */
+    var spaceKey: Key? = null
+        private set
+
+    /** Whether the space bar should carry the "Vietnamese is on" legend. */
+    var vnSpaceLabel = false
+        private set
     private var mFn2Key: Key? = null
     /**
      * Returns the total height of the keyboard
@@ -1205,6 +1213,7 @@ open class Keyboard @JvmOverloads constructor(
 
     fun setVnIndicator(active: Boolean): Key? {
         mVnKey?.toggleOn = active
+        vnSpaceLabel = active
         return mVnKey
     }
 
@@ -1359,6 +1368,7 @@ open class Keyboard @JvmOverloads constructor(
                             }
                         } else {
                             if (key.codes != null && key.codes!!.size > 0 && key.codes!![0] == 0x20) {
+                                spaceKey = key
                                 if (dualKey != null && !supportDualScreen()) {
                                     key.width += dualKey.width + dualKey.gap
                                     key.realWidth += dualKey.realWidth + dualKey.realGap

@@ -486,6 +486,9 @@
     <!-- Vietnamese (Unikey) input -->
     <string name="vn_enabled">Vietnamese on</string>
     <string name="vn_disabled">Vietnamese off</string>
+    <!-- Shown faintly on the space bar while Vietnamese is composing. Not translated: it
+         names the language in that language, the way a keyboard's space bar does. -->
+    <string name="vn_space_label" translatable="false">Tiếng Việt</string>
     <string name="title_vn_per_app">Remember per app</string>
     <string name="summary_vn_per_app">Each app keeps whichever way you last left it — Vietnamese in a chat, off in a terminal. An app you have never toggled in starts from the setting above.</string>
     <string name="title_vn_forget_apps">Forget what apps chose</string>
