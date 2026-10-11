@@ -482,6 +482,7 @@
     <string name="clipboard_title">Clipboard history</string>
     <string name="clipboard_empty">Clipboard history is empty</string>
     <string name="clipboard_clear">Clear history</string>
+    <string name="clipboard_locked">Unlock to see clipboard history</string>
 
     <!-- Vietnamese (Unikey) input -->
     <string name="vn_enabled">Vietnamese on</string>

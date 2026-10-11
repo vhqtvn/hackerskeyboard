@@ -1,5 +1,6 @@
 package vn.vhn.pckeyboard
 
+import android.app.KeyguardManager
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
@@ -55,6 +56,15 @@ object ClipboardHistory {
         e.apply()
     }
 
+    /**
+     * Whether the device is behind its lock screen. The keyboard can be up there -- the
+     * credential field on a phone, the whole deck on the Thor -- and whoever is holding
+     * the device has not proved they own it, so the history must not be shown.
+     */
+    fun locked(context: Context): Boolean =
+        (context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager)
+            ?.isKeyguardLocked ?: false
+
     @Synchronized
     fun entries(context: Context): List<String> {
         load(context)
@@ -67,6 +77,8 @@ object ClipboardHistory {
      */
     @Synchronized
     fun capture(context: Context) {
+        // A clip read off the lock screen came from whoever is holding the device.
+        if (locked(context)) return
         load(context)
         val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             ?: return

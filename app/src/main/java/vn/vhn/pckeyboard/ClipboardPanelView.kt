@@ -1,7 +1,10 @@
 package vn.vhn.pckeyboard
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.StateListDrawable
@@ -25,6 +28,10 @@ import android.widget.TextView
  * Long-press removes one entry; the row at the end clears the lot. Android only lets an
  * app read the clipboard while it has focus, so the list is re-sampled on every open --
  * see [ClipboardHistory].
+ *
+ * Nothing is listed while the device is locked. The panel can outlive a lock -- the
+ * Thor's deck stays up on the lock screen -- so it also empties itself the moment the
+ * screen goes off, and only looks again once the screen is back or the device unlocked.
  */
 @SuppressLint("ViewConstructor")
 class ClipboardPanelView(context: Context) : LinearLayout(context) {
@@ -34,6 +41,15 @@ class ClipboardPanelView(context: Context) : LinearLayout(context) {
 
     private val list = ListView(context)
     private var entries: List<String> = emptyList()
+    private var locked = false
+
+    private val lockReceiver = object : BroadcastReceiver() {
+        override fun onReceive(c: Context, intent: Intent) {
+            // At screen-off the keyguard may not be up yet (lock delay), but it will be
+            // by the time anyone can look, so hide without asking.
+            if (intent.action == Intent.ACTION_SCREEN_OFF) show(locked = true) else refresh()
+        }
+    }
 
     private fun dp(v: Float) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP, v, resources.displayMetrics).toInt()
@@ -51,8 +67,31 @@ class ClipboardPanelView(context: Context) : LinearLayout(context) {
     /** Re-reads the clipboard and the history. Called whenever the tool is shown. */
     fun refresh() {
         ClipboardHistory.capture(context)
-        entries = ClipboardHistory.entries(context)
+        show(ClipboardHistory.locked(context))
+    }
+
+    private fun show(locked: Boolean) {
+        this.locked = locked
+        entries = if (locked) emptyList() else ClipboardHistory.entries(context)
         list.adapter = Adapter()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // Exported: these come from the system, and NOT_EXPORTED would never receive them.
+        androidx.core.content.ContextCompat.registerReceiver(context, lockReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_USER_PRESENT)
+            },
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED)
+        refresh()
+    }
+
+    override fun onDetachedFromWindow() {
+        context.unregisterReceiver(lockReceiver)
+        super.onDetachedFromWindow()
     }
 
     private fun pressable(): StateListDrawable = StateListDrawable().apply {
@@ -83,7 +122,8 @@ class ClipboardPanelView(context: Context) : LinearLayout(context) {
                 isLongClickable = true
             }
             if (entries.isEmpty()) {
-                tv.text = context.getString(R.string.clipboard_empty)
+                tv.text = context.getString(
+                    if (locked) R.string.clipboard_locked else R.string.clipboard_empty)
                 tv.setTextColor(0xFF888888.toInt())
                 tv.gravity = Gravity.CENTER
                 tv.setOnClickListener(null)
