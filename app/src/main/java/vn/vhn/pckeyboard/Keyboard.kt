@@ -108,7 +108,8 @@ open class Keyboard @JvmOverloads constructor(
     /** Whether the space bar should carry the "Vietnamese is on" legend. */
     var vnSpaceLabel = false
         private set
-    private var mFn2Key: Key? = null
+    /** Every Fn2 key; the full layout has one each side, and both light together. */
+    private val mFn2Keys = ArrayList<Key>()
     /**
      * Returns the total height of the keyboard
      *
@@ -1206,9 +1207,9 @@ open class Keyboard @JvmOverloads constructor(
         return mFn1Key
     }
 
-    fun setFn2Indicator(active: Boolean): Key? {
-        if (mFn2Key != null) mFn2Key!!.on = active
-        return mFn2Key
+    fun setFn2Indicator(active: Boolean): List<Key> {
+        for (k in mFn2Keys) k.on = active
+        return mFn2Keys
     }
 
     fun setVnIndicator(active: Boolean): Key? {
@@ -1218,7 +1219,7 @@ open class Keyboard @JvmOverloads constructor(
     }
 
     val isFN1: Boolean get() = mFn1Key?.on ?: false
-    val isFN2: Boolean get() = mFn2Key?.on ?: false
+    val isFN2: Boolean get() = mFn2Keys.any { it.on }
 
     val isShift: Boolean
         get() = mShiftLeftKey?.on == true || mShiftRightKey?.on == true
@@ -1414,7 +1415,7 @@ open class Keyboard @JvmOverloads constructor(
                                 } else if (key.codes!![0] == LatinKeyboardView.Companion.KEYCODE_FN_1) {
                                     mFn1Key = key
                                 } else if (key.codes!![0] == LatinKeyboardView.Companion.KEYCODE_FN_2) {
-                                    mFn2Key = key
+                                    mFn2Keys.add(key)
                                 }
                                 // The Vietnamese toggle sits on an Fn layer rather than
                                 // being a key of its own, so look for it there.

@@ -697,7 +697,7 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
 
     fun setFn2Indicator(active: Boolean) {
         if (mKeyboard != null) {
-            invalidateKey(mKeyboard!!.setFn2Indicator(active))
+            for (k in mKeyboard!!.setFn2Indicator(active)) invalidateKey(k)
         }
     }
 
