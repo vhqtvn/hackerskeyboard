@@ -849,17 +849,6 @@ class LatinIME : InputMethodService(), ComposeSequencing,
 //                mPasswordText = true;
             }
         }
-        mModShiftLeft = false
-        mModCtrlLeft = false
-        mModAltLeft = false
-        mModMetaLeft = false
-        mModShiftRight = false
-        mModCtrlRight = false
-        mModAltRight = false
-        mModMetaRight = false
-        mModFn = false
-        mModFn1 = false
-        mModFn2 = false
         mEnteredText = null
         mKeyboardModeOverridePortrait = 0
         mKeyboardModeOverrideLandscape = 0
@@ -889,6 +878,8 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             else -> mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_TEXT,
                 attribute.imeOptions, false)
         }
+        // After the mode switch, so the keys cleared are the ones now on screen.
+        resetModifiers()
         inputView.closing()
         loadSettings()
         updateShiftKeyState(attribute)
@@ -902,6 +893,26 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         vnFinishWord()
         vn.vhn.pckeyboard.device.DeviceIntegration.onEditorFocus(false)
         mKeyboardSwitcher.inputView?.closing()
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        resetModifiers()
+    }
+
+    /**
+     * Drops every latched modifier, lights included. A Ctrl or Fn left on when the keyboard
+     * went away would otherwise still be on when it came back, in a different field or
+     * app, and turn the first letter typed there into a shortcut.
+     */
+    private fun resetModifiers() {
+        setModShift(false, false)
+        setModCtrl(false, false)
+        setModAlt(false, false)
+        setModMeta(false, false)
+        setModFn1(false)
+        setModFn2(false)
+        mModFn = false
     }
 
     override fun onUpdateExtractedText(token: Int, text: ExtractedText) {
