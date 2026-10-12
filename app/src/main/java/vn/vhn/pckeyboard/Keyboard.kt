@@ -305,6 +305,9 @@ open class Keyboard @JvmOverloads constructor(
         /** First key outside the letter/number block; see [applyCorePadding]. */
         var padBefore = false
 
+        /** The right-hand space bar of a split keyboard, cut from the same XML key. */
+        var spaceTwin = false
+
         /**
          * This key's Fn label names a mode that is either on or off, so the label is
          * drawn solid when on and faded when off. Shown this way rather than with the
@@ -1374,6 +1377,18 @@ open class Keyboard @JvmOverloads constructor(
                                     key.width += dualKey.width + dualKey.gap
                                     key.realWidth += dualKey.realWidth + dualKey.realGap
                                 }
+                                // A split keyboard gets a space bar on each side; see
+                                // applySplit, which cuts the two apart. The parser is still
+                                // on the same tag, so the copy reads the same attributes.
+                                if (LatinIME.Companion.sKeyboardSettings.splitGapPercent > 0) {
+                                    createKeyFromXml(res, currentRow, Math.round(x), y, parser)?.let { twin ->
+                                        twin.width = key.width
+                                        twin.realWidth = key.realWidth
+                                        twin.realX = x
+                                        twin.spaceTwin = true
+                                        mKeys!!.add(twin)
+                                    }
+                                }
                             }
                             key.realX = x
                             if (key.codes == null) {
@@ -1517,9 +1532,12 @@ open class Keyboard @JvmOverloads constructor(
      * Where a row opens is decided per row, because the rows are not aligned: the number
      * row and the home row are offset by their leading key, so no single x splits all of
      * them between keys. Each row opens at the key boundary nearest the middle, which
-     * leaves the gap very slightly ragged -- the same as any staggered split layout. A key
-     * that genuinely spans the middle and is much wider than its neighbours (the space
-     * bar) is stretched across the gap instead, so it stays reachable by either thumb.
+     * leaves the gap very slightly ragged -- the same as any staggered split layout.
+     *
+     * The space bar is cut in half, one half per thumb, so
+     * the middle stays clear -- for the tool dock, and for the system's gestures from the
+     * bottom edge. Any other key that genuinely spans the middle and is much wider than
+     * its neighbours is stretched across the gap instead.
      */
     private fun applySplit(gapFraction: Float) {
         val allKeys = mKeys?.filterNotNull() ?: return
@@ -1535,6 +1553,22 @@ open class Keyboard @JvmOverloads constructor(
         val epsilon = total * 0.01f
 
         for ((_, rowKeys) in allKeys.groupBy { it.y }) {
+            var cut: Float? = null
+            val twin = rowKeys.firstOrNull { it.spaceTwin }
+            val space = rowKeys.firstOrNull { !it.spaceTwin && it.codes?.firstOrNull() == 0x20 }
+            if (twin != null && space != null) {
+                // Cut the bar in half, one per thumb, and the halves then move apart
+                // like any other keys. Lining the cut up under the row above instead
+                // left the right half barely wider than a letter.
+                val left = space.realX
+                val right = space.realX + space.realWidth
+                val at = left + space.realWidth / 2f
+                space.realWidth = at - left
+                twin.realX = at
+                twin.realWidth = right - at
+                cut = at
+                twin.realGap = space.realGap
+            }
             val widths = rowKeys.map { it.realWidth }.sorted()
             val medianWidth = widths[widths.size / 2]
             // A layout can say where its halves divide. Geometry cannot work this out:
@@ -1546,6 +1580,7 @@ open class Keyboard @JvmOverloads constructor(
                 it.realX < middle - epsilon && it.realX + it.realWidth > middle + epsilon
             }
             val boundary = when {
+                cut != null -> cut
                 declared != null -> declared.realX
                 // No key spans the middle: the row already has a boundary there.
                 straddler == null -> middle
@@ -1576,10 +1611,9 @@ open class Keyboard @JvmOverloads constructor(
      *
      * Each row opens at its own boundary, so the halves are ragged and the rectangle
      * common to every row is narrower than any single row's gap. Rows whose gap is too
-     * small to be the split are skipped rather than allowed to veto it: the bottom row
-     * has none at all, because a key wide enough to span the middle is stretched across
-     * it instead (the space bar), and the padding around the letter block opens gaps of
-     * its own that are an order of magnitude smaller.
+     * small to be the split are skipped rather than allowed to veto it: a row whose wide
+     * middle key is stretched across has none at all, and the padding around the letter
+     * block opens gaps of its own that are an order of magnitude smaller.
      */
     fun splitGapRect(): android.graphics.Rect? {
         val allKeys = mKeys?.filterNotNull() ?: return null

@@ -1157,6 +1157,10 @@ open class LatinKeyboardBaseView @JvmOverloads constructor(
             if (key === mKeyboard?.spaceKey && mKeyboard?.vnSpaceLabel == true) {
                 val text = context.getString(R.string.vn_space_label)
                 mVnSpacePaint.textSize = mLabelTextSize * mLabelScale * 0.85f
+                // Half a split space bar is narrow; shrink the legend rather than clip it.
+                val room = (key.width - padding.left - padding.right) * 0.85f
+                val wide = mVnSpacePaint.measureText(text)
+                if (wide > room) mVnSpacePaint.textSize *= room / wide
                 val x = (key.width + padding.left - padding.right) / 2f
                 // Centred on a third of the way down: at the middle, the descender of the g in
                 // "Tiếng" landed on the top of the bar's glyph, about 3px apart on the Fold.
