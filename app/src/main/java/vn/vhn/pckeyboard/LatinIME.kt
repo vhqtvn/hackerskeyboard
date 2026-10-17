@@ -1471,7 +1471,15 @@ class LatinIME : InputMethodService(), ComposeSequencing,
         }
     }
 
+    /**
+     * Stick keeps the keyboard up by ignoring the system's requests to hide it. That
+     * worked on the Surface Duo it was made for. Anywhere newer, the system hides the
+     * window itself while the keyboard still believes it is showing, and the system
+     * believes it too: every back gesture then goes to the keyboard to close it, and the
+     * app never gets one. So it is the Duo only, and the Fn binding is dropped elsewhere.
+     */
     private fun setSticky(enable: Boolean) {
+        if (enable && !SurfaceDuoUtils.isDeviceSurfaceDuo(packageManager)) return
         if (enable == mStick) return
         mStick = enable
         mKeyboardSwitcher.setSticky(mStick)

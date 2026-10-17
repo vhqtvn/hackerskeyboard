@@ -227,6 +227,9 @@ class KeyboardSwitcher private constructor() : OnSharedPreferenceChangeListener 
                 id.mKeyboardMode, id.mKeyboardHeightPercent)
             keyboard.setVoiceMode(hasVoiceButton(id.mXml == R.xml.kbd_symbols), mHasVoice)
             keyboard.setLanguageSwitcher(mLanguageSwitcher, mIsAutoCompletionActive)
+            // Stick only works on the Surface Duo; see LatinIME.setSticky.
+            if (!com.vhn.SurfaceDuoUtils.isDeviceSurfaceDuo(mInputMethodService!!.packageManager))
+                keyboard.removeFnActions(setOf(Keyboard.KEYCODE_STICK))
             //            if (isFullMode()) {
 //                keyboard.setExtension(new LatinKeyboard(mInputMethodService,
 //                        R.xml.kbd_extension_full, 0, id.mRowHeightPercent));
