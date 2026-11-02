@@ -20,6 +20,7 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.Display
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -262,13 +263,16 @@ class OverlayKeyboardService : Service() {
             }
         }
         val deck = buildDeck(ctx)
-        // While locked, TYPE_APPLICATION_OVERLAY sits BELOW the secondary-display keyguard
+        // TYPE_APPLICATION_OVERLAY sits BELOW the secondary-display keyguard
         // (SecondaryKeyguard4), which then eats the deck's touches. TYPE_SYSTEM_ERROR layers
         // above the keyguard and is touchable (needs INTERNAL_SYSTEM_WINDOW, which we hold),
         // so the keyboard-only deck can actually be used to type the unlock credential.
+        // Always, not only when built locked: the keyguard can come up with no broadcast
+        // (SystemUI restarting shows it while the screen stays on), and an overlay deck
+        // would then sit dead under it. Above it, the deck still gets the touch that tells
+        // it the lock state moved (see buildDeck).
         @Suppress("DEPRECATION")
-        val windowType = if (deviceLocked()) WindowManager.LayoutParams.TYPE_SYSTEM_ERROR
-                         else WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        val windowType = WindowManager.LayoutParams.TYPE_SYSTEM_ERROR
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -336,7 +340,22 @@ class OverlayKeyboardService : Service() {
     // path as the standalone window, which renders correctly) and the utility
     // content placed in the exposed top area.
     private fun buildDeck(ctx: Context): View {
-        val root = FrameLayout(ctx).apply { setBackgroundColor(Color.BLACK) }
+        // A lock or unlock can pass without a broadcast (SystemUI restarting brings the
+        // keyguard up with the screen already on). Check on every new touch: if the deck
+        // was built for the other state, swallow the gesture and rebuild, so the full deck
+        // never acts while locked and a keyboard-only deck doesn't outlive the lock.
+        val root = object : FrameLayout(ctx) {
+            private var stale = false
+            override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+                if (!stale && ev.actionMasked == MotionEvent.ACTION_DOWN &&
+                    deviceLocked() != deckLockedMode) {
+                    stale = true
+                    Log.d(TAG, "lock state changed unannounced, rebuilding deck")
+                    mainHandler.post { rebuildDeck() }
+                }
+                return stale || super.dispatchTouchEvent(ev)
+            }
+        }.apply { setBackgroundColor(Color.BLACK) }
 
         // Lock-screen mode: expose ONLY the keyboard (no recents / app-launch / nav pad /
         // toggle buttons) so the deck can type the unlock credential but can never be used
