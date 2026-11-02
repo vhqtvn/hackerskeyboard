@@ -26,6 +26,17 @@ object InputInjector {
     private var writer: BufferedWriter? = null
     private val lock = Any()
 
+    /** Retained so the daemon can be restarted automatically if it dies during sleep. */
+    private var appContext: Context? = null
+
+    /** Last value sent via [setGamepad], re-applied automatically on daemon restart. */
+    @Volatile private var gamepadEnabled = false
+
+    /** When the last automatic restart was tried; failures are retried at most this often,
+     *  so a missing su doesn't fork a process for every pointer move. */
+    private var lastRestartAttempt = 0L
+    private const val RESTART_BACKOFF_MS = 3000L
+
     /** Called on a background thread when the daemon reports a gamepad button
      *  (evdev code, pressed). Set by the service to route it through the keyboard. */
     @Volatile var gamepadKeyListener: ((Int, Boolean) -> Unit)? = null
@@ -47,6 +58,7 @@ object InputInjector {
      * and answered the readiness ping.
      */
     fun start(context: Context): Boolean = synchronized(lock) {
+        appContext = context.applicationContext
         if (process?.isAlive == true) return true
         stopLocked()
         val bin = binaryPath(context)
@@ -106,6 +118,24 @@ object InputInjector {
     }
 
     private fun send(line: String): Boolean = synchronized(lock) {
+        // Auto-restart the daemon if it died (e.g. killed by Android's phantom process
+        // killer while the device was asleep). synchronized is reentrant on the same
+        // thread, so start() can be called here while the lock is already held.
+        if (process?.isAlive != true) {
+            val ctx = appContext ?: return false
+            val now = android.os.SystemClock.uptimeMillis()
+            if (now - lastRestartAttempt < RESTART_BACKOFF_MS) return false
+            lastRestartAttempt = now
+            Log.w(TAG, "daemon not running, attempting restart")
+            if (!start(ctx)) {
+                Log.e(TAG, "daemon restart failed")
+                return false
+            }
+            // Re-apply gamepad state: the new daemon starts with it disabled.
+            if (gamepadEnabled) {
+                try { writer?.write("J1\n"); writer?.flush() } catch (_: Exception) {}
+            }
+        }
         val w = writer ?: return false
         if (process?.isAlive != true) return false
         return try {
@@ -137,7 +167,10 @@ object InputInjector {
     fun touchUp() = send("GU")
 
     // --- Gamepad -> mouse/scroll (folded joyscroll) ----------------------------
-    fun setGamepad(enabled: Boolean) = send(if (enabled) "J1" else "J0")
+    fun setGamepad(enabled: Boolean) {
+        gamepadEnabled = enabled  // remembered so it can be re-applied after daemon restart
+        send(if (enabled) "J1" else "J0")
+    }
 
     // --- Android-keycode-level API --------------------------------------------
     /**

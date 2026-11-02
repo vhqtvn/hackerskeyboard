@@ -71,6 +71,15 @@ class OverlayKeyboardService : Service() {
     // Rebuild the deck when the lock state flips (lock -> keyboard-only, unlock -> full).
     private val lockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            // The daemon can be killed by Android's phantom process killer while the device
+            // is asleep. Restart it proactively on screen-on/unlock so the cursor pad and
+            // joypad arrows work immediately after waking, without waiting for the first
+            // send() failure to trigger the auto-restart path.
+            if (!InputInjector.isRunning) {
+                Log.d(TAG, "daemon not running on ${intent?.action}, restarting")
+                InputInjector.start(this@OverlayKeyboardService)
+                InputInjector.setGamepad(gamepadOn)
+            }
             if (expanded && deviceLocked() != deckLockedMode) rebuildDeck()
         }
     }
