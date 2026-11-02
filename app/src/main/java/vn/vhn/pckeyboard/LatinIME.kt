@@ -878,8 +878,11 @@ class LatinIME : InputMethodService(), ComposeSequencing,
             else -> mKeyboardSwitcher.setKeyboardMode(KeyboardSwitcher.MODE_TEXT,
                 attribute.imeOptions, false)
         }
-        // After the mode switch, so the keys cleared are the ones now on screen.
-        resetModifiers()
+        // After the mode switch, so the keys cleared are the ones now on screen. Not on a
+        // restart, though: that is the same field, and some apps restart input whenever the
+        // selection changes -- which would drop a Shift held down for Shift+arrow between
+        // one repeat and the next, and the selection would flicker as it went.
+        if (!restarting) resetModifiers()
         inputView.closing()
         loadSettings()
         updateShiftKeyState(attribute)
