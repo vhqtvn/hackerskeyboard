@@ -1067,7 +1067,11 @@ open class Keyboard @JvmOverloads constructor(
         var rowFlags = 0
         for (key in mKeys!!) {
             var keyFlags = 0
-            if (prevKey == null || key!!.x <= prevKey.x) {
+            // A new row is a new y, not a step back in x: a split keyboard's space bar is
+            // two keys parsed at the same x, and reading the second as the start of a row
+            // flagged it a left edge -- which claims every touch left of it, so the Win
+            // and Alt keys beside it typed spaces.
+            if (prevKey == null || key!!.y != prevKey.y) {
                 // Start new row.
                 if (prevKey != null) {
                     // Add "right edge" to rightmost key of previous row.
